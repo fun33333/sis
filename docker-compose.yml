@@ -20,6 +20,8 @@ services:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     volumes:
       - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
     env_file:
       - ./frontend/.env
       - ./.env
@@ -53,3 +55,6 @@ services:
 
 volumes:
   postgres_data:
+  
+  # Keep Next.js build cache and node_modules inside container to avoid Windows bind mount issues
+  # (named volumes defined implicitly by absolute container paths above)
