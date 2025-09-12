@@ -8,16 +8,11 @@ interface GenderDistributionChartProps {
   data: ChartData[]
 }
 
+// Custom palette for gender chart (using provided palette)
 const GENDER_COLORS = {
-  Male: "hsl(var(--chart-1))",
-  Female: "hsl(var(--chart-2))",
-  Other: "hsl(var(--chart-3))",
-  }
-  const GENDER_COLORS_NEW = {
-    Male: '#3b82f6', // Vivid Blue
-    Female: '#e11d48', // Vivid Pink/Red
-    Other: '#f59e42', // Vivid Orange
-  }
+  Male: '#274C77', // blue
+  Female: '#de3492ff', // teal-pink
+}
 
 export function GenderDistributionChart({ data }: GenderDistributionChartProps) {
   const CustomTooltip = ({ active, payload }: any) => {

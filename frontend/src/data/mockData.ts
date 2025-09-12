@@ -14,7 +14,6 @@ export const CAMPUSES = [
 export const GRADES = [
   "Nursery",
   "Pre-K",
-  "K",
   "1st",
   "2nd",
   "3rd",
@@ -25,14 +24,10 @@ export const GRADES = [
   "8th",
   "9th",
   "10th",
-  "11th",
-  "12th",
-  "College",
 ]
 
 export const ACADEMIC_YEARS = [2022, 2023, 2024]
 
-// Generate realistic names
 const FIRST_NAMES = [
   "Emma",
   "Liam",
@@ -99,6 +94,13 @@ const LAST_NAMES = [
   "Robinson",
 ]
 
+export const MOTHER_TONGUES = [
+  "Urdu", "Punjabi", "Sindhi", "Pashto", "Balochi", "Saraiki", "English", "Other"
+]
+export const RELIGIONS = [
+  "Islam", "Christianity", "Hinduism", "Sikhism", "Other"
+]
+
 // Generate mock student data
 function generateMockStudents(count = 1500): Student[] {
   const students: Student[] = []
@@ -109,7 +111,9 @@ function generateMockStudents(count = 1500): Student[] {
     const academicYear = ACADEMIC_YEARS[Math.floor(Math.random() * ACADEMIC_YEARS.length)]
     const campus = CAMPUSES[Math.floor(Math.random() * CAMPUSES.length)]
     const grade = GRADES[Math.floor(Math.random() * GRADES.length)]
-    const gender = Math.random() < 0.48 ? "Female" : Math.random() < 0.96 ? "Male" : "Other"
+    const gender = Math.random() < 0.48 ? "Female" : Math.random() < 0.96 ? "Male" : "Other";
+    const motherTongue = MOTHER_TONGUES[Math.floor(Math.random() * MOTHER_TONGUES.length)]
+    const religion = RELIGIONS[Math.floor(Math.random() * RELIGIONS.length)]
 
     // Generate realistic attendance (70-100%)
     const attendancePercentage = Math.round(70 + Math.random() * 30)
@@ -131,6 +135,8 @@ function generateMockStudents(count = 1500): Student[] {
       campus,
       grade,
       gender,
+      motherTongue,
+      religion,
       attendancePercentage,
       averageScore,
       retentionFlag,
@@ -139,6 +145,37 @@ function generateMockStudents(count = 1500): Student[] {
   }
 
   return students
+}
+// Generate chart data for mother tongue distribution
+export function getMotherTongueDistribution(students: Student[]): ChartData[] {
+  const distribution = students.reduce(
+    (acc, student) => {
+      acc[student.motherTongue] = (acc[student.motherTongue] || 0) + 1
+      return acc
+    },
+    {} as Record<string, number>,
+  )
+  return Object.entries(distribution).map(([tongue, count]) => ({
+    name: tongue,
+    value: count,
+    fill: `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`,
+  }))
+}
+
+// Generate chart data for religion distribution
+export function getReligionDistribution(students: Student[]): ChartData[] {
+  const distribution = students.reduce(
+    (acc, student) => {
+      acc[student.religion] = (acc[student.religion] || 0) + 1
+      return acc
+    },
+    {} as Record<string, number>,
+  )
+  return Object.entries(distribution).map(([religion, count]) => ({
+    name: religion,
+    value: count,
+    fill: `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`,
+  }))
 }
 
 export const mockStudents = generateMockStudents()
@@ -164,23 +201,23 @@ export function getGradeDistribution(students: Student[]): ChartData[] {
 export function getGenderDistribution(students: Student[]): ChartData[] {
   const distribution = students.reduce(
     (acc, student) => {
-      acc[student.gender] = (acc[student.gender] || 0) + 1
-      return acc
+      if (student.gender === "Other") return acc;
+      acc[student.gender] = (acc[student.gender] || 0) + 1;
+      return acc;
     },
     {} as Record<string, number>,
-  )
+  );
 
   const colors = {
     Male: "hsl(210, 70%, 50%)",
     Female: "hsl(330, 70%, 50%)",
-    Other: "hsl(60, 70%, 50%)",
-  }
+  };
 
   return Object.entries(distribution).map(([gender, count]) => ({
     name: gender,
     value: count,
     fill: colors[gender as keyof typeof colors],
-  }))
+  }));
 }
 
 // Generate campus performance data
