@@ -12,27 +12,17 @@ import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Toaster } from "@/components/ui/toaster"
-import {
-  Users,
-  Building2,
-  GraduationCap,
-  Upload,
-  X,
-  ArrowLeft,
-  ArrowRight,
-  Save,
-  FileText,
-  Eye,
-  List,
-  UserPlus,
-} from "lucide-react"
+import { Users, Building2, GraduationCap, Upload, X, ArrowLeft, ArrowRight, Save, FileText, Eye, List, UserPlus, TrendingUp, } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+
 
 type FormType = "students" | "campus" | "teachers"
 
 export default function AdminPanel() {
   const { toast } = useToast()
-  const [activeForm, setActiveForm] = useState<FormType>("students")
+  const router = useRouter()
+  const [activeForm, setActiveForm] = useState<FormType>("campus")
   const [currentStep, setCurrentStep] = useState(1)
   const [showPreview, setShowPreview] = useState(false)
   const [showStudentList, setShowStudentList] = useState(false)
@@ -42,6 +32,20 @@ export default function AdminPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [invalidFields, setInvalidFields] = useState<string[]>([])
   const [errorFields, setErrorFields] = useState<string[]>([])
+  // temporary local teacher state used for inline preview editing
+  const [teacher, setTeacher] = useState<any>({})
+
+  // Inline error component for fields
+  const ErrorText = ({ children }: { children: React.ReactNode }) => (
+    <p className="text-sm text-red-600 mt-1 flex items-center gap-2">
+      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+        <path d="M12 9v4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M12 17h.01" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span>{children}</span>
+    </p>
+  )
 
   const forms = {
     students: {
@@ -58,7 +62,6 @@ export default function AdminPanel() {
           title: "Contact Details",
           fields: [
             "emergencyContact",
-            "secondaryPhone",
             "fatherName",
             "fatherCNIC",
             "fatherContact",
@@ -86,7 +89,7 @@ export default function AdminPanel() {
             "campus",
             "currentGrade",
             "section",
-            "reasonForTransfer",
+
             "toYear",
             "fromYear",
             "lastClassPassed",
@@ -104,12 +107,48 @@ export default function AdminPanel() {
         {
           id: 1,
           title: "General Information",
-          fields: ["campusName", "campusCode", "description", "status", "governingBody"],
+          fields: [
+            "campusName",
+            "campusCode",
+            "description",
+            "status",
+            "governingBody",
+            "registrationNumber",
+            "address",
+            "gradesOffered",
+            "languagesOfInstruction",
+            "academicYearStart",
+            "academicYearEnd",
+          ],
         },
         {
           id: 2,
-          title: "Facilities",
-          fields: ["totalClassrooms", "scienceLabs", "computerLabs", "library", "facilities"],
+          title: "Campus Details",
+          fields: [
+            "campusCapacity",
+            "classesPerGrade",
+            "averageClassSize",
+            "totalStudents",
+            "totalTeachers",
+            "totalRooms",
+            "totalClassrooms",
+            "scienceLabs",
+            "computerLabs",
+            "library",
+            "toilets",
+            "facilities",
+          ],
+        },
+        {
+          id: 3,
+          title: "Contact & Misc",
+          fields: [
+            "powerBackup",
+            "internetAvailability",
+            "establishedDate",
+            "staffHRContact",
+            "admissionOfficeContact",
+          ],
         },
       ],
     },
@@ -126,6 +165,47 @@ export default function AdminPanel() {
 
   const currentForm = forms[activeForm]
   const totalSteps = currentForm.steps.length
+
+  const requiredFieldsMap: { [form in FormType]?: { [step: number]: string[] } } = {
+    students: {
+      1: ["studentPhoto", "name", "gender", "dob", "placeOfBirth", "religion", "motherTongue"],
+      2: ["emergencyContact", "zakatStatus", "familyIncome", "houseOwned", "address"],
+      3: ["currentState", "campus", "currentGrade", "section"],
+    },
+    campus: {
+      1: [
+        "campusName",
+        "campusCode",
+        "registrationNumber",
+        "description",
+        "status",
+        "governingBody",
+        "address",
+        "gradesOffered",
+        "languagesOfInstruction",
+        "academicYearStart",
+        "academicYearEnd"
+      ],
+      2: [
+        "campusCapacity",
+        "classesPerGrade",
+        "averageClassSize",
+        "totalStudents",
+        "totalTeachers",
+        "totalRooms",
+        "totalClassrooms",
+        "computerLabs",
+        "library",
+        "facilities"
+      ],
+      3: [] // Contact & Misc (optional fields: powerBackup, internetAvailability, establishedDate, staffHRContact, admissionOfficeContact)
+    },
+    teachers: {
+      1: ["fullName", "dob", "gender", "contactNumber", "email"],
+      2: ["education"],
+      3: ["experience", "currentRole", "subjects"],
+    },
+  }
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>, imageKey: string) => {
     const file = event.target.files?.[0]
@@ -148,44 +228,128 @@ export default function AdminPanel() {
   }
 
   const validateCurrentStep = () => {
-    const currentStepFields = currentForm.steps[currentStep - 1].fields
+    const requiredForStep = requiredFieldsMap[activeForm]?.[currentStep] || []
     const invalid: string[] = []
+    const newErrorFields: string[] = []
 
-    for (const field of currentStepFields) {
+    for (const field of requiredForStep) {
+      // Special case for studentPhoto
+      if (field === "studentPhoto") {
+        if (!uploadedImages[field]) invalid.push(field)
+        continue
+      }
+
+      // Special case for toilets: consider valid if male or female counts provided
+      if (field === "toilets") {
+        const male = formData.maleToilets
+        const female = formData.femaleToilets
+        if (!male && !female) {
+          invalid.push(field)
+        }
+        continue
+      }
+
       const value = formData[field]
-
-      // Check if field is required and empty
       if (!value || (typeof value === "string" && value.trim() === "")) {
-        // Special case for image upload
-        if (field === "studentPhoto" && !uploadedImages[field]) {
-          invalid.push(field)
+        invalid.push(field)
+      }
+    }
+
+    // Conditional: determine houseOwned value robustly (formData or DOM)
+    let houseOwnedValue = formData.houseOwned
+    try {
+      if (!houseOwnedValue) {
+        const el = document.querySelector('[id=\"houseOwned\"]') as HTMLSelectElement | null
+        if (el) houseOwnedValue = el.value
+      }
+    } catch (e) { }
+
+    if (activeForm === "students" && currentStep === 2 && houseOwnedValue === "no") {
+      if (!formData.rent || (typeof formData.rent === "string" && formData.rent.trim() === "")) {
+        if (!invalid.includes("rent")) invalid.push("rent")
+      }
+    }
+
+    // Special-case: if both father and mother missing, guardian fields are required (only for students form)
+    if (activeForm === "students" && currentStep === 2) {
+      let fatherPresent = Boolean(formData.fatherName)
+      let motherPresent = Boolean(formData.motherName)
+      try {
+        if (!fatherPresent) {
+          const f = (document.getElementById("fatherName") as HTMLInputElement | null)?.value
+          fatherPresent = Boolean(f && f.trim() !== "")
         }
-        // For other fields, check if they have values
-        if (field !== "studentPhoto") {
-          invalid.push(field)
+        if (!motherPresent) {
+          const m = (document.getElementById("motherName") as HTMLInputElement | null)?.value
+          motherPresent = Boolean(m && m.trim() !== "")
         }
+      } catch (e) { }
+
+      if (!fatherPresent && !motherPresent) {
+        const guardianRequired = ["guardianName", "guardianCNIC", "guardianOccupation"]
+        guardianRequired.forEach((g) => {
+          const v = formData[g]
+          if (!v || (typeof v === "string" && v.trim() === "")) {
+            if (!invalid.includes(g)) invalid.push(g)
+            if (!newErrorFields.includes(g)) newErrorFields.push(g)
+          }
+        })
       }
     }
 
     setInvalidFields(invalid)
-    return invalid.length === 0
+    setErrorFields(newErrorFields)
+    return invalid
   }
 
   const handleStepChange = (step: number) => {
     setInvalidFields([])
+    setErrorFields([])
     setCurrentStep(step)
   }
 
-  const handleNext = () => {
-    if (!validateCurrentStep()) {
-      return;
-    }
+  const humanizeField = (field: string) => {
+    return field
+      .replace(/([A-Z])/g, " $1")
+      .replace(/_/g, " ")
+      .replace(/\b([a-z])/g, (s) => s.toUpperCase())
+  }
 
-    setCompletedSteps((prev) => ({ ...prev, [currentStep]: true }));
+  const handleNext = () => {
+    const invalid = validateCurrentStep()
+    if (invalid.length > 0) {
+      // show toast with human readable fields
+      toast({
+        title: "Please fill required fields",
+        description: invalid.map(humanizeField).join(", "),
+      })
+      // Fallback alert for environments where toast may be hidden
+      try {
+        window.alert("Please fill required fields: " + invalid.map(humanizeField).join(", "))
+      } catch (e) { }
+      // focus/scroll first invalid field
+      const first = invalid[0]
+      try {
+        if (first === "studentPhoto") {
+          fileInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+          fileInputRef.current?.focus()
+        } else {
+          const el = document.getElementById(first) as HTMLElement | null
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" })
+            try { el.focus() } catch (e) { }
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+      return
+    }
+    setCompletedSteps((prev) => ({ ...prev, [currentStep]: true }))
     if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep(currentStep + 1)
     } else {
-      setShowPreview(true);
+      setShowPreview(true)
     }
   }
 
@@ -209,6 +373,9 @@ export default function AdminPanel() {
     // Clear the field from invalid list when user starts typing
     if (invalidFields.includes(field)) {
       setInvalidFields((prev) => prev.filter((f) => f !== field))
+    }
+    if (errorFields.includes(field)) {
+      setErrorFields((prev) => prev.filter((f) => f !== field))
     }
   }
 
@@ -246,7 +413,7 @@ export default function AdminPanel() {
       )
     }
 
-    if (showPreview) {
+  if (showPreview) {
       return (
         <Card className="border-2">
           <CardHeader>
@@ -305,14 +472,24 @@ export default function AdminPanel() {
             <div className="space-y-4">
               <h4 className="font-semibold text-lg border-b pb-2">Contact Details</h4>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Emergency Contact</Label>
-                  <p className="text-sm font-medium">{formData.emergencyContact || "Not provided"}</p>
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyContact">Emergency Contact Number *</Label>
+                  <Input
+                    id="emergencyContact"
+                    placeholder="Enter emergency contact number"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('emergencyContact') ? 'border-red-500' : ''}`}
+                    value={formData.emergencyContact || ""}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, "")
+                      setFormData({ ...formData, emergencyContact: value })
+                    }}
+                    required
+                  />
+                  {invalidFields.includes('emergencyContact') && (
+                    <ErrorText>This field is required.</ErrorText>
+                  )}
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Secondary Phone</Label>
-                  <p className="text-sm font-medium">{formData.secondaryPhone || "Not provided"}</p>
-                </div>
+                {/* secondaryPhone removed per request */}
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Father's Name</Label>
                   <p className="text-sm font-medium">{formData.fatherName || "Not provided"}</p>
@@ -406,10 +583,7 @@ export default function AdminPanel() {
                   <Label className="text-sm font-medium text-muted-foreground">Section</Label>
                   <p className="text-sm font-medium">{formData.section || "Not provided"}</p>
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Reason for Transfer</Label>
-                  <p className="text-sm font-medium">{formData.reasonForTransfer || "Not provided"}</p>
-                </div>
+                {/* Reason for Transfer removed per request */}
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">To Year</Label>
                   <p className="text-sm font-medium">{formData.toYear || "Not provided"}</p>
@@ -519,6 +693,9 @@ export default function AdminPanel() {
                   className="hidden"
                   onChange={(e) => handleImageUpload(e, "studentPhoto")}
                 />
+                {invalidFields.includes('studentPhoto') && (
+                  <ErrorText>Student photo is required.</ErrorText>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -535,6 +712,7 @@ export default function AdminPanel() {
                     }}
                     required
                   />
+                  {invalidFields.includes('name') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="gender">Gender *</Label>
@@ -551,6 +729,7 @@ export default function AdminPanel() {
                       <SelectItem value="female">Female</SelectItem>
                     </SelectContent>
                   </Select>
+                  {invalidFields.includes('gender') && <ErrorText>This field is required.</ErrorText>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -564,6 +743,7 @@ export default function AdminPanel() {
                     onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
                     required
                   />
+                  {invalidFields.includes('dob') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="placeOfBirth">Place of Birth *</Label>
@@ -578,6 +758,7 @@ export default function AdminPanel() {
                     }}
                     required
                   />
+                  {invalidFields.includes('placeOfBirth') && <ErrorText>This field is required.</ErrorText>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -594,6 +775,7 @@ export default function AdminPanel() {
                     }}
                     required
                   />
+                  {invalidFields.includes('religion') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="motherTongue">Mother Tongue *</Label>
@@ -608,6 +790,7 @@ export default function AdminPanel() {
                     }}
                     required
                   />
+                  {invalidFields.includes('motherTongue') && <ErrorText>This field is required.</ErrorText>}
                 </div>
               </div>
             </CardContent>
@@ -627,7 +810,7 @@ export default function AdminPanel() {
                   <Input
                     id="emergencyContact"
                     placeholder="Enter emergency contact number"
-                    className="border-2 focus:border-primary"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('emergencyContact') ? 'border-red-500' : ''}`}
                     value={formData.emergencyContact || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "")
@@ -635,21 +818,11 @@ export default function AdminPanel() {
                     }}
                     required
                   />
+                  {invalidFields.includes('emergencyContact') && (
+                    <span className="text-red-500 text-xs">This field is required.</span>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="secondaryPhone">Secondary Phone Number *</Label>
-                  <Input
-                    id="secondaryPhone"
-                    placeholder="Enter secondary phone number"
-                    className="border-2 focus:border-primary"
-                    value={formData.secondaryPhone || ""}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, "")
-                      setFormData({ ...formData, secondaryPhone: value })
-                    }}
-                    required
-                  />
-                </div>
+                {/* secondaryPhone removed per request */}
               </div>
 
               <Separator />
@@ -660,9 +833,8 @@ export default function AdminPanel() {
                   <Input
                     id="fatherName"
                     placeholder="Enter father's full name (leave empty if not available)"
-                    className={`border-2 focus:border-primary ${
-                      errorFields.includes("fatherName") ? "border-red-500" : ""
-                    }`}
+                    className={`border-2 focus:border-primary ${errorFields.includes("fatherName") ? "border-red-500" : ""
+                      }`}
                     value={formData.fatherName || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
@@ -678,9 +850,8 @@ export default function AdminPanel() {
                   <Input
                     id="fatherCNIC"
                     placeholder="Enter father's CNIC (leave empty if not available)"
-                    className={`border-2 focus:border-primary ${
-                      errorFields.includes("fatherCNIC") ? "border-red-500" : ""
-                    }`}
+                    className={`border-2 focus:border-primary ${errorFields.includes("fatherCNIC") ? "border-red-500" : ""
+                      }`}
                     value={formData.fatherCNIC || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9-]/g, "")
@@ -698,9 +869,8 @@ export default function AdminPanel() {
                   <Input
                     id="fatherContact"
                     placeholder="Enter father's contact number (leave empty if not available)"
-                    className={`border-2 focus:border-primary ${
-                      errorFields.includes("fatherContact") ? "border-red-500" : ""
-                    }`}
+                    className={`border-2 focus:border-primary ${errorFields.includes("fatherContact") ? "border-red-500" : ""
+                      }`}
                     value={formData.fatherContact || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "")
@@ -716,9 +886,8 @@ export default function AdminPanel() {
                   <Input
                     id="fatherOccupation"
                     placeholder="Enter father's occupation (leave empty if not available)"
-                    className={`border-2 focus:border-primary ${
-                      errorFields.includes("fatherOccupation") ? "border-red-500" : ""
-                    }`}
+                    className={`border-2 focus:border-primary ${errorFields.includes("fatherOccupation") ? "border-red-500" : ""
+                      }`}
                     value={formData.fatherOccupation || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
@@ -741,9 +910,8 @@ export default function AdminPanel() {
                       <Input
                         id="guardianName"
                         placeholder="Enter guardian's name"
-                        className={`border-2 focus:border-primary ${
-                          errorFields.includes("guardianName") ? "border-red-500" : ""
-                        }`}
+                        className={`border-2 focus:border-primary ${errorFields.includes("guardianName") ? "border-red-500" : ""
+                          }`}
                         value={formData.guardianName || ""}
                         onChange={(e) => {
                           const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
@@ -754,15 +922,15 @@ export default function AdminPanel() {
                         }}
                         required
                       />
+                      {errorFields.includes("guardianName") && <ErrorText>This field is required.</ErrorText>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="guardianCNIC">Guardian CNIC *</Label>
                       <Input
                         id="guardianCNIC"
                         placeholder="Enter guardian's CNIC"
-                        className={`border-2 focus:border-primary ${
-                          errorFields.includes("guardianCNIC") ? "border-red-500" : ""
-                        }`}
+                        className={`border-2 focus:border-primary ${errorFields.includes("guardianCNIC") ? "border-red-500" : ""
+                          }`}
                         value={formData.guardianCNIC || ""}
                         onChange={(e) => {
                           const value = e.target.value.replace(/[^0-9-]/g, "")
@@ -773,6 +941,7 @@ export default function AdminPanel() {
                         }}
                         required
                       />
+                      {errorFields.includes("guardianCNIC") && <ErrorText>This field is required.</ErrorText>}
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -780,9 +949,8 @@ export default function AdminPanel() {
                     <Input
                       id="guardianOccupation"
                       placeholder="Enter guardian's occupation"
-                      className={`border-2 focus:border-primary ${
-                        errorFields.includes("guardianOccupation") ? "border-red-500" : ""
-                      }`}
+                      className={`border-2 focus:border-primary ${errorFields.includes("guardianOccupation") ? "border-red-500" : ""
+                        }`}
                       value={formData.guardianOccupation || ""}
                       onChange={(e) => {
                         const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
@@ -793,6 +961,7 @@ export default function AdminPanel() {
                       }}
                       required
                     />
+                    {errorFields.includes("guardianOccupation") && <ErrorText>This field is required.</ErrorText>}
                   </div>
                 </>
               )}
@@ -805,9 +974,8 @@ export default function AdminPanel() {
                   <Input
                     id="motherName"
                     placeholder="Enter mother's full name (leave empty if not available)"
-                    className={`border-2 focus:border-primary ${
-                      errorFields.includes("motherName") ? "border-red-500" : ""
-                    }`}
+                    className={`border-2 focus:border-primary ${errorFields.includes("motherName") ? "border-red-500" : ""
+                      }`}
                     value={formData.motherName || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
@@ -823,9 +991,8 @@ export default function AdminPanel() {
                   <Input
                     id="motherCNIC"
                     placeholder="Enter mother's CNIC (leave empty if not available)"
-                    className={`border-2 focus:border-primary ${
-                      errorFields.includes("motherCNIC") ? "border-red-500" : ""
-                    }`}
+                    className={`border-2 focus:border-primary ${errorFields.includes("motherCNIC") ? "border-red-500" : ""
+                      }`}
                     value={formData.motherCNIC || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9-]/g, "")
@@ -845,9 +1012,8 @@ export default function AdminPanel() {
                     onValueChange={(value) => setFormData({ ...formData, motherStatus: value })}
                   >
                     <SelectTrigger
-                      className={`border-2 focus:border-primary ${
-                        errorFields.includes("motherStatus") ? "border-red-500" : ""
-                      }`}
+                      className={`border-2 focus:border-primary ${errorFields.includes("motherStatus") ? "border-red-500" : ""
+                        }`}
                     >
                       <SelectValue placeholder="Select mother's status (optional)" />
                     </SelectTrigger>
@@ -863,9 +1029,8 @@ export default function AdminPanel() {
                   <Input
                     id="motherContact"
                     placeholder="Enter mother's contact number (optional)"
-                    className={`border-2 focus:border-primary ${
-                      errorFields.includes("motherContact") ? "border-red-500" : ""
-                    }`}
+                    className={`border-2 focus:border-primary ${errorFields.includes("motherContact") ? "border-red-500" : ""
+                      }`}
                     value={formData.motherContact || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "")
@@ -882,9 +1047,8 @@ export default function AdminPanel() {
                 <Input
                   id="motherOccupation"
                   placeholder="Enter mother's occupation (optional)"
-                  className={`border-2 focus:border-primary ${
-                    errorFields.includes("motherOccupation") ? "border-red-500" : ""
-                  }`}
+                  className={`border-2 focus:border-primary ${errorFields.includes("motherOccupation") ? "border-red-500" : ""
+                    }`}
                   value={formData.motherOccupation || ""}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
@@ -961,6 +1125,7 @@ export default function AdminPanel() {
                       }}
                       required
                     />
+                    {invalidFields.includes('rent') && <ErrorText>This field is required.</ErrorText>}
                   </div>
                 )}
               </div>
@@ -1013,9 +1178,14 @@ export default function AdminPanel() {
                       <SelectValue placeholder="Select campus" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="main">Main Campus</SelectItem>
-                      <SelectItem value="north">North Campus</SelectItem>
-                      <SelectItem value="south">South Campus</SelectItem>
+                      <SelectItem value="1">Campus 1</SelectItem>
+                      <SelectItem value="2">Campus 2</SelectItem>
+                      <SelectItem value="2">Campus 3</SelectItem>
+                      <SelectItem value="4">Campus 4</SelectItem>
+                      <SelectItem value="5">Campus 5</SelectItem>
+                      <SelectItem value="6">Campus 6</SelectItem>
+                      <SelectItem value="7">Campus 7</SelectItem>
+                      <SelectItem value="8">Campus 8</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1044,17 +1214,7 @@ export default function AdminPanel() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="reasonForTransfer">Reason for Transfer *</Label>
-                <Textarea
-                  id="reasonForTransfer"
-                  placeholder="Enter reason for transfer"
-                  className="border-2 focus:border-primary min-h-[100px]"
-                  value={formData.reasonForTransfer || ""}
-                  onChange={(e) => setFormData({ ...formData, reasonForTransfer: e.target.value })}
-                  required
-                />
-              </div>
+              {/* reasonForTransfer removed from form per request */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="toYear">To Year *</Label>
@@ -1132,6 +1292,7 @@ export default function AdminPanel() {
             </CardContent>
           </Card>
         )
+
       default:
         return null
     }
@@ -1161,12 +1322,32 @@ export default function AdminPanel() {
                   <p className="text-sm font-medium">{formData.campusCode || "Not provided"}</p>
                 </div>
                 <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Registration Number</Label>
+                  <p className="text-sm font-medium">{formData.registrationNumber || "Not provided"}</p>
+                </div>
+                <div>
                   <Label className="text-sm font-medium text-muted-foreground">Status</Label>
                   <p className="text-sm font-medium">{formData.status || "Not provided"}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Governing Body</Label>
                   <p className="text-sm font-medium">{formData.governingBody || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Campus Address</Label>
+                  <p className="text-sm font-medium">{formData.address || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Academic Year</Label>
+                  <p className="text-sm font-medium">{formData.academicYearStart && formData.academicYearEnd ? `${formData.academicYearStart} - ${formData.academicYearEnd}` : "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Grades Offered</Label>
+                  <p className="text-sm font-medium">{formData.gradesOffered || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Languages of Instruction</Label>
+                  <p className="text-sm font-medium">{formData.languagesOfInstruction || "Not provided"}</p>
                 </div>
                 <div className="col-span-2">
                   <Label className="text-sm font-medium text-muted-foreground">Description</Label>
@@ -1176,8 +1357,32 @@ export default function AdminPanel() {
             </div>
 
             <div className="space-y-4">
-              <h4 className="font-semibold text-lg border-b pb-2">Facilities</h4>
+              <h4 className="font-semibold text-lg border-b pb-2">Campus Details</h4>
               <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Campus Capacity</Label>
+                  <p className="text-sm font-medium">{formData.campusCapacity || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Classes per Grade</Label>
+                  <p className="text-sm font-medium">{formData.classesPerGrade || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Average Class Size</Label>
+                  <p className="text-sm font-medium">{formData.averageClassSize || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Total Students</Label>
+                  <p className="text-sm font-medium">{formData.totalStudents || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Total Teachers</Label>
+                  <p className="text-sm font-medium">{formData.totalTeachers || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Total Rooms</Label>
+                  <p className="text-sm font-medium">{formData.totalRooms || "Not provided"}</p>
+                </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Total Classrooms</Label>
                   <p className="text-sm font-medium">{formData.totalClassrooms || "Not provided"}</p>
@@ -1194,9 +1399,56 @@ export default function AdminPanel() {
                   <Label className="text-sm font-medium text-muted-foreground">Library</Label>
                   <p className="text-sm font-medium">{formData.library || "Not provided"}</p>
                 </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Toilets</Label>
+                  <p className="text-sm font-medium">
+                    {formData.maleToilets || formData.femaleToilets ?
+                      `Male: ${formData.maleToilets || '0'}, Female: ${formData.femaleToilets || '0'}`
+                      : "Not provided"}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Power Backup</Label>
+                  <p className="text-sm font-medium">{formData.powerBackup || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Internet Availability</Label>
+                  <p className="text-sm font-medium">{formData.internetAvailability || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Established Date</Label>
+                  <p className="text-sm font-medium">{formData.establishedDate || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">HR Contact</Label>
+                  <p className="text-sm font-medium">{formData.staffHRContact || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Admission Contact</Label>
+                  <p className="text-sm font-medium">{formData.admissionOfficeContact || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Power Backup</Label>
+                  <p className="text-sm font-medium">{formData.powerBackup || "Not provided"}</p>
+                </div>
                 <div className="col-span-2">
                   <Label className="text-sm font-medium text-muted-foreground">Additional Facilities</Label>
                   <p className="text-sm font-medium">{formData.facilities || "Not provided"}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-semibold text-lg border-b pb-2">Contact & Misc</h4>
+              <div className="grid grid-cols-2 gap-4">
+
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">HR Contact</Label>
+                  <p className="text-sm font-medium">{formData.staffHRContact || "Not provided"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Admission Contact</Label>
+                  <p className="text-sm font-medium">{formData.admissionOfficeContact || "Not provided"}</p>
                 </div>
               </div>
             </div>
@@ -1207,19 +1459,46 @@ export default function AdminPanel() {
                 Edit Information
               </Button>
               <Button
-                className="bg-secondary hover:bg-secondary/90"
+                className="bg-white text-black hover:cursor-pointer"
+                variant={"outline"}
                 onClick={() => {
-                  toast({
-                    title: "Success!",
-                    description: "Campus information saved successfully!",
-                  })
-                  resetForm()
+                  // Check if all required fields across all steps are filled
+                  const stepsCount = currentForm.steps.length
+                  const allRequired: string[] = []
+                  for (let s = 1; s <= stepsCount; s++) {
+                    const req = requiredFieldsMap[activeForm]?.[s] || []
+                    allRequired.push(...req)
+                  }
+                  const missingFields = allRequired.filter(field => !formData[field])
+                  
+                  if (missingFields.length === 0) {
+                    toast({
+                      title: "Success!",
+                      description: "Campus information saved successfully!",
+                    });
+                    resetForm();
+                  } else {
+                    toast({
+                      title: "Warning",
+                      description: "Some required fields are missing. Please save as draft instead.",
+                      variant: "destructive"
+                    });
+                  }
                 }}
-              >
-                <Save className="h-4 w-4 mr-2" />
+                >
+                <Save className="h-4 w-4 mr-2 text-black" />
                 Save
               </Button>
-              <Button variant="outline">
+              <Button className="bg-white text-black hover:cursor-pointer"
+                variant="outline"
+                onClick={() => {
+                  toast({
+                    title: "Draft Saved",
+                    description: "Campus information saved as draft. You can complete it later.",
+                  });
+                  resetForm();
+                }}
+              >
                 <FileText className="h-4 w-4 mr-2" />
                 Save to Drafts
               </Button>
@@ -1246,15 +1525,10 @@ export default function AdminPanel() {
                     placeholder="Enter campus name"
                     className={`border-2 focus:border-primary ${invalidFields.includes('campusName') ? 'border-red-500' : ''}`}
                     value={formData.campusName || ""}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
-                      setFormData({ ...formData, campusName: value })
-                    }}
+                    onChange={(e) => setFormData({ ...formData, campusName: e.target.value })}
                     required
                   />
-                  {invalidFields.includes('campusName') && (
-                    <span className="text-red-500 text-xs">Please fill this field.</span>
-                  )}
+                  {invalidFields.includes('campusName') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="campusCode">Campus Code *</Label>
@@ -1266,30 +1540,40 @@ export default function AdminPanel() {
                     onChange={(e) => setFormData({ ...formData, campusCode: e.target.value })}
                     required
                   />
-                  {invalidFields.includes('campusCode') && (
-                    <span className="text-red-500 text-xs">Please fill this field.</span>
-                  )}
+                  {invalidFields.includes('campusCode') && <ErrorText>This field is required.</ErrorText>}
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description *</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Enter campus description"
-                    className={`border-2 focus:border-primary min-h-[100px] ${invalidFields.includes('description') ? 'border-red-500' : ''}`}
-                    value={formData.description || ""}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  <Label htmlFor="registrationNumber">Registration Number / License No *</Label>
+                  <Input
+                    id="registrationNumber"
+                    placeholder="Enter registration number"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('registrationNumber') ? 'border-red-500' : ''}`}
+                    value={formData.registrationNumber || ""}
+                    onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
                     required
                   />
-                  {invalidFields.includes('description') && (
-                    <span className="text-red-500 text-xs">Please fill this field.</span>
-                  )}
+                  {invalidFields.includes('registrationNumber') && <ErrorText>This field is required.</ErrorText>}
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description *</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Enter campus description"
+                  className={`border-2 focus:border-primary min-h-[100px] ${invalidFields.includes('description') ? 'border-red-500' : ''}`}
+                  value={formData.description || ""}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  required
+                />
+                {invalidFields.includes('description') && <ErrorText>This field is required.</ErrorText>}
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="status">Status *</Label>
                   <Select
-                    value={formData.status}
+                    value={formData.status || ""}
                     onValueChange={(value) => setFormData({ ...formData, status: value })}
                     required
                   >
@@ -1302,9 +1586,7 @@ export default function AdminPanel() {
                       <SelectItem value="under-construction">Under Construction</SelectItem>
                     </SelectContent>
                   </Select>
-                  {invalidFields.includes('status') && (
-                    <span className="text-red-500 text-xs">Please fill this field.</span>
-                  )}
+                  {invalidFields.includes('status') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="governingBody">Governing Body *</Label>
@@ -1319,9 +1601,100 @@ export default function AdminPanel() {
                     }}
                     required
                   />
-                  {invalidFields.includes('governingBody') && (
-                    <span className="text-red-500 text-xs">Please fill this field.</span>
-                  )}
+                  {invalidFields.includes('governingBody') && <ErrorText>This field is required.</ErrorText>}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Campus Address *</Label>
+                <Textarea
+                  id="address"
+                  placeholder="Enter campus address"
+                  className={`border-2 focus:border-primary ${invalidFields.includes('address') ? 'border-red-500' : ''}`}
+                  value={formData.address || ""}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  required
+                />
+                {invalidFields.includes('address') && <ErrorText>This field is required.</ErrorText>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="academicYearStart">Academic Year Start *</Label>
+                  <Select
+                    value={formData.academicYearStart || ""}
+                    onValueChange={(value) => setFormData({ ...formData, academicYearStart: value })}
+                    required
+                  >
+                    <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes('academicYearStart') ? 'border-red-500' : ''}`}>
+                      <SelectValue placeholder="Select start month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["January", "February", "March", "April", "May", "June",
+                        "July", "August", "September", "October", "November", "December"].map(month => (
+                          <SelectItem key={month.toLowerCase()} value={month.toLowerCase()}>{month}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  {invalidFields.includes('academicYearStart') && <ErrorText>This field is required.</ErrorText>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="academicYearEnd">Academic Year End *</Label>
+                  <Select
+                    value={formData.academicYearEnd || ""}
+                    onValueChange={(value) => setFormData({ ...formData, academicYearEnd: value })}
+                    required
+                  >
+                    <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes('academicYearEnd') ? 'border-red-500' : ''}`}>
+                      <SelectValue placeholder="Select end month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["January", "February", "March", "April", "May", "June",
+                        "July", "August", "September", "October", "November", "December"].map(month => (
+                          <SelectItem key={month.toLowerCase()} value={month.toLowerCase()}>{month}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  {invalidFields.includes('academicYearEnd') && <ErrorText>This field is required.</ErrorText>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="gradesOffered">Grades Offered *</Label>
+                  <Select
+                    value={formData.gradesOffered || ""}
+                    onValueChange={(value) => setFormData({ ...formData, gradesOffered: value })}
+                    required
+                  >
+                    <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes('gradesOffered') ? 'border-red-500' : ''}`}>
+                      <SelectValue placeholder="Select grades" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["Primary (1-5)", "Elementary (6-8)", "Secondary (9-10)", "Higher Secondary (11-12)", "All Levels"].map(grade => (
+                        <SelectItem key={grade.toLowerCase()} value={grade.toLowerCase()}>{grade}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {invalidFields.includes('gradesOffered') && <ErrorText>This field is required.</ErrorText>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="languagesOfInstruction">Language(s) of Instruction *</Label>
+                  <Select
+                    value={formData.languagesOfInstruction || ""}
+                    onValueChange={(value) => setFormData({ ...formData, languagesOfInstruction: value })}
+                    required
+                  >
+                    <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes('languagesOfInstruction') ? 'border-red-500' : ''}`}>
+                      <SelectValue placeholder="Select languages" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="english">English</SelectItem>
+                      <SelectItem value="urdu">Urdu</SelectItem>
+                      <SelectItem value="both">Both (English & Urdu)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {invalidFields.includes('languagesOfInstruction') && <ErrorText>This field is required.</ErrorText>}
                 </div>
               </div>
             </CardContent>
@@ -1341,7 +1714,7 @@ export default function AdminPanel() {
                   <Input
                     id="totalClassrooms"
                     placeholder="Enter number of classrooms"
-                    className="border-2 focus:border-primary"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('totalClassrooms') ? 'border-red-500' : ''}`}
                     value={formData.totalClassrooms || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "")
@@ -1349,13 +1722,14 @@ export default function AdminPanel() {
                     }}
                     required
                   />
+                  {invalidFields.includes('totalClassrooms') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="scienceLabs">Science Labs *</Label>
                   <Input
                     id="scienceLabs"
                     placeholder="Enter number of science labs"
-                    className="border-2 focus:border-primary"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('scienceLabs') ? 'border-red-500' : ''}`}
                     value={formData.scienceLabs || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "")
@@ -1363,6 +1737,7 @@ export default function AdminPanel() {
                     }}
                     required
                   />
+                  {invalidFields.includes('scienceLabs') && <ErrorText>This field is required.</ErrorText>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -1371,7 +1746,7 @@ export default function AdminPanel() {
                   <Input
                     id="computerLabs"
                     placeholder="Enter number of computer labs"
-                    className="border-2 focus:border-primary"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('computerLabs') ? 'border-red-500' : ''}`}
                     value={formData.computerLabs || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "")
@@ -1379,6 +1754,7 @@ export default function AdminPanel() {
                     }}
                     required
                   />
+                  {invalidFields.includes('computerLabs') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="library">Library *</Label>
@@ -1387,8 +1763,163 @@ export default function AdminPanel() {
                     onValueChange={(value) => setFormData({ ...formData, library: value })}
                     required
                   >
-                    <SelectTrigger className="border-2 focus:border-primary">
+                    <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes('library') ? 'border-red-500' : ''}`}>
                       <SelectValue placeholder="Select library availability" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {invalidFields.includes('library') && <ErrorText>This field is required.</ErrorText>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="campusCapacity">Campus Capacity (students) *</Label>
+                  <Input
+                    id="campusCapacity"
+                    placeholder="Enter campus capacity"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('campusCapacity') ? 'border-red-500' : ''}`}
+                    value={formData.campusCapacity || ""}
+                    onChange={(e) => setFormData({ ...formData, campusCapacity: e.target.value.replace(/[^0-9]/g, "") })}
+                  />
+                  {invalidFields.includes('campusCapacity') && <ErrorText>This field is required.</ErrorText>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="classesPerGrade">Classes per Grade *</Label>
+                  <Input
+                    id="classesPerGrade"
+                    placeholder="Enter classes per grade"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('classesPerGrade') ? 'border-red-500' : ''}`}
+                    value={formData.classesPerGrade || ""}
+                    onChange={(e) => setFormData({ ...formData, classesPerGrade: e.target.value.replace(/[^0-9]/g, "") })}
+                  />
+                  {invalidFields.includes('classesPerGrade') && <ErrorText>This field is required.</ErrorText>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="averageClassSize">Average Class Size (current) *</Label>
+                  <Input
+                    id="averageClassSize"
+                    placeholder="Enter average class size"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('averageClassSize') ? 'border-red-500' : ''}`}
+                    value={formData.averageClassSize || ""}
+                    onChange={(e) => setFormData({ ...formData, averageClassSize: e.target.value.replace(/[^0-9]/g, "") })}
+                  />
+                  {invalidFields.includes('averageClassSize') && <ErrorText>This field is required.</ErrorText>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="totalStudents">No of Students *</Label>
+                  <Input
+                    id="totalStudents"
+                    placeholder="Enter total students"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('totalStudents') ? 'border-red-500' : ''}`}
+                    value={formData.totalStudents || ""}
+                    onChange={(e) => setFormData({ ...formData, totalStudents: e.target.value.replace(/[^0-9]/g, "") })}
+                  />
+                  {invalidFields.includes('totalStudents') && <ErrorText>This field is required.</ErrorText>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="totalTeachers">No of Teachers *</Label>
+                  <Input
+                    id="totalTeachers"
+                    placeholder="Enter total teachers"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('totalTeachers') ? 'border-red-500' : ''}`}
+                    value={formData.totalTeachers || ""}
+                    onChange={(e) => setFormData({ ...formData, totalTeachers: e.target.value.replace(/[^0-9]/g, "") })}
+                  />
+                  {invalidFields.includes('totalTeachers') && <ErrorText>This field is required.</ErrorText>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="totalRooms">No of Rooms *</Label>
+                  <Input
+                    id="totalRooms"
+                    placeholder="Enter total rooms"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('totalRooms') ? 'border-red-500' : ''}`}
+                    value={formData.totalRooms || ""}
+                    onChange={(e) => setFormData({ ...formData, totalRooms: e.target.value.replace(/[^0-9]/g, "") })}
+                  />
+                  {invalidFields.includes('totalRooms') && <ErrorText>This field is required.</ErrorText>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="maleToilets">Toilets (Male)</Label>
+                  <Input
+                    id="maleToilets"
+                    placeholder="Number of male toilets"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('maleToilets') ? 'border-red-500' : ''}`}
+                    value={formData.maleToilets || ""}
+                    onChange={(e) => setFormData({ ...formData, maleToilets: e.target.value.replace(/[^0-9]/g, "") })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="femaleToilets">Toilets (Female)</Label>
+                  <Input
+                    id="femaleToilets"
+                    placeholder="Number of female toilets"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('femaleToilets') ? 'border-red-500' : ''}`}
+                    value={formData.femaleToilets || ""}
+                    onChange={(e) => setFormData({ ...formData, femaleToilets: e.target.value.replace(/[^0-9]/g, "") })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="facilities">Additional Facilities *</Label>
+                <Textarea
+                  id="facilities"
+                  placeholder="Enter additional facilities (playground, cafeteria, etc.)"
+                  className={`border-2 focus:border-primary min-h-[100px] ${invalidFields.includes('facilities') ? 'border-red-500' : ''}`}
+                  value={formData.facilities || ""}
+                  onChange={(e) => setFormData({ ...formData, facilities: e.target.value })}
+                  required
+                />
+                {invalidFields.includes('facilities') && <ErrorText>This field is required.</ErrorText>}
+              </div>
+            </CardContent>
+          </Card>
+        )
+      case 3:
+        return (
+          <Card className="border-2">
+            <CardHeader>
+              <CardTitle>Contact & Misc</CardTitle>
+              <CardDescription>Optional contact and miscellaneous information</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="powerBackup">Power Backup</Label>
+                  <Select
+                    value={formData.powerBackup || ""}
+                    onValueChange={(value) => setFormData({ ...formData, powerBackup: value })}
+                  >
+                    <SelectTrigger className="border-2 focus:border-primary">
+                      <SelectValue placeholder="Select option" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="internetAvailability">Internet Availability</Label>
+                  <Select
+                    value={formData.internetAvailability || ""}
+                    onValueChange={(value) => setFormData({ ...formData, internetAvailability: value })}
+                  >
+                    <SelectTrigger className="border-2 focus:border-primary">
+                      <SelectValue placeholder="Select option" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="yes">Yes</SelectItem>
@@ -1397,15 +1928,38 @@ export default function AdminPanel() {
                   </Select>
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="establishedDate">Established Date</Label>
+                  <Input
+                    id="establishedDate"
+                    type="date"
+                    value={formData.establishedDate || ""}
+                    onChange={(e) => setFormData({ ...formData, establishedDate: e.target.value })}
+                    className="border-2 focus:border-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="staffHRContact">Staff HR Contact</Label>
+                  <Input
+                    id="staffHRContact"
+                    placeholder="Enter staff HR contact"
+                    value={formData.staffHRContact || ""}
+                    onChange={(e) => setFormData({ ...formData, staffHRContact: e.target.value })}
+                    className="border-2 focus:border-primary"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="facilities">Additional Facilities *</Label>
-                <Textarea
-                  id="facilities"
-                  placeholder="Enter additional facilities (playground, cafeteria, etc.)"
-                  className="border-2 focus:border-primary min-h-[100px]"
-                  value={formData.facilities || ""}
-                  onChange={(e) => setFormData({ ...formData, facilities: e.target.value })}
-                  required
+                <Label htmlFor="admissionOfficeContact">Admission Office Contact</Label>
+                <Input
+                  id="admissionOfficeContact"
+                  placeholder="Enter admission office contact"
+                  value={formData.admissionOfficeContact || ""}
+                  onChange={(e) => setFormData({ ...formData, admissionOfficeContact: e.target.value })}
+                  className="border-2 focus:border-primary"
                 />
               </div>
             </CardContent>
@@ -1506,7 +2060,57 @@ export default function AdminPanel() {
           </CardContent>
         </Card>
       )
+
     }
+
+    // Teacher Form Steps - converted to structured entries (educationEntries, experienceEntries) + summary
+
+    // helper accessors stored on formData to keep compatibility with preview keys
+    const educationEntries = formData.educationEntries || []
+    const experienceEntries = formData.experienceEntries || []
+
+    const addEducationEntry = () => {
+      const entry = { id: `edu-${Date.now()}`, level: "Graduation", institution: "", year: "", subjects: "", grade: "" }
+      const next = [...educationEntries, entry]
+      setFormData({ ...formData, educationEntries: next, education: next.map((e: any) => `${e.level} - ${e.institution}`).join("; ") })
+    }
+
+    const updateEducationEntry = (id: string, patch: Partial<any>) => {
+      const next = educationEntries.map((e: any) => (e.id === id ? { ...e, ...patch } : e))
+      setFormData({ ...formData, educationEntries: next, education: next.map((e: any) => `${e.level} - ${e.institution}`).join("; ") })
+    }
+
+    const removeEducationEntry = (id: string) => {
+      const next = educationEntries.filter((e: any) => e.id !== id)
+      setFormData({ ...formData, educationEntries: next, education: next.map((e: any) => `${e.level} - ${e.institution}`).join("; ") })
+    }
+
+    const addExperienceEntry = () => {
+      const entry = { id: `exp-${Date.now()}`, institution: "", position: "", from: "", to: "", subjects: "", responsibilities: "" }
+      const next = [...experienceEntries, entry]
+      setFormData({ ...formData, experienceEntries: next, experience: next.map((x: any) => `${x.position || ''} @ ${x.institution}`).join("; ") })
+    }
+
+    const updateExperienceEntry = (id: string, patch: Partial<any>) => {
+      const next = experienceEntries.map((x: any) => (x.id === id ? { ...x, ...patch } : x))
+      setFormData({ ...formData, experienceEntries: next, experience: next.map((x: any) => `${x.position || ''} @ ${x.institution}`).join("; ") })
+    }
+
+    const removeExperienceEntry = (id: string) => {
+      const next = experienceEntries.filter((x: any) => x.id !== id)
+      setFormData({ ...formData, experienceEntries: next, experience: next.map((x: any) => `${x.position || ''} @ ${x.institution}`).join("; ") })
+    }
+
+    const totalExperienceYears = (experienceEntries as any[]).reduce((sum, x) => {
+      try {
+        if (!x.from || !x.to) return sum
+        const fromY = new Date(x.from).getFullYear()
+        const toY = new Date(x.to).getFullYear()
+        return sum + Math.max(0, toY - fromY)
+      } catch (e) {
+        return sum
+      }
+    }, 0)
 
     switch (currentStep) {
       case 1:
@@ -1522,58 +2126,55 @@ export default function AdminPanel() {
                 <Input
                   id="fullName"
                   placeholder="Enter teacher's full name"
-                  className="border-2 focus:border-primary"
+                  className={`border-2 focus:border-primary ${invalidFields.includes('fullName') ? 'border-red-500' : ''}`}
                   value={formData.fullName || ""}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
-                    setFormData({ ...formData, fullName: value })
-                  }}
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value.replace(/[^a-zA-Z\s]/g, "") })}
                   required
                 />
+                {invalidFields.includes('fullName') && <ErrorText>This field is required.</ErrorText>}
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="dob">Date of Birth *</Label>
                   <Input
                     id="dob"
                     type="date"
-                    className="border-2 focus:border-primary"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('dob') ? 'border-red-500' : ''}`}
                     value={formData.dob || ""}
                     onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
                     required
                   />
+                  {invalidFields.includes('dob') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="gender">Gender *</Label>
-                  <Select
-                    value={formData.gender}
-                    onValueChange={(value) => setFormData({ ...formData, gender: value })}
-                    required
-                  >
-                    <SelectTrigger className="border-2 focus:border-primary">
+                  <Select value={formData.gender || ""} onValueChange={(v) => setFormData({ ...formData, gender: v })}>
+                    <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes('gender') ? 'border-red-500' : ''}`}>
                       <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="male">Male</SelectItem>
                       <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
+                  {invalidFields.includes('gender') && <ErrorText>This field is required.</ErrorText>}
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="contactNumber">Contact Number *</Label>
                   <Input
                     id="contactNumber"
                     placeholder="Enter contact number"
-                    className="border-2 focus:border-primary"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('contactNumber') ? 'border-red-500' : ''}`}
                     value={formData.contactNumber || ""}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, "")
-                      setFormData({ ...formData, contactNumber: value })
-                    }}
+                    onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value.replace(/[^0-9]/g, "") })}
                     required
                   />
+                  {invalidFields.includes('contactNumber') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email *</Label>
@@ -1581,90 +2182,285 @@ export default function AdminPanel() {
                     id="email"
                     type="email"
                     placeholder="Enter email address"
-                    className="border-2 focus:border-primary"
+                    className={`border-2 focus:border-primary ${invalidFields.includes('email') ? 'border-red-500' : ''}`}
                     value={formData.email || ""}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
                   />
+                  {invalidFields.includes('email') && <ErrorText>This field is required.</ErrorText>}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="permanentAddress">Permanent Address</Label>
+                <Textarea id="permanentAddress" placeholder="Permanent address" value={formData.permanentAddress || ""} onChange={(e) => setFormData({ ...formData, permanentAddress: e.target.value })} />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="currentAddress">Current Address (if different)</Label>
+                <Textarea id="currentAddress" placeholder="Current address" value={formData.currentAddress || ""} onChange={(e) => setFormData({ ...formData, currentAddress: e.target.value })} />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="maritalStatus">Marital Status</Label>
+                <Select value={formData.maritalStatus || ""} onValueChange={(v) => setFormData({ ...formData, maritalStatus: v })}>
+                  <SelectTrigger className="border-2 focus:border-primary">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select</SelectItem>
+                    <SelectItem value="single">Single</SelectItem>
+                    <SelectItem value="married">Married</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
         )
+
       case 2:
         return (
           <Card className="border-2">
             <CardHeader>
               <CardTitle>Educational Qualifications</CardTitle>
-              <CardDescription>Enter educational background</CardDescription>
+              <CardDescription>Add one or more education entries</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="education">Education *</Label>
-                <Textarea
-                  id="education"
-                  placeholder="Enter educational qualifications (degrees, certifications, etc.)"
-                  className="border-2 focus:border-primary min-h-[150px]"
-                  value={formData.education || ""}
-                  onChange={(e) => setFormData({ ...formData, education: e.target.value })}
-                  required
-                />
+            <CardContent className="space-y-4">
+              {(educationEntries.length === 0) && (
+                <div className="text-sm text-muted-foreground">No education entries yet — add one.</div>
+              )}
+              {educationEntries.map((ed: any) => (
+                <Card key={ed.id} className="bg-muted/5">
+                  <CardContent>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-medium">{ed.level || 'Education'}</div>
+                      <div>
+                        <Button size="sm" variant="outline" onClick={() => removeEducationEntry(ed.id)}>Remove</Button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Level</Label>
+                        <Select value={ed.level || ""} onValueChange={(v) => updateEducationEntry(ed.id, { level: v })}>
+                          <SelectTrigger className="border-2 focus:border-primary">
+                            <SelectValue placeholder="Select level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Secondary">Secondary</SelectItem>
+                            <SelectItem value="Higher Secondary">Higher Secondary</SelectItem>
+                            <SelectItem value="Graduation">Graduation</SelectItem>
+                            <SelectItem value="Diploma">Diploma</SelectItem>
+                            <SelectItem value="M.Phil">M.Phil</SelectItem>
+                            <SelectItem value="Ph.D.">Ph.D.</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Institution</Label>
+                        <Input
+                          value={ed.institution || ""}
+                          onChange={(e) => updateEducationEntry(ed.id, { institution: e.target.value })}
+                          className={`${invalidFields.includes('education') && (!ed.institution || ed.institution.trim() === '') ? 'border-red-500' : ''}`}
+                        />
+                        {invalidFields.includes('education') && (!ed.institution || ed.institution.trim() === '') && (
+                          <ErrorText>This field is required.</ErrorText>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label>Year of Passing</Label>
+                        <Input
+                          value={ed.year || ""}
+                          onChange={(e) => updateEducationEntry(ed.id, { year: e.target.value })}
+                          className={`${invalidFields.includes('education') && (!ed.year || ed.year.trim() === '') ? 'border-red-500' : ''}`}
+                        />
+                        {invalidFields.includes('education') && (!ed.year || ed.year.trim() === '') && (
+                          <ErrorText>This field is required.</ErrorText>
+                        )}
+                      </div>
+                      <div>
+                        <Label>Subjects / Specialization</Label>
+                        <Input
+                          value={ed.subjects || ""}
+                          onChange={(e) => updateEducationEntry(ed.id, { subjects: e.target.value })}
+                          className={`${invalidFields.includes('education') && (!ed.subjects || ed.subjects.trim() === '') ? 'border-red-500' : ''}`}
+                        />
+                        {invalidFields.includes('education') && (!ed.subjects || ed.subjects.trim() === '') && (
+                          <ErrorText>This field is required.</ErrorText>
+                        )}
+                      </div>
+
+                      <div className="col-span-2">
+                        <Label>Grade / Percentage</Label>
+                        <Input
+                          value={ed.grade || ""}
+                          onChange={(e) => updateEducationEntry(ed.id, { grade: e.target.value })}
+                          className={`${invalidFields.includes('education') && (!ed.grade || ed.grade.trim() === '') ? 'border-red-500' : ''}`}
+                        />
+                        {invalidFields.includes('education') && (!ed.grade || ed.grade.trim() === '') && (
+                          <ErrorText>This field is required.</ErrorText>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              <div>
+                <Button onClick={addEducationEntry}>+ Add Education</Button>
               </div>
             </CardContent>
           </Card>
         )
+
       case 3:
         return (
           <Card className="border-2">
             <CardHeader>
               <CardTitle>Work Experience</CardTitle>
-              <CardDescription>Enter work experience and current role</CardDescription>
+              <CardDescription>Add one or more work experience entries and finalize summary</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="experience">Experience *</Label>
-                <Textarea
-                  id="experience"
-                  placeholder="Enter work experience details"
-                  className="border-2 focus:border-primary min-h-[100px]"
-                  value={formData.experience || ""}
-                  onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                  required
-                />
+            <CardContent className="space-y-4">
+              {(experienceEntries.length === 0) && (
+                <div className="text-sm text-muted-foreground">No experience entries yet — add one.</div>
+              )}
+
+              {experienceEntries.map((ex: any) => (
+                <Card key={ex.id} className="bg-muted/5">
+                  <CardContent>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-medium">{ex.position || 'Experience'}</div>
+                      <div>
+                        <Button size="sm" variant="outline" onClick={() => removeExperienceEntry(ex.id)}>Remove</Button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Institution</Label>
+                        <Input
+                          value={ex.institution || ""}
+                          onChange={(e) => updateExperienceEntry(ex.id, { institution: e.target.value })}
+                          className={`${invalidFields.includes('experience') && (!ex.institution || ex.institution.trim() === '') ? 'border-red-500' : ''}`}
+                        />
+                        {invalidFields.includes('experience') && (!ex.institution || ex.institution.trim() === '') && (
+                          <ErrorText>This field is required.</ErrorText>
+                        )}
+                      </div>
+                      <div>
+                        <Label>Position / Designation</Label>
+                        <Input
+                          value={ex.position || ""}
+                          onChange={(e) => updateExperienceEntry(ex.id, { position: e.target.value })}
+                          className={`${invalidFields.includes('experience') && (!ex.position || ex.position.trim() === '') ? 'border-red-500' : ''}`}
+                        />
+                        {invalidFields.includes('experience') && (!ex.position || ex.position.trim() === '') && (
+                          <ErrorText>This field is required.</ErrorText>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label>From</Label>
+                        <Input
+                          type="date"
+                          value={ex.from || ""}
+                          onChange={(e) => updateExperienceEntry(ex.id, { from: e.target.value })}
+                          className={`${invalidFields.includes('experience') && (!ex.from || ex.from.trim() === '') ? 'border-red-500' : ''}`}
+                        />
+                        {invalidFields.includes('experience') && (!ex.from || ex.from.trim() === '') && (
+                          <ErrorText>This field is required.</ErrorText>
+                        )}
+                      </div>
+                      <div>
+                        <Label>To</Label>
+                        <Input
+                          type="date"
+                          value={ex.to || ""}
+                          onChange={(e) => updateExperienceEntry(ex.id, { to: e.target.value })}
+                          className={`${invalidFields.includes('experience') && (!ex.to || ex.to.trim() === '') ? 'border-red-500' : ''}`}
+                        />
+                        {invalidFields.includes('experience') && (!ex.to || ex.to.trim() === '') && (
+                          <ErrorText>This field is required.</ErrorText>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label>Subjects / Classes Taught</Label>
+                        <Input value={ex.subjects || ""} onChange={(e) => updateExperienceEntry(ex.id, { subjects: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>Total Years (auto)</Label>
+                        <Input readOnly value={ex.from && ex.to ? String(Math.max(0, new Date(ex.to).getFullYear() - new Date(ex.from).getFullYear())) : ""} />
+                      </div>
+
+                      <div className="col-span-2">
+                        <Label>Responsibilities / Assignments</Label>
+                        <Textarea value={ex.responsibilities || ""} onChange={(e) => updateExperienceEntry(ex.id, { responsibilities: e.target.value })} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              <div>
+                <Button onClick={addExperienceEntry}>+ Add Experience</Button>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="currentRole">Current Role *</Label>
-                  <Input
-                    id="currentRole"
-                    placeholder="Enter current role/position"
-                    className="border-2 focus:border-primary"
-                    value={formData.currentRole || ""}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
-                      setFormData({ ...formData, currentRole: value })
-                    }}
-                    required
-                  />
+
+              {/* Summary fields (currentRole, classes/sections, subjects taught, additional responsibilities) */}
+              <div className="mt-4 border-t pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="currentRole">Current Role</Label>
+                    <Input id="currentRole" value={formData.currentRole || ""} onChange={(e) => setFormData({ ...formData, currentRole: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label htmlFor="classesSections">Classes & Sections Taught</Label>
+                    <Select value={formData.classesSections || ""} onValueChange={(v) => setFormData({ ...formData, classesSections: v })}>
+                      <SelectTrigger className="border-2 focus:border-primary">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Select</SelectItem>
+                        <SelectItem value="Nursery - A">Nursery - A</SelectItem>
+                        <SelectItem value="1st - A">1st - A</SelectItem>
+                        <SelectItem value="1st - B">1st - B</SelectItem>
+                        <SelectItem value="All">All</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="subjects">Subjects *</Label>
-                  <Input
-                    id="subjects"
-                    placeholder="Enter subjects taught"
-                    className="border-2 focus:border-primary"
-                    value={formData.subjects || ""}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^a-zA-Z\s,]/g, "")
-                      setFormData({ ...formData, subjects: value })
-                    }}
-                    required
-                  />
+
+                <div className="mt-3">
+                  <Label htmlFor="subjectsTaught">Subjects Taught</Label>
+                  <Input id="subjectsTaught" value={formData.subjectsTaught || formData.subjects || ""} onChange={(e) => setFormData({ ...formData, subjectsTaught: e.target.value, subjects: e.target.value })} placeholder="Comma separated" />
+                </div>
+
+                <div className="mt-3">
+                  <Label htmlFor="additionalResponsibilities">Additional Responsibilities</Label>
+                  <Textarea id="additionalResponsibilities" value={formData.additionalResponsibilities || ""} onChange={(e) => setFormData({ ...formData, additionalResponsibilities: e.target.value })} />
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Total Years of Experience</Label>
+                    <Input readOnly value={String(totalExperienceYears)} />
+                  </div>
+                  <div className="flex items-end">
+                    <Button className="ml-auto bg-secondary hover:bg-secondary/90" onClick={() => {
+                      // keep summary fields in formData for preview/save
+                      setFormData({ ...formData, totalExperienceYears, currentRole: formData.currentRole || "", subjects: formData.subjectsTaught || formData.subjects || "" })
+                      // simple success toast could be shown by caller
+                      alert('Summary updated')
+                    }}>Update Summary</Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         )
+
       default:
         return null
     }
@@ -1683,21 +2479,35 @@ export default function AdminPanel() {
         </div>
       </div>
 
+
+
+      {/* leftside panel code */}
+
+
       <div className="max-w-7xl mx-auto p-6">
         <div className="flex gap-6">
           <div className="w-80 space-y-4">
             <Card className="border-2">
               <CardHeader>
-                <CardTitle className="text-lg">Forms</CardTitle>
+                <CardTitle className="text-lg">IAK SMS</CardTitle>
                 <CardDescription>Select a form to manage</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
+
+
+                <Link href="/main-dashboard-sms" className="w-full">
+                  <Button variant="ghost" className="w-full justify-start gap-3 h-12">
+                    <TrendingUp className="h-5 w-5" />
+                    Dashboard
+                  </Button>
+                </Link>
+
                 {Object.entries(forms).map(([key, form]) => {
                   const Icon = form.icon
                   return (
                     <Button
                       key={key}
-                      variant={activeForm === key ? "default" : "ghost"}
+                      variant="ghost"
                       className="w-full justify-start gap-3 h-12"
                       onClick={() => {
                         setActiveForm(key as FormType)
@@ -1709,54 +2519,128 @@ export default function AdminPanel() {
                     </Button>
                   )
                 })}
+
+                {/* Quick-select dropdown for Add Students (left panel) */}
+                {activeForm === "students" && (
+                  <div className="pt-2">
+                    <Label htmlFor="quickName" className="text-sm">Students Portal</Label>
+                    <Select
+                      onValueChange={(value) => {
+                        if (value === "student-list") router.push("/students/student-list")
+                        if (value === "update-student") router.push("/students/update-student")
+                        if (value === "transfer-modal") router.push("/students/transfer-module")
+                        if (value === "student-termination") router.push("/students/termination-certificate")
+                        if (value === "student-leaving") router.push("/students/leaving-certificate")
+                        if (value === "student-profile") router.push("/students/profile")
+                      }}
+                    >
+                      <SelectTrigger className={`border-2 focus:border-primary w-full`}>
+                        <SelectValue placeholder="More About Student Portal" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="student-list">Student List</SelectItem>
+                        {/* <SelectItem value="update-student">Update Student</SelectItem> */}
+                        <SelectItem value="transfer-modal">Student Transfer Module</SelectItem>
+                        <SelectItem value="student-termination">Termination Certificate</SelectItem>
+                        <SelectItem value="student-leaving">Leaving Certificate</SelectItem>
+                        <SelectItem value="student-profile">Student Profile</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Quick-select dropdown for Teachers (left panel) */}
+                {activeForm === "teachers" && (
+                  <div className="pt-2">
+                    <Label htmlFor="teacherQuick" className="text-sm">Teachers Portal</Label>
+                    <Select
+                      onValueChange={(value) => {
+                        if (value === "teacher-list") router.push("/teachers/list")
+                        if (value === "teacher-profile") router.push("/teachers/profile")
+                      }}
+                    >
+                      <SelectTrigger className={`border-2 focus:border-primary w-full`}>
+                        <SelectValue placeholder="More About Teacher Portal" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="teacher-list">Teacher List</SelectItem>
+                        <SelectItem value="teacher-profile">Teacher Profile</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Quick-select dropdown for Campus (left panel) */}
+                {activeForm === "campus" && (
+                  <div className="pt-2">
+                    <Label htmlFor="campusQuick" className="text-sm">Campus Portal</Label>
+                    <Select
+                      onValueChange={(value) => {
+                        if (value === "campus-list") router.push("/campus/list")
+                        if (value === "campus-profile") router.push("/campus/profile")
+                      }}
+                    >
+                      <SelectTrigger className={`border-2 focus:border-primary w-full`}>
+                        <SelectValue placeholder="More About Campus Portal" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="campus-list">Campus List</SelectItem>
+                        <SelectItem value="campus-profile">Campus Profile</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </CardContent>
             </Card>
-
-            {!showPreview && !showStudentList && (
-              <Card className="border-2">
-                <CardHeader>
-                  <CardTitle className="text-lg">Progress</CardTitle>
-                  <CardDescription>
-                    Step {currentStep} of {totalSteps}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Progress value={(currentStep / totalSteps) * 100} className="h-2" />
-                  <div className="space-y-2">
-                    {currentForm.steps.map((step, index) => (
-                      <div
-                        key={step.id}
-                        className={`flex items-center gap-2 text-sm ${
-                          currentStep === step.id
-                            ? "text-primary font-medium"
-                            : currentStep > step.id
-                              ? "text-green-600"
-                              : "text-muted-foreground"
-                        }`}
-                      >
-                        <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                            currentStep === step.id
-                              ? "bg-primary text-white"
-                              : currentStep > step.id
-                                ? "bg-green-500 text-white"
-                                : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {index + 1}
-                        </div>
-                        {step.title}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
           <div className="flex-1">
+            {!showPreview && !showStudentList && (
+              <Card className="border-2 mb-4">
+                <CardHeader>
+                  <div className="w-full">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg">Progress</CardTitle>
+                        <CardDescription className="text-sm">Step {currentStep} of {totalSteps}</CardDescription>
+                      </div>
+                      <div className="text-sm text-muted-foreground">{currentForm.title}</div>
+                    </div>
+                    <div className="mt-4">
+                      <Progress value={(currentStep / totalSteps) * 100} className="h-2 rounded-full" />
+                      <div className="flex items-center justify-between mt-3 gap-2">
+                        {currentForm.steps.map((step, index) => (
+                          <button
+                            key={step.id}
+                            onClick={() => handleStepChange(step.id)}
+                            className={`flex items-center gap-3 text-sm px-2 py-1 rounded-lg transition-all focus:outline-none ${currentStep === step.id
+                              ? "bg-primary text-white font-medium"
+                              : currentStep > step.id
+                                ? "bg-green-50 text-green-700"
+                                : "text-muted-foreground"
+                              }`}
+                          >
+                            <div
+                              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${currentStep === step.id
+                                ? "bg-primary text-white"
+                                : currentStep > step.id
+                                  ? "bg-green-500 text-white"
+                                  : "bg-muted text-muted-foreground"
+                                }`}
+                            >
+                              {index + 1}
+                            </div>
+                            <span className="hidden sm:inline">{step.title}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+            )}
+
             <div className="space-y-6">
-              {/* Form content */}
               {renderCurrentForm()}
 
               {!showPreview && !showStudentList && (
@@ -1789,7 +2673,7 @@ export default function AdminPanel() {
           </div>
         </div>
       </div>
-      <Toaster />
     </div>
   )
 }
+
