@@ -195,18 +195,6 @@ export function StudentTable({ students }: StudentTableProps) {
                     <SortIcon field="attendancePercentage" />
                   </div>
                 </TableHead>
-                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("averageScore")}>
-                  <div className="flex items-center gap-2">
-                    Score
-                    <SortIcon field="averageScore" />
-                  </div>
-                </TableHead>
-                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("retentionFlag")}>
-                  <div className="flex items-center gap-2">
-                    Status
-                    <SortIcon field="retentionFlag" />
-                  </div>
-                </TableHead>
                 <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("enrollmentDate")}>
                   <div className="flex items-center gap-2">
                     Enrolled
@@ -229,14 +217,6 @@ export function StudentTable({ students }: StudentTableProps) {
                   <TableCell>
                     <Badge className={getAttendanceColor(student.attendancePercentage)}>
                       {student.attendancePercentage}%
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getScoreColor(student.averageScore)}>{student.averageScore}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={student.retentionFlag ? "default" : "destructive"}>
-                      {student.retentionFlag ? "Active" : "At Risk"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{formatDate(student.enrollmentDate)}</TableCell>

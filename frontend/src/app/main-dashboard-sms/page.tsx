@@ -158,15 +158,15 @@ export default function DashboardPage() {
             </div>
           </div>
           {/* VIP Donor Profile */}
-          <div className="flex items-center gap-3 bg-gradient-to-r from-yellow-200 via-yellow-100 to-white rounded-xl px-4 py-2 shadow border border-yellow-300 cursor-pointer" onClick={() => setShowDonor(true)}>
+          <div className="flex items-center gap-3 bg-gradient-to-r from-blue-400 via-blue-200 to-white rounded-xl px-4 py-2 shadow border border-blue-300 cursor-pointer" onClick={() => setShowDonor(true)}>
             <div className="flex flex-col items-end mr-2">
-              <span className="text-xs font-semibold text-yellow-700 uppercase tracking-wider">VIP Donor</span>
-              <span className="text-base font-bold text-foreground">Miss Uzma Ali</span>
+              <span className="text-xs font-semibold text-blue-900 uppercase tracking-wider">Valuable Donor</span>
+              <span className="text-base font-bold text-foreground">Miss Uzma Aijaz</span>
             </div>
             <img
               src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0rDiT9it7r-r__abYbK7u5UQ1av9CoxaChw&s"
               alt="VIP Donor"
-              className="w-12 h-12 rounded-full border-2 border-yellow-400 shadow"
+              className="w-12 h-12 rounded-full border-2 border-blue-400 shadow"
             />
           </div>
         </div>
@@ -174,12 +174,12 @@ export default function DashboardPage() {
         <div className="relative">
           {showDonor && (
             <div
-              className="absolute right-0 mt-2 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-yellow-200 animate-slideDown"
+              className="absolute right-0 mt-2 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-blue-200 animate-slideDown"
               style={{ minWidth: '320px', boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.18)' }}
             >
               <button
                 onClick={() => setShowDonor(false)}
-                className="absolute top-3 right-3 bg-yellow-100 hover:bg-yellow-300 text-yellow-700 rounded-full p-2 shadow transition-all"
+                className="absolute top-3 right-3 bg-blue-100 hover:bg-blue-300 text-blue-700 rounded-full p-2 shadow transition-all"
                 aria-label="Close"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -188,24 +188,24 @@ export default function DashboardPage() {
                 <img
                   src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0rDiT9it7r-r__abYbK7u5UQ1av9CoxaChw&s"
                   alt="VIP Donor"
-                  className="w-20 h-20 rounded-full border-4 border-yellow-400 shadow-lg bg-white"
-                  style={{ boxShadow: '0 4px 16px 0 rgba(255, 214, 0, 0.25)' }}
+                  className="w-20 h-20 rounded-full border-4 border-blue-400 shadow-lg bg-white"
+                  style={{ boxShadow: '0 4px 16px 0 rgba(0, 110, 244, 0.4)' }}
                 />
-                <span className="text-xl font-bold text-yellow-700 mt-2">Miss Uzma Ali</span>
-                <span className="text-xs font-semibold text-yellow-700 uppercase tracking-wider">VIP Donor</span>
+                <span className="text-xl font-bold text-yellow-700 mt-2">Miss Uzma Aijaz</span>
+                <span className="text-xs font-semibold text-yellow-700 uppercase tracking-wider">Valuable Donor</span>
               </div>
               <div className="space-y-3 px-6 pb-6">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground">Status:</span>
-                  <span className="bg-green-200 text-green-800 px-2 py-0.5 rounded text-xs font-semibold">Active</span>
+                  <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-semibold">Active</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">Organization:</span>
+                  <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-semibold">Thaakat Foundation</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground">Role:</span>
                   <span className="text-muted-foreground">Chief Patron</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">Tagline:</span>
-                  <span className="italic text-yellow-700">"Empowering education for every child"</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground">Member Since:</span>
@@ -214,7 +214,7 @@ export default function DashboardPage() {
                 <div>
                   <span className="font-semibold text-foreground">Bio:</span>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Miss Uzma Ali is a top-tier VIP donor supporting education for
+                    <b>Miss Uzma Ali </b>is a top-tier VIP donor supporting education for
                     underprivileged children. Her generous contributions have enabled
                     scholarships, infrastructure, and digital learning for thousands of
                     students.
