@@ -47,7 +47,7 @@ export default function DashboardPage() {
         let enrollmentDate = new Date()
         try {
           enrollmentDate = new Date(item["Timestamp"])
-        } catch {}
+        } catch { }
         return {
           studentId: `CSV${idx + 1}`,
           name: item["Student Name"] || "Unknown",
@@ -196,7 +196,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Welcome To School Management Dashboard</h1>
+              <h1 className="text-3xl font-bold text-foreground">School Management Dashboard</h1>
               <p className="text-muted-foreground">Academic performance and analytics overview</p>
             </div>
           </div>
@@ -277,10 +277,14 @@ export default function DashboardPage() {
         <Card className="!bg-[#E7ECEF]">
           <CardHeader className="!bg-[#E7ECEF]">
             <div className="flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <CardTitle>Filters</CardTitle>
-                <CardDescription>Select multiple options to filter the dashboard data</CardDescription>
-              </div>
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 rounded-xl shadow hover:bg-gray-100 transition"
+                onClick={() => window.history.back()}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
               <Button onClick={resetFilters} variant="outline">
                 Reset Filters
               </Button>
