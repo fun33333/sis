@@ -1,4 +1,5 @@
 export interface Student {
+  rawData: any
   studentId: string
   name: string
   academicYear: number

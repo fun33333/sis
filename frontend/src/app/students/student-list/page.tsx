@@ -8,30 +8,69 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { mockStudents, CAMPUSES, GRADES, ACADEMIC_YEARS } from "@/data/mockData"
+import { useEffect } from "react"
+import type { Student } from "@/types/dashboard"
+import { CAMPUSES, GRADES, ACADEMIC_YEARS } from "@/data/mockData"
+
 
 export default function StudentListPage() {
   const router = useRouter()
   const [search, setSearch] = useState("")
-  // use a non-empty special value for the "All" option because Select items
-  // must not have an empty-string value (the Select uses empty string to
-  // represent a cleared value internally). Use "all" as the sentinel.
   const [yearFilter, setYearFilter] = useState<string>("all")
   const [campusFilter, setCampusFilter] = useState<string>("all")
   const [gradeFilter, setGradeFilter] = useState<string>("all")
+  const [students, setStudents] = useState<Student[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Filtered students based on search + filters
+  useEffect(() => {
+    async function fetchStudents() {
+      setLoading(true)
+      const res = await fetch("/csvjson.json")
+      const data = await res.json()
+      const mapped: Student[] = data.map((item: any, idx: number) => {
+        let academicYear = Number(item["Year of Admission"])
+        if (isNaN(academicYear)) academicYear = 2025
+        let attendancePercentage = Math.floor(Math.random() * 31) + 70 // 70-100
+        let averageScore = Math.floor(Math.random() * 41) + 60 // 60-100
+        let retentionFlag = Math.random() > 0.2
+        let enrollmentDate = new Date()
+        try {
+          enrollmentDate = new Date(item["Timestamp"])
+        } catch {}
+        return {
+          studentId: `CSV${idx + 1}`,
+          name: item["Student Name"] || "Unknown",
+          academicYear,
+          campus: item["Campus"] || "Unknown",
+          grade: item["Current Grade/Class"] || "Unknown",
+          gender: item["Gender"] === "Male" || item["Gender"] === "Female" ? item["Gender"] : "Other",
+          motherTongue: item["Mother Tongue"] || "Other",
+          religion: item["Religion"] || "Other",
+          attendancePercentage,
+          averageScore,
+          retentionFlag,
+          enrollmentDate,
+        }
+      })
+      setStudents(mapped)
+      setLoading(false)
+    }
+    fetchStudents()
+  }, [])
+
   const filtered = useMemo(() => {
-    return mockStudents.filter((s) => {
+    return students.filter((s) => {
       if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false
-      // Only apply each filter when it's not the sentinel "all" value
       if (yearFilter !== "all" && String(s.academicYear) !== yearFilter) return false
       if (campusFilter !== "all" && s.campus !== campusFilter) return false
       if (gradeFilter !== "all" && s.grade !== gradeFilter) return false
       return true
     })
-  }, [search, yearFilter, campusFilter, gradeFilter])
+  }, [search, yearFilter, campusFilter, gradeFilter, students])
 
+  if (loading) {
+    return <div className="p-6 text-lg">Loading student data...</div>
+  }
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
