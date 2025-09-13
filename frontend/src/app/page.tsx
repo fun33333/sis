@@ -1,6 +1,6 @@
 "use client"
 
-// import type React from "react"
+import type React from "react"
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Users, Building2, GraduationCap, Upload, X, ArrowLeft, ArrowRight, Save, FileText, Eye, List, UserPlus, TrendingUp } from "lucide-react"
+import { Users, Building2, GraduationCap, Upload, X, ArrowLeft, ArrowRight, Save, FileText, Eye, List, UserPlus, TrendingUp, } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -35,17 +35,17 @@ export default function AdminPanel() {
   // temporary local teacher state used for inline preview editing
   const [teacher, setTeacher] = useState<any>({})
 
- // Inline error component for fields
- const ErrorText = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-sm text-red-600 mt-1 flex items-center gap-2">
-    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M12 9v4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M12 17h.01" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-    <span>{children}</span>
-  </p>
-)
+  // Inline error component for fields
+  const ErrorText = ({ children }: { children: React.ReactNode }) => (
+    <p className="text-sm text-red-600 mt-1 flex items-center gap-2">
+      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+        <path d="M12 9v4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M12 17h.01" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span>{children}</span>
+    </p>
+  )
 
   const forms = {
     students: {
@@ -392,21 +392,18 @@ export default function AdminPanel() {
   const renderStudentForm = () => {
     if (showStudentList) {
       return (
-        <Card className="border-2 text-[#274c77]">
+        <Card className="border-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-[#274c77]">
+            <CardTitle className="flex items-center gap-2">
               <List className="h-5 w-5" />
               Student List
             </CardTitle>
-            <CardDescription className="text-[#274c77]">Manage existing students</CardDescription>
+            <CardDescription>Manage existing students</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-center py-8">
-              <p className="text-[#274c77] mb-4">No students added yet</p>
-              <Button 
-                onClick={() => setShowStudentList(false)} 
-                className="bg-[#274c77] text-white hover:bg-[#1e3a5f]"
-              >
+              <p className="text-muted-foreground mb-4">No students added yet</p>
+              <Button onClick={() => setShowStudentList(false)}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add First Student
               </Button>
@@ -416,21 +413,21 @@ export default function AdminPanel() {
       )
     }
 
- if (showPreview) {
+  if (showPreview) {
       return (
-        <Card className="border-2 text-[#274c77]">
+        <Card className="border-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-[#274c77]">
+            <CardTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
               Student Information Preview
             </CardTitle>
-            <CardDescription className="text-[#274c77]">Review all information before submitting</CardDescription>
+            <CardDescription>Review all information before submitting</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {uploadedImages.studentPhoto && (
               <div className="flex justify-center mb-6">
                 <div className="text-center">
-                  <Label className="text-sm font-medium text-[#274c77] block mb-2">Student Photo</Label>
+                  <Label className="text-sm font-medium text-muted-foreground block mb-2">Student Photo</Label>
                   <img
                     src={uploadedImages.studentPhoto || "/placeholder.svg"}
                     alt="Student"
@@ -442,31 +439,31 @@ export default function AdminPanel() {
 
             {/* Personal Details Section */}
             <div className="space-y-4">
-              <h4 className="font-semibold text-lg border-b pb-2 text-[#274c77]">Personal Details</h4>
+              <h4 className="font-semibold text-lg border-b pb-2">Personal Details</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium text-[#274c77]">Full Name</Label>
-                  <p className="text-sm font-medium text-[#274c77]">{formData.name || "Not provided"}</p>
+                  <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
+                  <p className="text-sm font-medium">{formData.name || "Not provided"}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-[#274c77]">Gender</Label>
-                  <p className="text-sm font-medium text-[#274c77]">{formData.gender || "Not provided"}</p>
+                  <Label className="text-sm font-medium text-muted-foreground">Gender</Label>
+                  <p className="text-sm font-medium">{formData.gender || "Not provided"}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-[#274c77]">Date of Birth</Label>
-                  <p className="text-sm font-medium text-[#274c77]">{formData.dob || "Not provided"}</p>
+                  <Label className="text-sm font-medium text-muted-foreground">Date of Birth</Label>
+                  <p className="text-sm font-medium">{formData.dob || "Not provided"}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-[#274c77]">Place of Birth</Label>
-                  <p className="text-sm font-medium text-[#274c77]">{formData.placeOfBirth || "Not provided"}</p>
+                  <Label className="text-sm font-medium text-muted-foreground">Place of Birth</Label>
+                  <p className="text-sm font-medium">{formData.placeOfBirth || "Not provided"}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-[#274c77]">Religion</Label>
-                  <p className="text-sm font-medium text-[#274c77]">{formData.religion || "Not provided"}</p>
+                  <Label className="text-sm font-medium text-muted-foreground">Religion</Label>
+                  <p className="text-sm font-medium">{formData.religion || "Not provided"}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-[#274c77]">Mother Tongue</Label>
-                  <p className="text-sm font-medium text-[#274c77]">{formData.motherTongue || "Not provided"}</p>
+                  <Label className="text-sm font-medium text-muted-foreground">Mother Tongue</Label>
+                  <p className="text-sm font-medium">{formData.motherTongue || "Not provided"}</p>
                 </div>
               </div>
             </div>
@@ -653,14 +650,14 @@ export default function AdminPanel() {
     switch (currentStep) {
       case 1:
         return (
-          <Card className="form-card">
+          <Card className="border-2">
             <CardHeader>
-              <CardTitle className="form-title">Personal Details</CardTitle>
-              <CardDescription className="form-description">Enter the student's personal information</CardDescription>
+              <CardTitle>Personal Details</CardTitle>
+              <CardDescription>Enter the student's personal information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label className="form-label">Student Photo *</Label>
+                <Label>Student Photo *</Label>
                 {uploadedImages.studentPhoto ? (
                   <div className="relative inline-block">
                     <img
@@ -703,11 +700,11 @@ export default function AdminPanel() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="form-label">Full Name *</Label>
+                  <Label htmlFor="name">Full Name *</Label>
                   <Input
                     id="name"
                     placeholder="Enter student's full name"
-                    className={`form-input ${invalidFields.includes('name') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('name') ? 'border-red-500' : ''}`}
                     value={formData.name || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
@@ -718,13 +715,13 @@ export default function AdminPanel() {
                   {invalidFields.includes('name') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="gender" className="form-label">Gender *</Label>
+                  <Label htmlFor="gender">Gender *</Label>
                   <Select
                     value={formData.gender}
                     onValueChange={(value) => setFormData({ ...formData, gender: value })}
                     required
                   >
-                    <SelectTrigger className={`form-select ${invalidFields.includes('gender') ? 'border-red-500' : ''}`}>
+                    <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes('gender') ? 'border-red-500' : ''}`}>
                       <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
                     <SelectContent>
@@ -737,11 +734,11 @@ export default function AdminPanel() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="dob" className="form-label">Date of Birth *</Label>
+                  <Label htmlFor="dob">Date of Birth *</Label>
                   <Input
                     id="dob"
                     type="date"
-                    className={`form-input ${invalidFields.includes('dob') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('dob') ? 'border-red-500' : ''}`}
                     value={formData.dob || ""}
                     onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
                     required
@@ -749,11 +746,11 @@ export default function AdminPanel() {
                   {invalidFields.includes('dob') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="placeOfBirth" className="form-label">Place of Birth *</Label>
+                  <Label htmlFor="placeOfBirth">Place of Birth *</Label>
                   <Input
                     id="placeOfBirth"
                     placeholder="Enter city, state/province"
-                    className={`form-input ${invalidFields.includes('placeOfBirth') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('placeOfBirth') ? 'border-red-500' : ''}`}
                     value={formData.placeOfBirth || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^a-zA-Z\s,]/g, "")
@@ -766,11 +763,11 @@ export default function AdminPanel() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="religion" className="form-label">Religion *</Label>
+                  <Label htmlFor="religion">Religion *</Label>
                   <Input
                     id="religion"
                     placeholder="Enter religion"
-                    className={`form-input ${invalidFields.includes('religion') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('religion') ? 'border-red-500' : ''}`}
                     value={formData.religion || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
@@ -781,11 +778,11 @@ export default function AdminPanel() {
                   {invalidFields.includes('religion') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="motherTongue" className="form-label">Mother Tongue *</Label>
+                  <Label htmlFor="motherTongue">Mother Tongue *</Label>
                   <Input
                     id="motherTongue"
                     placeholder="Enter mother tongue"
-                    className={`form-input ${invalidFields.includes('motherTongue') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('motherTongue') ? 'border-red-500' : ''}`}
                     value={formData.motherTongue || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
@@ -801,19 +798,19 @@ export default function AdminPanel() {
         )
       case 2:
         return (
-          <Card className="form-card">
+          <Card className="border-2">
             <CardHeader>
-              <CardTitle className="form-title">Contact Details</CardTitle>
-              <CardDescription className="form-description">Enter contact and family information</CardDescription>
+              <CardTitle>Contact Details</CardTitle>
+              <CardDescription>Enter contact and family information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContact" className="form-label">Emergency Contact Number *</Label>
+                  <Label htmlFor="emergencyContact">Emergency Contact Number *</Label>
                   <Input
                     id="emergencyContact"
                     placeholder="Enter emergency contact number"
-                    className={`form-input ${invalidFields.includes('emergencyContact') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('emergencyContact') ? 'border-red-500' : ''}`}
                     value={formData.emergencyContact || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "")
@@ -828,15 +825,15 @@ export default function AdminPanel() {
                 {/* secondaryPhone removed per request */}
               </div>
 
-              <Separator className="form-separator" />
-              <h4 className="form-section-title">Father Information</h4>
+              <Separator />
+              <h4 className="font-medium text-lg">Father Information</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fatherName" className="form-label">Father Name</Label>
+                  <Label htmlFor="fatherName">Father Name</Label>
                   <Input
                     id="fatherName"
                     placeholder="Enter father's full name (leave empty if not available)"
-                    className={`form-input ${errorFields.includes("fatherName") ? "border-red-500" : ""
+                    className={`border-2 focus:border-primary ${errorFields.includes("fatherName") ? "border-red-500" : ""
                       }`}
                     value={formData.fatherName || ""}
                     onChange={(e) => {
@@ -849,11 +846,11 @@ export default function AdminPanel() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fatherCNIC" className="form-label">Father CNIC</Label>
+                  <Label htmlFor="fatherCNIC">Father CNIC</Label>
                   <Input
                     id="fatherCNIC"
                     placeholder="Enter father's CNIC (leave empty if not available)"
-                    className={`form-input ${errorFields.includes("fatherCNIC") ? "border-red-500" : ""
+                    className={`border-2 focus:border-primary ${errorFields.includes("fatherCNIC") ? "border-red-500" : ""
                       }`}
                     value={formData.fatherCNIC || ""}
                     onChange={(e) => {
@@ -868,11 +865,11 @@ export default function AdminPanel() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fatherContact" className="form-label">Father Contact Number</Label>
+                  <Label htmlFor="fatherContact">Father Contact Number</Label>
                   <Input
                     id="fatherContact"
                     placeholder="Enter father's contact number (leave empty if not available)"
-                    className={`form-input ${errorFields.includes("fatherContact") ? "border-red-500" : ""
+                    className={`border-2 focus:border-primary ${errorFields.includes("fatherContact") ? "border-red-500" : ""
                       }`}
                     value={formData.fatherContact || ""}
                     onChange={(e) => {
@@ -885,11 +882,11 @@ export default function AdminPanel() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fatherOccupation" className="form-label">Father Occupation</Label>
+                  <Label htmlFor="fatherOccupation">Father Occupation</Label>
                   <Input
                     id="fatherOccupation"
                     placeholder="Enter father's occupation (leave empty if not available)"
-                    className={`form-input ${errorFields.includes("fatherOccupation") ? "border-red-500" : ""
+                    className={`border-2 focus:border-primary ${errorFields.includes("fatherOccupation") ? "border-red-500" : ""
                       }`}
                     value={formData.fatherOccupation || ""}
                     onChange={(e) => {
@@ -905,15 +902,15 @@ export default function AdminPanel() {
 
               {!formData.fatherName && !formData.motherName && (
                 <>
-                  <Separator className="form-separator" />
-                  <h4 className="form-section-title">Guardian Information</h4>
+                  <Separator />
+                  <h4 className="font-medium text-lg">Guardian Information</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="guardianName" className="form-label">Guardian Name *</Label>
+                      <Label htmlFor="guardianName">Guardian Name *</Label>
                       <Input
                         id="guardianName"
                         placeholder="Enter guardian's name"
-                        className={`form-input ${errorFields.includes("guardianName") ? "border-red-500" : ""
+                        className={`border-2 focus:border-primary ${errorFields.includes("guardianName") ? "border-red-500" : ""
                           }`}
                         value={formData.guardianName || ""}
                         onChange={(e) => {
@@ -928,11 +925,11 @@ export default function AdminPanel() {
                       {errorFields.includes("guardianName") && <ErrorText>This field is required.</ErrorText>}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="guardianCNIC" className="form-label">Guardian CNIC *</Label>
+                      <Label htmlFor="guardianCNIC">Guardian CNIC *</Label>
                       <Input
                         id="guardianCNIC"
                         placeholder="Enter guardian's CNIC"
-                        className={`form-input ${errorFields.includes("guardianCNIC") ? "border-red-500" : ""
+                        className={`border-2 focus:border-primary ${errorFields.includes("guardianCNIC") ? "border-red-500" : ""
                           }`}
                         value={formData.guardianCNIC || ""}
                         onChange={(e) => {
@@ -948,11 +945,11 @@ export default function AdminPanel() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="guardianOccupation" className="form-label">Guardian Occupation *</Label>
+                    <Label htmlFor="guardianOccupation">Guardian Occupation *</Label>
                     <Input
                       id="guardianOccupation"
                       placeholder="Enter guardian's occupation"
-                      className={`form-input ${errorFields.includes("guardianOccupation") ? "border-red-500" : ""
+                      className={`border-2 focus:border-primary ${errorFields.includes("guardianOccupation") ? "border-red-500" : ""
                         }`}
                       value={formData.guardianOccupation || ""}
                       onChange={(e) => {
@@ -969,15 +966,15 @@ export default function AdminPanel() {
                 </>
               )}
 
-              <Separator className="form-separator" />
-              <h4 className="form-section-title">Mother Information</h4>
+              <Separator />
+              <h4 className="font-medium text-lg">Mother Information</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="motherName" className="form-label">Mother Name</Label>
+                  <Label htmlFor="motherName">Mother Name</Label>
                   <Input
                     id="motherName"
                     placeholder="Enter mother's full name (leave empty if not available)"
-                    className={`form-input ${errorFields.includes("motherName") ? "border-red-500" : ""
+                    className={`border-2 focus:border-primary ${errorFields.includes("motherName") ? "border-red-500" : ""
                       }`}
                     value={formData.motherName || ""}
                     onChange={(e) => {
@@ -990,11 +987,11 @@ export default function AdminPanel() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="motherCNIC" className="form-label">Mother CNIC</Label>
+                  <Label htmlFor="motherCNIC">Mother CNIC</Label>
                   <Input
                     id="motherCNIC"
                     placeholder="Enter mother's CNIC (leave empty if not available)"
-                    className={`form-input ${errorFields.includes("motherCNIC") ? "border-red-500" : ""
+                    className={`border-2 focus:border-primary ${errorFields.includes("motherCNIC") ? "border-red-500" : ""
                       }`}
                     value={formData.motherCNIC || ""}
                     onChange={(e) => {
@@ -1009,13 +1006,13 @@ export default function AdminPanel() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="motherStatus" className="form-label">Mother Status</Label>
+                  <Label htmlFor="motherStatus">Mother Status</Label>
                   <Select
                     value={formData.motherStatus}
                     onValueChange={(value) => setFormData({ ...formData, motherStatus: value })}
                   >
                     <SelectTrigger
-                      className={`form-select ${errorFields.includes("motherStatus") ? "border-red-500" : ""
+                      className={`border-2 focus:border-primary ${errorFields.includes("motherStatus") ? "border-red-500" : ""
                         }`}
                     >
                       <SelectValue placeholder="Select mother's status (optional)" />
@@ -1028,11 +1025,11 @@ export default function AdminPanel() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="motherContact" className="form-label">Mother Contact Number</Label>
+                  <Label htmlFor="motherContact">Mother Contact Number</Label>
                   <Input
                     id="motherContact"
                     placeholder="Enter mother's contact number (optional)"
-                    className={`form-input ${errorFields.includes("motherContact") ? "border-red-500" : ""
+                    className={`border-2 focus:border-primary ${errorFields.includes("motherContact") ? "border-red-500" : ""
                       }`}
                     value={formData.motherContact || ""}
                     onChange={(e) => {
@@ -1046,11 +1043,11 @@ export default function AdminPanel() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="motherOccupation" className="form-label">Mother Occupation</Label>
+                <Label htmlFor="motherOccupation">Mother Occupation</Label>
                 <Input
                   id="motherOccupation"
                   placeholder="Enter mother's occupation (optional)"
-                  className={`form-input ${errorFields.includes("motherOccupation") ? "border-red-500" : ""
+                  className={`border-2 focus:border-primary ${errorFields.includes("motherOccupation") ? "border-red-500" : ""
                     }`}
                   value={formData.motherOccupation || ""}
                   onChange={(e) => {
@@ -1063,17 +1060,17 @@ export default function AdminPanel() {
                 />
               </div>
 
-              <Separator className="form-separator" />
-              <h4 className="form-section-title">Additional Information</h4>
+              <Separator />
+              <h4 className="font-medium text-lg">Additional Information</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="zakatStatus" className="form-label">Zakat Status *</Label>
+                  <Label htmlFor="zakatStatus">Zakat Status *</Label>
                   <Select
                     value={formData.zakatStatus}
                     onValueChange={(value) => setFormData({ ...formData, zakatStatus: value })}
                     required
                   >
-                    <SelectTrigger className="form-select">
+                    <SelectTrigger className="border-2 focus:border-primary">
                       <SelectValue placeholder="Select zakat status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1083,11 +1080,11 @@ export default function AdminPanel() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="familyIncome" className="form-label">Family Income *</Label>
+                  <Label htmlFor="familyIncome">Family Income *</Label>
                   <Input
                     id="familyIncome"
                     placeholder="Enter monthly family income"
-                    className="form-input"
+                    className="border-2 focus:border-primary"
                     value={formData.familyIncome || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "")
@@ -1099,13 +1096,13 @@ export default function AdminPanel() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="houseOwned" className="form-label">House Owned *</Label>
+                  <Label htmlFor="houseOwned">House Owned *</Label>
                   <Select
                     value={formData.houseOwned}
                     onValueChange={(value) => setFormData({ ...formData, houseOwned: value })}
                     required
                   >
-                    <SelectTrigger className="form-select">
+                    <SelectTrigger className="border-2 focus:border-primary">
                       <SelectValue placeholder="Select house ownership" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1116,11 +1113,11 @@ export default function AdminPanel() {
                 </div>
                 {formData.houseOwned === "no" && (
                   <div className="space-y-2">
-                    <Label htmlFor="rent" className="form-label">Monthly Rent *</Label>
+                    <Label htmlFor="rent">Monthly Rent *</Label>
                     <Input
                       id="rent"
                       placeholder="Enter monthly rent amount (e.g., 8000)"
-                      className="form-input"
+                      className="border-2 focus:border-primary"
                       value={formData.rent || ""}
                       onChange={(e) => {
                         const value = e.target.value.replace(/[^0-9]/g, "")
@@ -1133,11 +1130,11 @@ export default function AdminPanel() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address" className="form-label">Address *</Label>
+                <Label htmlFor="address">Address *</Label>
                 <Textarea
                   id="address"
                   placeholder="Enter complete residential address"
-                  className="form-textarea min-h-[100px]"
+                  className="border-2 focus:border-primary min-h-[100px]"
                   value={formData.address || ""}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 />
@@ -1147,21 +1144,21 @@ export default function AdminPanel() {
         )
       case 3:
         return (
-          <Card className="form-card">
+          <Card className="border-2">
             <CardHeader>
-              <CardTitle className="form-title">Academic Details</CardTitle>
-              <CardDescription className="form-description">Enter academic information</CardDescription>
+              <CardTitle>Academic Details</CardTitle>
+              <CardDescription>Enter academic information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currentState" className="form-label">Current State *</Label>
+                  <Label htmlFor="currentState">Current State *</Label>
                   <Select
                     value={formData.currentState}
                     onValueChange={(value) => setFormData({ ...formData, currentState: value })}
                     required
                   >
-                    <SelectTrigger className="form-select">
+                    <SelectTrigger className="border-2 focus:border-primary">
                       <SelectValue placeholder="Select current state" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1171,13 +1168,13 @@ export default function AdminPanel() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="campus" className="form-label">Campus *</Label>
+                  <Label htmlFor="campus">Campus *</Label>
                   <Select
                     value={formData.campus}
                     onValueChange={(value) => setFormData({ ...formData, campus: value })}
                     required
                   >
-                    <SelectTrigger className="form-select">
+                    <SelectTrigger className="border-2 focus:border-primary">
                       <SelectValue placeholder="Select campus" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1195,22 +1192,22 @@ export default function AdminPanel() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currentGrade" className="form-label">Current Grade/Class *</Label>
+                  <Label htmlFor="currentGrade">Current Grade/Class *</Label>
                   <Input
                     id="currentGrade"
                     placeholder="Enter current grade/class"
-                    className="form-input"
+                    className="border-2 focus:border-primary"
                     value={formData.currentGrade || ""}
                     onChange={(e) => setFormData({ ...formData, currentGrade: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="section" className="form-label">Section *</Label>
+                  <Label htmlFor="section">Section *</Label>
                   <Input
                     id="section"
                     placeholder="Enter section"
-                    className="form-input"
+                    className="border-2 focus:border-primary"
                     value={formData.section || ""}
                     onChange={(e) => setFormData({ ...formData, section: e.target.value })}
                     required
@@ -1220,24 +1217,24 @@ export default function AdminPanel() {
               {/* reasonForTransfer removed from form per request */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="toYear" className="form-label">To Year *</Label>
+                  <Label htmlFor="toYear">To Year *</Label>
                   <Input
                     id="toYear"
                     type="number"
                     placeholder="Enter year"
-                    className="form-input"
+                    className="border-2 focus:border-primary"
                     value={formData.toYear || ""}
                     onChange={(e) => setFormData({ ...formData, toYear: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fromYear" className="form-label">From Year *</Label>
+                  <Label htmlFor="fromYear">From Year *</Label>
                   <Input
                     id="fromYear"
                     type="number"
                     placeholder="Enter year"
-                    className="form-input"
+                    className="border-2 focus:border-primary"
                     value={formData.fromYear || ""}
                     onChange={(e) => setFormData({ ...formData, fromYear: e.target.value })}
                     required
@@ -1246,22 +1243,22 @@ export default function AdminPanel() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="lastClassPassed" className="form-label">Last Class Passed *</Label>
+                  <Label htmlFor="lastClassPassed">Last Class Passed *</Label>
                   <Input
                     id="lastClassPassed"
                     placeholder="Enter last class passed"
-                    className="form-input"
+                    className="border-2 focus:border-primary"
                     value={formData.lastClassPassed || ""}
                     onChange={(e) => setFormData({ ...formData, lastClassPassed: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastSchoolName" className="form-label">Last School Name *</Label>
+                  <Label htmlFor="lastSchoolName">Last School Name *</Label>
                   <Input
                     id="lastSchoolName"
                     placeholder="Enter last school name"
-                    className="form-input"
+                    className="border-2 focus:border-primary"
                     value={formData.lastSchoolName || ""}
                     onChange={(e) => setFormData({ ...formData, lastSchoolName: e.target.value })}
                     required
@@ -1270,22 +1267,22 @@ export default function AdminPanel() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="oldGRNo" className="form-label">Old GR No *</Label>
+                  <Label htmlFor="oldGRNo">Old GR No *</Label>
                   <Input
                     id="oldGRNo"
                     placeholder="Enter old GR No"
-                    className="form-input"
+                    className="border-2 focus:border-primary"
                     value={formData.oldGRNo || ""}
                     onChange={(e) => setFormData({ ...formData, oldGRNo: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="grNumber" className="form-label">GR Number *</Label>
+                  <Label htmlFor="grNumber">GR Number *</Label>
                   <Input
                     id="grNumber"
                     placeholder="Enter GR Number"
-                    className="form-input"
+                    className="border-2 focus:border-primary"
                     value={formData.grNumber || ""}
                     onChange={(e) => setFormData({ ...formData, grNumber: e.target.value })}
                     required
@@ -1522,11 +1519,11 @@ export default function AdminPanel() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="campusName" className="form-label">Campus Name *</Label>
+                  <Label htmlFor="campusName">Campus Name *</Label>
                   <Input
                     id="campusName"
                     placeholder="Enter campus name"
-                    className={`form-input ${invalidFields.includes('campusName') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('campusName') ? 'border-red-500' : ''}`}
                     value={formData.campusName || ""}
                     onChange={(e) => setFormData({ ...formData, campusName: e.target.value })}
                     required
@@ -1534,11 +1531,11 @@ export default function AdminPanel() {
                   {invalidFields.includes('campusName') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="campusCode" className="form-label">Campus Code *</Label>
+                  <Label htmlFor="campusCode">Campus Code *</Label>
                   <Input
                     id="campusCode"
                     placeholder="Enter campus code"
-                    className={`form-input ${invalidFields.includes('campusCode') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('campusCode') ? 'border-red-500' : ''}`}
                     value={formData.campusCode || ""}
                     onChange={(e) => setFormData({ ...formData, campusCode: e.target.value })}
                     required
@@ -1548,11 +1545,11 @@ export default function AdminPanel() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="registrationNumber" className="form-label">Registration Number / License No *</Label>
+                  <Label htmlFor="registrationNumber">Registration Number / License No *</Label>
                   <Input
                     id="registrationNumber"
                     placeholder="Enter registration number"
-                    className={`form-input ${invalidFields.includes('registrationNumber') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('registrationNumber') ? 'border-red-500' : ''}`}
                     value={formData.registrationNumber || ""}
                     onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
                     required
@@ -1561,11 +1558,11 @@ export default function AdminPanel() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description" className="form-label">Description *</Label>
+                <Label htmlFor="description">Description *</Label>
                 <Textarea
                   id="description"
                   placeholder="Enter campus description"
-                  className={`form-textarea min-h-[100px] ${invalidFields.includes('description') ? 'border-red-500' : ''}`}
+                  className={`border-2 focus:border-primary min-h-[100px] ${invalidFields.includes('description') ? 'border-red-500' : ''}`}
                   value={formData.description || ""}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   required
@@ -1574,13 +1571,13 @@ export default function AdminPanel() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="status" className="form-label">Status *</Label>
+                  <Label htmlFor="status">Status *</Label>
                   <Select
                     value={formData.status || ""}
                     onValueChange={(value) => setFormData({ ...formData, status: value })}
                     required
                   >
-                    <SelectTrigger className={`form-select ${invalidFields.includes('status') ? 'border-red-500' : ''}`}>
+                    <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes('status') ? 'border-red-500' : ''}`}>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1592,11 +1589,11 @@ export default function AdminPanel() {
                   {invalidFields.includes('status') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="governingBody" className="form-label">Governing Body *</Label>
+                  <Label htmlFor="governingBody">Governing Body *</Label>
                   <Input
                     id="governingBody"
                     placeholder="Enter governing body"
-                    className={`form-input ${invalidFields.includes('governingBody') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('governingBody') ? 'border-red-500' : ''}`}
                     value={formData.governingBody || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
@@ -1609,11 +1606,11 @@ export default function AdminPanel() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address" className="form-label">Campus Address *</Label>
+                <Label htmlFor="address">Campus Address *</Label>
                 <Textarea
                   id="address"
                   placeholder="Enter campus address"
-                  className={`form-textarea ${invalidFields.includes('address') ? 'border-red-500' : ''}`}
+                  className={`border-2 focus:border-primary ${invalidFields.includes('address') ? 'border-red-500' : ''}`}
                   value={formData.address || ""}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   required
@@ -1623,13 +1620,13 @@ export default function AdminPanel() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="academicYearStart" className="form-label">Academic Year Start *</Label>
+                  <Label htmlFor="academicYearStart">Academic Year Start *</Label>
                   <Select
                     value={formData.academicYearStart || ""}
                     onValueChange={(value) => setFormData({ ...formData, academicYearStart: value })}
                     required
                   >
-                    <SelectTrigger className={`form-select ${invalidFields.includes('academicYearStart') ? 'border-red-500' : ''}`}>
+                    <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes('academicYearStart') ? 'border-red-500' : ''}`}>
                       <SelectValue placeholder="Select start month" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1642,13 +1639,13 @@ export default function AdminPanel() {
                   {invalidFields.includes('academicYearStart') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="academicYearEnd" className="form-label">Academic Year End *</Label>
+                  <Label htmlFor="academicYearEnd">Academic Year End *</Label>
                   <Select
                     value={formData.academicYearEnd || ""}
                     onValueChange={(value) => setFormData({ ...formData, academicYearEnd: value })}
                     required
                   >
-                    <SelectTrigger className={`form-select ${invalidFields.includes('academicYearEnd') ? 'border-red-500' : ''}`}>
+                    <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes('academicYearEnd') ? 'border-red-500' : ''}`}>
                       <SelectValue placeholder="Select end month" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1664,13 +1661,13 @@ export default function AdminPanel() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="gradesOffered" className="form-label">Grades Offered *</Label>
+                  <Label htmlFor="gradesOffered">Grades Offered *</Label>
                   <Select
                     value={formData.gradesOffered || ""}
                     onValueChange={(value) => setFormData({ ...formData, gradesOffered: value })}
                     required
                   >
-                    <SelectTrigger className={`form-select ${invalidFields.includes('gradesOffered') ? 'border-red-500' : ''}`}>
+                    <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes('gradesOffered') ? 'border-red-500' : ''}`}>
                       <SelectValue placeholder="Select grades" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1682,13 +1679,13 @@ export default function AdminPanel() {
                   {invalidFields.includes('gradesOffered') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="languagesOfInstruction" className="form-label">Language(s) of Instruction *</Label>
+                  <Label htmlFor="languagesOfInstruction">Language(s) of Instruction *</Label>
                   <Select
                     value={formData.languagesOfInstruction || ""}
                     onValueChange={(value) => setFormData({ ...formData, languagesOfInstruction: value })}
                     required
                   >
-                    <SelectTrigger className={`form-select ${invalidFields.includes('languagesOfInstruction') ? 'border-red-500' : ''}`}>
+                    <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes('languagesOfInstruction') ? 'border-red-500' : ''}`}>
                       <SelectValue placeholder="Select languages" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1705,19 +1702,19 @@ export default function AdminPanel() {
         )
       case 2:
         return (
-          <Card className="form-card">
+          <Card className="border-2">
             <CardHeader>
-              <CardTitle className="form-title">Facilities</CardTitle>
-              <CardDescription className="form-description">Enter campus facilities information</CardDescription>
+              <CardTitle>Facilities</CardTitle>
+              <CardDescription>Enter campus facilities information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="totalClassrooms" className="form-label">Total Classrooms *</Label>
+                  <Label htmlFor="totalClassrooms">Total Classrooms *</Label>
                   <Input
                     id="totalClassrooms"
                     placeholder="Enter number of classrooms"
-                    className={`form-input ${invalidFields.includes('totalClassrooms') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('totalClassrooms') ? 'border-red-500' : ''}`}
                     value={formData.totalClassrooms || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "")
@@ -1728,11 +1725,11 @@ export default function AdminPanel() {
                   {invalidFields.includes('totalClassrooms') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="scienceLabs" className="form-label">Science Labs *</Label>
+                  <Label htmlFor="scienceLabs">Science Labs *</Label>
                   <Input
                     id="scienceLabs"
                     placeholder="Enter number of science labs"
-                    className={`form-input ${invalidFields.includes('scienceLabs') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('scienceLabs') ? 'border-red-500' : ''}`}
                     value={formData.scienceLabs || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "")
@@ -1745,11 +1742,11 @@ export default function AdminPanel() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="computerLabs" className="form-label">Computer Labs *</Label>
+                  <Label htmlFor="computerLabs">Computer Labs *</Label>
                   <Input
                     id="computerLabs"
                     placeholder="Enter number of computer labs"
-                    className={`form-input ${invalidFields.includes('computerLabs') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('computerLabs') ? 'border-red-500' : ''}`}
                     value={formData.computerLabs || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "")
@@ -1760,13 +1757,13 @@ export default function AdminPanel() {
                   {invalidFields.includes('computerLabs') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="library" className="form-label">Library *</Label>
+                  <Label htmlFor="library">Library *</Label>
                   <Select
                     value={formData.library}
                     onValueChange={(value) => setFormData({ ...formData, library: value })}
                     required
                   >
-                    <SelectTrigger className={`form-select ${invalidFields.includes('library') ? 'border-red-500' : ''}`}>
+                    <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes('library') ? 'border-red-500' : ''}`}>
                       <SelectValue placeholder="Select library availability" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1780,22 +1777,22 @@ export default function AdminPanel() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="campusCapacity" className="form-label">Campus Capacity (students) *</Label>
+                  <Label htmlFor="campusCapacity">Campus Capacity (students) *</Label>
                   <Input
                     id="campusCapacity"
                     placeholder="Enter campus capacity"
-                    className={`form-input ${invalidFields.includes('campusCapacity') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('campusCapacity') ? 'border-red-500' : ''}`}
                     value={formData.campusCapacity || ""}
                     onChange={(e) => setFormData({ ...formData, campusCapacity: e.target.value.replace(/[^0-9]/g, "") })}
                   />
                   {invalidFields.includes('campusCapacity') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="classesPerGrade" className="form-label">Classes per Grade *</Label>
+                  <Label htmlFor="classesPerGrade">Classes per Grade *</Label>
                   <Input
                     id="classesPerGrade"
                     placeholder="Enter classes per grade"
-                    className={`form-input ${invalidFields.includes('classesPerGrade') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('classesPerGrade') ? 'border-red-500' : ''}`}
                     value={formData.classesPerGrade || ""}
                     onChange={(e) => setFormData({ ...formData, classesPerGrade: e.target.value.replace(/[^0-9]/g, "") })}
                   />
@@ -1805,22 +1802,22 @@ export default function AdminPanel() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="averageClassSize" className="form-label">Average Class Size (current) *</Label>
+                  <Label htmlFor="averageClassSize">Average Class Size (current) *</Label>
                   <Input
                     id="averageClassSize"
                     placeholder="Enter average class size"
-                    className={`form-input ${invalidFields.includes('averageClassSize') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('averageClassSize') ? 'border-red-500' : ''}`}
                     value={formData.averageClassSize || ""}
                     onChange={(e) => setFormData({ ...formData, averageClassSize: e.target.value.replace(/[^0-9]/g, "") })}
                   />
                   {invalidFields.includes('averageClassSize') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="totalStudents" className="form-label">No of Students *</Label>
+                  <Label htmlFor="totalStudents">No of Students *</Label>
                   <Input
                     id="totalStudents"
                     placeholder="Enter total students"
-                    className={`form-input ${invalidFields.includes('totalStudents') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('totalStudents') ? 'border-red-500' : ''}`}
                     value={formData.totalStudents || ""}
                     onChange={(e) => setFormData({ ...formData, totalStudents: e.target.value.replace(/[^0-9]/g, "") })}
                   />
@@ -1830,22 +1827,22 @@ export default function AdminPanel() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="totalTeachers" className="form-label">No of Teachers *</Label>
+                  <Label htmlFor="totalTeachers">No of Teachers *</Label>
                   <Input
                     id="totalTeachers"
                     placeholder="Enter total teachers"
-                    className={`form-input ${invalidFields.includes('totalTeachers') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('totalTeachers') ? 'border-red-500' : ''}`}
                     value={formData.totalTeachers || ""}
                     onChange={(e) => setFormData({ ...formData, totalTeachers: e.target.value.replace(/[^0-9]/g, "") })}
                   />
                   {invalidFields.includes('totalTeachers') && <ErrorText>This field is required.</ErrorText>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="totalRooms" className="form-label">No of Rooms *</Label>
+                  <Label htmlFor="totalRooms">No of Rooms *</Label>
                   <Input
                     id="totalRooms"
                     placeholder="Enter total rooms"
-                    className={`form-input ${invalidFields.includes('totalRooms') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('totalRooms') ? 'border-red-500' : ''}`}
                     value={formData.totalRooms || ""}
                     onChange={(e) => setFormData({ ...formData, totalRooms: e.target.value.replace(/[^0-9]/g, "") })}
                   />
@@ -1855,21 +1852,21 @@ export default function AdminPanel() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="maleToilets" className="form-label">Toilets (Male)</Label>
+                  <Label htmlFor="maleToilets">Toilets (Male)</Label>
                   <Input
                     id="maleToilets"
                     placeholder="Number of male toilets"
-                    className={`form-input ${invalidFields.includes('maleToilets') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('maleToilets') ? 'border-red-500' : ''}`}
                     value={formData.maleToilets || ""}
                     onChange={(e) => setFormData({ ...formData, maleToilets: e.target.value.replace(/[^0-9]/g, "") })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="femaleToilets" className="form-label">Toilets (Female)</Label>
+                  <Label htmlFor="femaleToilets">Toilets (Female)</Label>
                   <Input
                     id="femaleToilets"
                     placeholder="Number of female toilets"
-                    className={`form-input ${invalidFields.includes('femaleToilets') ? 'border-red-500' : ''}`}
+                    className={`border-2 focus:border-primary ${invalidFields.includes('femaleToilets') ? 'border-red-500' : ''}`}
                     value={formData.femaleToilets || ""}
                     onChange={(e) => setFormData({ ...formData, femaleToilets: e.target.value.replace(/[^0-9]/g, "") })}
                   />
@@ -1877,11 +1874,11 @@ export default function AdminPanel() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="facilities" className="form-label">Additional Facilities *</Label>
+                <Label htmlFor="facilities">Additional Facilities *</Label>
                 <Textarea
                   id="facilities"
                   placeholder="Enter additional facilities (playground, cafeteria, etc.)"
-                  className={`form-textarea min-h-[100px] ${invalidFields.includes('facilities') ? 'border-red-500' : ''}`}
+                  className={`border-2 focus:border-primary min-h-[100px] ${invalidFields.includes('facilities') ? 'border-red-500' : ''}`}
                   value={formData.facilities || ""}
                   onChange={(e) => setFormData({ ...formData, facilities: e.target.value })}
                   required
@@ -1978,7 +1975,7 @@ export default function AdminPanel() {
       return (
         <Card className="border-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
               Teacher Information Preview
             </CardTitle>
@@ -1986,33 +1983,33 @@ export default function AdminPanel() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
-              <h4 className="font-semibold text-lg border-b pb-2 text-[#274c77]">Personal Information</h4>
+              <h4 className="font-semibold text-lg border-b pb-2">Personal Information</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground text-[#274c77]">Full Name</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
                   <p className="text-sm font-medium">{formData.fullName || "Not provided"}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground text-[#274c77]">Date of Birth</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Date of Birth</Label>
                   <p className="text-sm font-medium">{formData.dob || "Not provided"}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground text-[#274c77]">Gender</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Gender</Label>
                   <p className="text-sm font-medium">{formData.gender || "Not provided"}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground text-[#274c77]">Contact Number</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Contact Number</Label>
                   <p className="text-sm font-medium">{formData.contactNumber || "Not provided"}</p>
                 </div>
                 <div className="col-span-2">
-                  <Label className="text-sm font-medium text-muted-foreground text-[#274c77]">Email</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Email</Label>
                   <p className="text-sm font-medium">{formData.email || "Not provided"}</p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-4">
-              <h4 className="font-semibold text-lg border-b pb-2 text-[#274c77]">Educational Qualifications</h4>
+              <h4 className="font-semibold text-lg border-b pb-2">Educational Qualifications</h4>
               <div>
                 <Label className="text-sm font-medium text-muted-foreground">Education</Label>
                 <p className="text-sm font-medium">{formData.education || "Not provided"}</p>
@@ -2470,212 +2467,154 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Fixed Sidebar */}
-      <div className="fixed left-0 top-0 w-[20%] h-screen bg-[#274c77] z-10 overflow-y-auto">
-        <div className="p-6">
-          {/* Logo and Title */}
-          <div className="flex flex-col items-center mb-8">
-            <img 
-              src="/logo.png" 
-              alt="School Logo" 
-              className="w-16 h-16 object-contain mb-3"
-            />
-            <h1 className="text-lg font-bold text-white text-center leading-tight">
-              School Management System
-            </h1>
-          </div>
-
-          {/* Navigation Links */}
-          <div className="space-y-2">
-            <Link href="/main-dashboard-sms" className="w-full">
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start gap-3 h-14 text-white font-semibold text-base hover:bg-white/10 hover:border-l-4 hover:border-white transition-all duration-300 ease-in-out"
-              >
-                <TrendingUp className="h-5 w-5" />
-                Dashboard
-              </Button>
-            </Link>
-
-            {Object.entries(forms).map(([key, form]) => {
-              const Icon = form.icon
-              return (
-                <Button
-                  key={key}
-                  variant="ghost"
-                  className="w-full justify-start gap-3 h-14 text-white font-semibold text-base hover:bg-white/10 hover:border-l-4 hover:border-white transition-all duration-300 ease-in-out"
-                  onClick={() => {
-                    setActiveForm(key as FormType)
-                    resetForm()
-                  }}
-                >
-                  <Icon className="h-5 w-5" />
-                  {form.title}
-                </Button>
-              )
-            })}
-
-{/* Quick-select dropdown for Add Students */}
-{activeForm === "students" && (
-  <div className="pt-4">
-    <Label htmlFor="quickName" className="text-sm text-white font-semibold">
-      Students Portal
-    </Label>
-    <Select
-      onValueChange={(value) => {
-        if (value === "student-list") router.push("/students/student-list")
-        if (value === "update-student") router.push("/students/update-student")
-        if (value === "transfer-modal") router.push("/students/transfer-module")
-        if (value === "student-termination") router.push("/students/termination-certificate")
-        if (value === "student-leaving") router.push("/students/leaving-certificate")
-        if (value === "student-profile") router.push("/students/profile")
-      }}
-    >
-      <SelectTrigger className="border-2 border-white/30 focus:border-white bg-transparent text-white w-full">
-        <SelectValue placeholder="More About Student Portal" className="text-white" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="student-list">Student List</SelectItem>
-        <SelectItem value="transfer-modal">Student Transfer Module</SelectItem>
-        <SelectItem value="student-termination">Termination Certificate</SelectItem>
-        <SelectItem value="student-leaving">Leaving Certificate</SelectItem>
-        <SelectItem value="student-profile">Student Profile</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-)}
-
-{/* Quick-select dropdown for Teachers */}
-{activeForm === "teachers" && (
-  <div className="pt-4">
-    <Label htmlFor="teacherQuick" className="text-sm text-white font-semibold">
-      Teachers Portal
-    </Label>
-    <Select
-      onValueChange={(value) => {
-        if (value === "teacher-list") router.push("/teachers/list")
-        if (value === "teacher-profile") router.push("/teachers/profile")
-      }}
-    >
-      <SelectTrigger className="border-2 border-white/30 focus:border-white bg-transparent text-white w-full">
-        <SelectValue placeholder="More About Teacher Portal" className="text-white" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="teacher-list">Teacher List</SelectItem>
-        <SelectItem value="teacher-profile">Teacher Profile</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-)}
-
-{/* Quick-select dropdown for Campus */}
-{activeForm === "campus" && (
-  <div className="pt-4">
-    <Label htmlFor="campusQuick" className="text-sm text-white font-semibold">
-      Campus Portal
-    </Label>
-    <Select
-      onValueChange={(value) => {
-        if (value === "campus-list") router.push("/campus/list")
-        if (value === "campus-profile") router.push("/campus/profile")
-      }}
-    >
-      <SelectTrigger className="border-2 border-white/30 focus:border-white bg-transparent text-white w-full">
-        <SelectValue placeholder="More About Campus Portal" className="text-white" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="campus-list">Campus List</SelectItem>
-        <SelectItem value="campus-profile">Campus Profile</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-)}
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="bg-white border-b shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-slate-800">Admin Panel</h1>
+            <Badge variant="secondary" className="text-sm">
+              Educational Management System
+            </Badge>
           </div>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="ml-[20%] min-h-screen">
-        <div className="p-6">
-          {/* Dynamic Heading */}
-          <div className="mb-6">
-            <div className="flex items-center gap-3">
-              {/* {React.createElement(currentForm.icon, { className: "h-8 w-8 text-[#274c77]" })} */}
-              <h1 
-                className="text-5xl font-bold italic"
-                style={{
-                  background: "linear-gradient(135deg, #274c77 0%, #a3cef1 50%, #e7ecef 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text"
-                }}
-              >
-                {currentForm.title}
-              </h1>
-            </div>
+
+
+      {/* leftside panel code */}
+
+
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="flex gap-6">
+          <div className="w-80 space-y-4">
+            <Card className="border-2">
+              <CardHeader>
+                <CardTitle className="text-lg">IAK SMS</CardTitle>
+                <CardDescription>Select a form to manage</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+
+
+                <Link href="/main-dashboard-sms" className="w-full">
+                  <Button variant="ghost" className="w-full justify-start gap-3 h-12">
+                    <TrendingUp className="h-5 w-5" />
+                    Dashboard
+                  </Button>
+                </Link>
+
+                {Object.entries(forms).map(([key, form]) => {
+                  const Icon = form.icon
+                  return (
+                    <Button
+                      key={key}
+                      variant="ghost"
+                      className="w-full justify-start gap-3 h-12"
+                      onClick={() => {
+                        setActiveForm(key as FormType)
+                        resetForm()
+                      }}
+                    >
+                      <Icon className="h-5 w-5" />
+                      {form.title}
+                    </Button>
+                  )
+                })}
+
+                {/* Quick-select dropdown for Add Students (left panel) */}
+                {activeForm === "students" && (
+                  <div className="pt-2">
+                    <Label htmlFor="quickName" className="text-sm">Students Portal</Label>
+                    <Select
+                      onValueChange={(value) => {
+                        if (value === "student-list") router.push("/students/student-list")
+                        if (value === "update-student") router.push("/students/update-student")
+                        if (value === "transfer-modal") router.push("/students/transfer-module")
+                        if (value === "student-termination") router.push("/students/termination-certificate")
+                        if (value === "student-leaving") router.push("/students/leaving-certificate")
+                        if (value === "student-profile") router.push("/students/profile")
+                      }}
+                    >
+                      <SelectTrigger className={`border-2 focus:border-primary w-full`}>
+                        <SelectValue placeholder="More About Student Portal" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="student-list">Student List</SelectItem>
+                        {/* <SelectItem value="update-student">Update Student</SelectItem> */}
+                        <SelectItem value="transfer-modal">Student Transfer Module</SelectItem>
+                        <SelectItem value="student-termination">Termination Certificate</SelectItem>
+                        <SelectItem value="student-leaving">Leaving Certificate</SelectItem>
+                        <SelectItem value="student-profile">Student Profile</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Quick-select dropdown for Teachers (left panel) */}
+                {activeForm === "teachers" && (
+                  <div className="pt-2">
+                    <Label htmlFor="teacherQuick" className="text-sm">Teachers Portal</Label>
+                    <Select
+                      onValueChange={(value) => {
+                        if (value === "teacher-list") router.push("/teachers/list")
+                        if (value === "teacher-profile") router.push("/teachers/profile")
+                      }}
+                    >
+                      <SelectTrigger className={`border-2 focus:border-primary w-full`}>
+                        <SelectValue placeholder="More About Teacher Portal" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="teacher-list">Teacher List</SelectItem>
+                        <SelectItem value="teacher-profile">Teacher Profile</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Quick-select dropdown for Campus (left panel) */}
+                {activeForm === "campus" && (
+                  <div className="pt-2">
+                    <Label htmlFor="campusQuick" className="text-sm">Campus Portal</Label>
+                    <Select
+                      onValueChange={(value) => {
+                        if (value === "campus-list") router.push("/campus/list")
+                        if (value === "campus-profile") router.push("/campus/profile")
+                      }}
+                    >
+                      <SelectTrigger className={`border-2 focus:border-primary w-full`}>
+                        <SelectValue placeholder="More About Campus Portal" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="campus-list">Campus List</SelectItem>
+                        <SelectItem value="campus-profile">Campus Profile</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          <div className="space-y-6">
-            {renderCurrentForm()}
-
+          <div className="flex-1">
             {!showPreview && !showStudentList && (
-              <div className="flex justify-between">
-                <Button
-                  onClick={handlePrevious}
-                  disabled={currentStep === 1}
-                  variant="outline"
-                  className="flex items-center gap-2 bg-transparent"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                <Button onClick={handleNext} className="flex items-center gap-2">
-                  {currentStep === totalSteps ? (
-                    <>
-                      <Eye className="h-4 w-4" />
-                      Preview
-                    </>
-                  ) : (
-                    <>
-                      Next
-                      <ArrowRight className="h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
-            {/* Progress Section - Moved to Bottom */}
-            {!showPreview && !showStudentList && (
-              <Card className="border-0 bg-gray-100">
+              <Card className="border-2 mb-4">
                 <CardHeader>
                   <div className="w-full">
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-lg text-[#274c77]">Progress</CardTitle>
-                        <CardDescription className="text-sm text-[#274c77]">Step {currentStep} of {totalSteps}</CardDescription>
+                        <CardTitle className="text-lg">Progress</CardTitle>
+                        <CardDescription className="text-sm">Step {currentStep} of {totalSteps}</CardDescription>
                       </div>
-                      <div className="text-sm text-[#274c77]">{currentForm.title}</div>
+                      <div className="text-sm text-muted-foreground">{currentForm.title}</div>
                     </div>
                     <div className="mt-4">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="h-2 rounded-full transition-all duration-300"
-                          style={{
-                            width: `${(currentStep / totalSteps) * 100}%`,
-                            background: "linear-gradient(90deg, #a3cef1 0%, #274c77 100%)"
-                          }}
-                        />
-                      </div>
+                      <Progress value={(currentStep / totalSteps) * 100} className="h-2 rounded-full" />
                       <div className="flex items-center justify-between mt-3 gap-2">
                         {currentForm.steps.map((step, index) => (
                           <button
                             key={step.id}
                             onClick={() => handleStepChange(step.id)}
                             className={`flex items-center gap-3 text-sm px-2 py-1 rounded-lg transition-all focus:outline-none ${currentStep === step.id
-                              ? "bg-[#274c77] text-white font-medium"
+                              ? "bg-primary text-white font-medium"
                               : currentStep > step.id
                                 ? "bg-green-50 text-green-700"
                                 : "text-muted-foreground"
@@ -2683,7 +2622,7 @@ export default function AdminPanel() {
                           >
                             <div
                               className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${currentStep === step.id
-                                ? "bg-[#274c77] text-white"
+                                ? "bg-primary text-white"
                                 : currentStep > step.id
                                   ? "bg-green-500 text-white"
                                   : "bg-muted text-muted-foreground"
@@ -2700,6 +2639,37 @@ export default function AdminPanel() {
                 </CardHeader>
               </Card>
             )}
+
+            <div className="space-y-6">
+              {renderCurrentForm()}
+
+              {!showPreview && !showStudentList && (
+                <div className="flex justify-between">
+                  <Button
+                    onClick={handlePrevious}
+                    disabled={currentStep === 1}
+                    variant="outline"
+                    className="flex items-center gap-2 bg-transparent"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <Button onClick={handleNext} className="flex items-center gap-2">
+                    {currentStep === totalSteps ? (
+                      <>
+                        <Eye className="h-4 w-4" />
+                        Preview
+                      </>
+                    ) : (
+                      <>
+                        Next
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
