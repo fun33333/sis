@@ -1,5 +1,5 @@
 "use client"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,10 +11,10 @@ import { CampusPerformanceChart } from "@/components/dashboard/campus-performanc
 // import { EnrollmentTrendChart } from "@/components/dashboard/enrollment-trend-chart"
 import { GenderDistributionChart } from "@/components/dashboard/gender-distribution-chart"
 import { StudentTable } from "@/components/dashboard/student-table"
-import { mockStudents, CAMPUSES, GRADES, ACADEMIC_YEARS, MOTHER_TONGUES, RELIGIONS, getGradeDistribution, getGenderDistribution, getCampusPerformance, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution } from "@/data/mockData"
+import { CAMPUSES, GRADES, ACADEMIC_YEARS, MOTHER_TONGUES, RELIGIONS, getGradeDistribution, getGenderDistribution, getCampusPerformance, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution } from "@/data/mockData"
 import { MotherTongueChart } from "@/components/dashboard/mother-tongue-chart"
 import { ReligionChart } from "@/components/dashboard/religion-chart"
-import type { FilterState, DashboardMetrics } from "@/types/dashboard"
+import type { FilterState, DashboardMetrics, Student } from "@/types/dashboard"
 import { Users, Calendar, GraduationCap, TrendingUp, ArrowLeft } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
@@ -28,10 +28,50 @@ export default function DashboardPage() {
     motherTongues: [],
     religions: [],
   })
+  const [students, setStudents] = useState<Student[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showDonor, setShowDonor] = useState(false)
+
+  useEffect(() => {
+    async function fetchStudents() {
+      setLoading(true)
+      const res = await fetch("/csvjson.json")
+      const data = await res.json()
+      // Map the raw data to Student[]
+      const mapped: Student[] = data.map((item: any, idx: number) => {
+        let academicYear = Number(item["Year of Admission"])
+        if (isNaN(academicYear)) academicYear = 2025
+        let attendancePercentage = Math.floor(Math.random() * 31) + 70 // 70-100
+        let averageScore = Math.floor(Math.random() * 41) + 60 // 60-100
+        let retentionFlag = Math.random() > 0.2
+        let enrollmentDate = new Date()
+        try {
+          enrollmentDate = new Date(item["Timestamp"])
+        } catch {}
+        return {
+          studentId: `CSV${idx + 1}`,
+          name: item["Student Name"] || "Unknown",
+          academicYear,
+          campus: item["Campus"] || "Unknown",
+          grade: item["Current Grade/Class"] || "Unknown",
+          gender: item["Gender"] === "Male" || item["Gender"] === "Female" ? item["Gender"] : "Other",
+          motherTongue: item["Mother Tongue"] || "Other",
+          religion: item["Religion"] || "Other",
+          attendancePercentage,
+          averageScore,
+          retentionFlag,
+          enrollmentDate,
+        }
+      })
+      setStudents(mapped)
+      setLoading(false)
+    }
+    fetchStudents()
+  }, [])
 
   // Filter students based on current filter state
   const filteredStudents = useMemo(() => {
-    return mockStudents.filter((student) => {
+    return students.filter((student) => {
       if (filters.academicYears.length > 0 && !filters.academicYears.includes(student.academicYear)) {
         return false
       }
@@ -52,7 +92,7 @@ export default function DashboardPage() {
       }
       return true
     })
-  }, [filters])
+  }, [filters, students])
 
   // Calculate metrics from filtered data
   const metrics = useMemo((): DashboardMetrics => {
@@ -73,7 +113,6 @@ export default function DashboardPage() {
       retentionRate,
     }
   }, [filteredStudents])
-  const [showDonor, setShowDonor] = useState(false)
 
   // Calculate chart data from filtered students
   const chartData = useMemo(() => {
@@ -89,12 +128,12 @@ export default function DashboardPage() {
 
   // Calculate trends (mock data for demonstration)
   const trends = useMemo(() => {
-    const baseTotal = mockStudents.length
+    const baseTotal = students.length
     const currentTotal = filteredStudents.length
 
     return {
       studentsTrend: {
-        value: Math.round(((currentTotal - baseTotal * 0.95) / (baseTotal * 0.95)) * 100),
+        value: baseTotal > 0 ? Math.round(((currentTotal - baseTotal * 0.95) / (baseTotal * 0.95)) * 100) : 0,
         isPositive: currentTotal >= baseTotal * 0.95,
       },
       attendanceTrend: {
@@ -110,7 +149,7 @@ export default function DashboardPage() {
         isPositive: Math.random() > 0.2,
       },
     }
-  }, [filteredStudents, mockStudents.length])
+  }, [filteredStudents, students.length])
 
   const resetFilters = () => {
     setFilters({
@@ -144,6 +183,10 @@ export default function DashboardPage() {
 
   const updateGenders = (genders: (string | number)[]) => {
     setFilters((prev) => ({ ...prev, genders: genders as ("Male" | "Female")[] }))
+  }
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center text-xl">Loading student data...</div>
   }
 
   return (

@@ -3,20 +3,7 @@
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from "recharts"
+import {BarChart,Bar,PieChart,Pie,Cell,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer,Area,AreaChart,} from "recharts"
 import { TrendingUp, Users, Building2, Award } from "lucide-react"
 
 // Mock data for charts
@@ -30,15 +17,15 @@ const enrollmentData = [
 ]
 
 const staffStudentData = [
-  { category: "Students", count: 1320, color: "hsl(var(--chart-1))" },
-  { category: "Teachers", count: 82, color: "hsl(var(--chart-2))" },
-  { category: "Non-Teaching Staff", count: 45, color: "hsl(var(--chart-3))" },
+  { category: "Students", count: 256, color: "hsl(var(--chart-1))" },
+  { category: "Teachers", count: 24, color: "hsl(var(--chart-2))" },
+  { category: "Non-Teaching Staff", count: 7, color: "hsl(var(--chart-3))" },
 ]
 
 const facilitiesData = [
   { name: "Classrooms", value: 45, color: "hsl(var(--chart-1))" },
-  { name: "Science Labs", value: 8, color: "hsl(var(--chart-2))" },
-  { name: "Computer Labs", value: 3, color: "hsl(var(--chart-3))" },
+  { name: "Science Labs", value: 1, color: "hsl(var(--chart-2))" },
+  { name: "Computer Labs", value: 1, color: "hsl(var(--chart-3))" },
   { name: "Library", value: 1, color: "hsl(var(--chart-4))" },
   { name: "Other Facilities", value: 12, color: "hsl(var(--chart-5))" },
 ]
