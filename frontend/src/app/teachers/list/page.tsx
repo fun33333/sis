@@ -12,7 +12,12 @@ const mockTeachers = [
   { id: "TEA004", name: "Omar Farooq", subject: "History", email: "omar.farooq@example.com" },
 ]
 
+import { useEffect } from "react";
+
 export default function TeacherListPage() {
+  useEffect(() => {
+    document.title = "Teacher List | IAK SMS";
+  }, []);
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Teacher List</h1>

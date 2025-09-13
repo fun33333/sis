@@ -7,10 +7,21 @@ import { Button } from "@/components/ui/button"
 import { CAMPUSES, mockStudents, getCampusPerformance } from "@/data/mockData"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+import { useEffect } from "react";
+
+
+
+
 
 export default function CampusListPage() {
+
+  useEffect(() => {
+    document.title = "Campus List | IAK SMS";
+  }, []);
+
   const [query, setQuery] = React.useState("")
   const filtered = CAMPUSES.filter((c) => c.toLowerCase().includes(query.toLowerCase()))
+
 
   // derive quick stats from mock data for a more professional preview
   const campusPerformance = React.useMemo(() => getCampusPerformance(mockStudents), [])

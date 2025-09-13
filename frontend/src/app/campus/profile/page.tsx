@@ -1,11 +1,12 @@
-"use client"
 
+"use client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Users, GraduationCap, Building2, TrendingUp, Award, BookOpen, MapPin, Calendar, Phone, Mail, } from "lucide-react"
 import { CampusHeader } from "@/components/dashboard/campus-header"
 import { StaffSummaryCards } from "@/components/dashboard/staff-summary-cards"
 import { CampusCharts } from "@/components/dashboard/campus-charts"
+import { useEffect } from "react"
 
 const campusData = {
   campusName: "Idara Al-Khair Campus Four",
@@ -72,6 +73,9 @@ const quickStats = [
 ]
 
 export default function CampusDashboard() {
+  useEffect(() => {
+      document.title = "Campus Profile | IAK SMS";
+    }, []);
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="container mx-auto px-4 py-8 space-y-8">

@@ -2,7 +2,7 @@
 "use client"
 
 import { ResponsiveContainer, BarChart, Bar, Cell, CartesianGrid, XAxis, YAxis, Tooltip, LabelList } from "recharts"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -10,8 +10,12 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import type { Student } from "@/types/dashboard"
 
+import { useEffect } from "react";
 
 export default function StudentProfilePage() {
+  useEffect(() => {
+    document.title = "Student Profile | IAK SMS";
+  }, []);
   const router = useRouter()
   const params = useSearchParams()
   const studentId = params?.get("studentId") || ""

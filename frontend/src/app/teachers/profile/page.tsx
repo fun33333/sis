@@ -13,7 +13,12 @@ const mockTeachers = [
   { id: "TEA003", name: "Sara Ali", subject: "English", email: "sara.ali@example.com", campus: "Campus 1", totalYears: 3, classes: ["3-B","4-A"], responsibilities: "Debate coach", rating: 84 },
 ]
 
+import { useEffect } from "react";
+
 export default function TeacherProfilePage() {
+  useEffect(() => {
+    document.title = "Teacher Profile | IAK SMS";
+  }, []);
   const router = useRouter()
   const params = useSearchParams()
   const id = params?.get("id") || "TEA001"

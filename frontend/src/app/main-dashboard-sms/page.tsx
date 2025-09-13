@@ -1,3 +1,4 @@
+
 "use client"
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -19,6 +20,9 @@ import { Users, Calendar, GraduationCap, TrendingUp, ArrowLeft } from "lucide-re
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 export default function DashboardPage() {
+  useEffect(() => {
+    document.title = "Dashboard | IAK SMS";
+  }, []);
   const router = useRouter()
   const [filters, setFilters] = useState<FilterState>({
     academicYears: [],
@@ -204,7 +208,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3 bg-gradient-to-r from-blue-400 via-blue-200 to-white rounded-xl px-4 py-2 shadow border border-blue-300 cursor-pointer" onClick={() => setShowDonor(true)}>
             <div className="flex flex-col items-end mr-2">
               <span className="text-xs font-semibold text-blue-900 uppercase tracking-wider">Valuable Donor</span>
-              <span className="text-base font-bold text-foreground">Miss Uzma Aijaz</span>
+              <span className="text-base font-bold text-foreground">Donor Name</span>
             </div>
             <img
               src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0rDiT9it7r-r__abYbK7u5UQ1av9CoxaChw&s"
@@ -234,7 +238,7 @@ export default function DashboardPage() {
                   className="w-20 h-20 rounded-full border-4 border-blue-400 shadow-lg bg-white"
                   style={{ boxShadow: '0 4px 16px 0 rgba(0, 110, 244, 0.4)' }}
                 />
-                <span className="text-xl font-bold text-yellow-700 mt-2">Miss Uzma Aijaz</span>
+                <span className="text-xl font-bold text-yellow-700 mt-2">Donor Name</span>
                 <span className="text-xs font-semibold text-yellow-700 uppercase tracking-wider">Valuable Donor</span>
               </div>
               <div className="space-y-3 px-6 pb-6">

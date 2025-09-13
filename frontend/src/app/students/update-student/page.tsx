@@ -9,7 +9,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { mockStudents, CAMPUSES, GRADES } from "@/data/mockData"
 
+import { useEffect } from "react";
+
 export default function UpdateStudentPage() {
+  useEffect(() => {
+    document.title = "Update Student | IAK SMS";
+  }, []);
   const router = useRouter()
   const params = useSearchParams()
   const studentId = params?.get("studentId") || ""

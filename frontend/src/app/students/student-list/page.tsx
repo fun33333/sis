@@ -8,12 +8,16 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { useEffect } from "react"
 import type { Student } from "@/types/dashboard"
 import { CAMPUSES, GRADES, ACADEMIC_YEARS } from "@/data/mockData"
 
 
+import { useEffect } from "react";
+
 export default function StudentListPage() {
+  useEffect(() => {
+    document.title = "Student List | IAK SMS";
+  }, []);
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [yearFilter, setYearFilter] = useState<string>("all")
