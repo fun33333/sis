@@ -18,7 +18,7 @@ export function CampusHeader({
   tagline = "Excellence in Education",
   onImageEdit,
 }: CampusHeaderProps) {
-  const [imageUrl] = useState("/modern-university-aerial.png")
+  const [imageUrl] = useState("/campus-4.png") // Campus 4 image
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -34,7 +34,7 @@ export function CampusHeader({
   }
 
   return (
-    <div className="relative w-full h-80 overflow-hidden rounded-lg bg-muted">
+    <div className="relative w-full h-100 overflow-hidden rounded-lg bg-muted">
       {/* Campus Image */}
       <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${imageUrl})` }}>
         {/* Overlay */}

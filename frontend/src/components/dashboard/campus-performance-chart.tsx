@@ -1,6 +1,6 @@
 "use client"
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ChartData } from "@/types/dashboard"
 
@@ -37,7 +37,23 @@ export function CampusPerformanceChart({ data }: CampusPerformanceChartProps) {
               <XAxis dataKey="name" className="text-xs fill-muted-foreground" tick={{ fontSize: 12 }} />
               <YAxis className="text-xs fill-muted-foreground" tick={{ fontSize: 12 }} domain={[60, 100]} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="value" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+              {/* Custom palette for campus bars */}
+              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                {data.map((entry, idx) => {
+                  const BAR_COLORS = [
+                    '#E7ECEF',
+                    '#A3CEF1',
+                    '#6096BA',
+                    '#8B8C89',
+                    '#274C77',
+                    '#BFD7ED',
+                    '#C9D6DF',
+                  ];
+                  return (
+                    <Cell key={entry.name} fill={BAR_COLORS[idx % BAR_COLORS.length]} />
+                  );
+                })}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>

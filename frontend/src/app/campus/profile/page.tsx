@@ -8,30 +8,30 @@ import { StaffSummaryCards } from "@/components/dashboard/staff-summary-cards"
 import { CampusCharts } from "@/components/dashboard/campus-charts"
 
 const campusData = {
-  campusName: "Idara Al-Khair Campus One",
-  campusCode: "IAK-C01",
+  campusName: "Idara Al-Khair Campus Four",
+  campusCode: "IAK-C04",
   campusDescription: "A premier educational institution dedicated to fostering academic excellence and character development in a nurturing environment.",
   status: "Active",
   governingBody: "State Education Board",
   registrationNumber: "EDU-2019-001234",
   address: "123 Education Boulevard, Academic District, Springfield, ST 12345",
   establishedDate: "August 15, 1995",
-  totalStudents: 1320,
-  totalTeachers: 82,
+  totalStudents: 256,
+  totalTeachers: 24,
   totalStaff: 45,
   capacity: 1500,
   occupancyRate: 88,
   gradesOffered: ["K-12"],
-  languages: ["English", "Spanish"],
+  languages: ["English", "Urdu"],
   facilities: ["Library", "Labs", "Sports Complex", "Auditorium", "Transport"],
   accreditation: "State Board Certified",
   rating: 4.8,
 }
 
 const staffSummaryData = {
-  totalTeachers: 82,
-  totalNonTeachingStaff: 45,
-  totalStudents: 1320,
+  totalTeachers: 24,
+  totalNonTeachingStaff: 7,
+  totalStudents: 256,
   hrContact: "hr@greenwoodacademy.edu",
   admissionContact: "admissions@greenwoodacademy.edu",
 }
@@ -39,7 +39,7 @@ const staffSummaryData = {
 const quickStats = [
   {
     title: "Student Enrollment",
-    value: "1,320",
+    value: "256",
     change: "+12%",
     trend: "up",
     icon: Users,
@@ -47,7 +47,7 @@ const quickStats = [
   },
   {
     title: "Faculty Members",
-    value: "82",
+    value: "24",
     change: "+5%",
     trend: "up",
     icon: GraduationCap,

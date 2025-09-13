@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import type { LucideIcon } from "lucide-react"
 
+
 interface KpiCardProps {
   title: string
   value: string | number
@@ -20,20 +21,25 @@ interface KpiCardProps {
     color?: string
   }
   className?: string
+  bgColor?: string
+  textColor?: string
 }
 
-export function KpiCard({ title, value, description, icon: Icon, trend, progress, className }: KpiCardProps) {
+
+export function KpiCard({ title, value, description, icon: Icon, trend, progress, className, bgColor, textColor }: KpiCardProps) {
+  const cardBg = bgColor ? { background: bgColor } : undefined;
+  const cardText = textColor ? textColor : "text-foreground";
   return (
-    <Card className={cn("relative overflow-hidden", className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Icon className="h-4 w-4 text-primary" />
+    <Card className={cn("relative overflow-hidden", className)} style={cardBg}>
+      <CardHeader className={cn("flex flex-row items-center justify-between space-y-0 pb-2", textColor)}>
+        <CardTitle className={cn("text-sm font-medium", textColor ? textColor : "text-muted-foreground")}>{title}</CardTitle>
+        <div className={cn("h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center", textColor)}>
+          <Icon className="h-4 w-4" />
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className={cn("space-y-3", textColor)}>
         <div className="flex items-baseline justify-between">
-          <div className="text-2xl font-bold text-foreground">
+          <div className={cn("text-2xl font-bold", cardText)}>
             {typeof value === "number" ? value.toLocaleString() : value}
           </div>
           {trend && (
@@ -43,7 +49,7 @@ export function KpiCard({ title, value, description, icon: Icon, trend, progress
                 trend.isPositive ? "text-green-600" : "text-red-600",
               )}
             >
-              <span className={cn("mr-1", trend.isPositive ? "text-green-600" : "text-red-600")}>
+              <span className={cn("mr-1", trend.isPositive ? "text-green-600" : "text-red-600")}> 
                 {trend.isPositive ? "↗" : "↘"}
               </span>
               {Math.abs(trend.value)}%
@@ -51,12 +57,12 @@ export function KpiCard({ title, value, description, icon: Icon, trend, progress
           )}
         </div>
 
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p className={cn("text-xs", textColor ? textColor : "text-muted-foreground")}>{description}</p>
 
         {progress && (
           <div className="space-y-1">
             <Progress value={(progress.value / progress.max) * 100} className="h-2" />
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className={cn("flex justify-between text-xs", textColor ? textColor : "text-muted-foreground")}> 
               <span>{progress.value}</span>
               <span>{progress.max}</span>
             </div>
