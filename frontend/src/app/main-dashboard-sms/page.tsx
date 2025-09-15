@@ -11,15 +11,17 @@ import { GradeDistributionChart } from "@/components/dashboard/grade-distributio
 import { CampusPerformanceChart } from "@/components/dashboard/campus-performance-chart"
 // import { EnrollmentTrendChart } from "@/components/dashboard/enrollment-trend-chart"
 import { GenderDistributionChart } from "@/components/dashboard/gender-distribution-chart"
-import { StudentTable } from "@/components/dashboard/student-table"
-import { CAMPUSES, GRADES, ACADEMIC_YEARS, MOTHER_TONGUES, RELIGIONS, getGradeDistribution, getGenderDistribution, getCampusPerformance, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution } from "@/data/mockData"
 import { MotherTongueChart } from "@/components/dashboard/mother-tongue-chart"
 import { ReligionChart } from "@/components/dashboard/religion-chart"
-import type { FilterState, DashboardMetrics, Student } from "@/types/dashboard"
-import { Users, Calendar, GraduationCap, TrendingUp, ArrowLeft } from "lucide-react"
+import { ArrowLeft, Calendar, GraduationCap, TrendingUp, Users } from "lucide-react"
+import Link from "next/link"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-
-export default function DashboardPage() {
+import { CAMPUSES, GRADES, ACADEMIC_YEARS, MOTHER_TONGUES, RELIGIONS, getGradeDistribution, getGenderDistribution, getCampusPerformance, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution } from "@/data/mockData"
+import type { FilterState, DashboardMetrics, Student } from "@/types/dashboard"
+import { StudentTable } from "@/components/dashboard/student-table"
+export default function MainDashboardPage() {
+  // Sidebar expand/collapse state
+  const [activeForm, setActiveForm] = useState<string | undefined>(undefined)
   useEffect(() => {
     document.title = "Dashboard | IAK SMS";
   }, []);
@@ -35,8 +37,10 @@ export default function DashboardPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [showDonor, setShowDonor] = useState(false)
+  const [showLoader, setShowLoader] = useState(true)
 
   useEffect(() => {
+    let loaderTimeout: NodeJS.Timeout;
     async function fetchStudents() {
       setLoading(true)
       const res = await fetch("/csvjson.json")
@@ -71,6 +75,12 @@ export default function DashboardPage() {
       setLoading(false)
     }
     fetchStudents()
+    loaderTimeout = setTimeout(() => {
+      setShowLoader(false)
+    }, 3000)
+    return () => {
+      clearTimeout(loaderTimeout)
+    }
   }, [])
 
   // Filter students based on current filter state
@@ -168,44 +178,57 @@ export default function DashboardPage() {
   const updateMotherTongues = (motherTongues: (string | number)[]) => {
     setFilters((prev) => ({ ...prev, motherTongues: motherTongues as string[] }))
   }
-
   const updateReligions = (religions: (string | number)[]) => {
     setFilters((prev) => ({ ...prev, religions: religions as string[] }))
   }
-
   const updateAcademicYears = (years: (string | number)[]) => {
     setFilters((prev) => ({ ...prev, academicYears: years as number[] }))
   }
-
   const updateCampuses = (campuses: (string | number)[]) => {
     setFilters((prev) => ({ ...prev, campuses: campuses as string[] }))
   }
-
   const updateGrades = (grades: (string | number)[]) => {
     setFilters((prev) => ({ ...prev, grades: grades as string[] }))
   }
-
   const updateGenders = (genders: (string | number)[]) => {
     setFilters((prev) => ({ ...prev, genders: genders as ("Male" | "Female")[] }))
   }
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-xl">Loading student data...</div>
+  if (loading || showLoader) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-300">
+        <div className="flex flex-col items-center gap-6">
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full border-8 border-blue-400 border-t-transparent animate-spin" style={{ borderTopColor: '#FFD700' }}></div>
+            <img
+              src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0rDiT9it7r-r__abYbK7u5UQ1av9CoxaChw&s"
+              alt="VIP Donor"
+              className="w-16 h-16 rounded-full border-4 border-yellow-400 shadow-lg absolute top-4 left-4"
+              style={{ boxShadow: '0 4px 16px 0 rgba(0, 110, 244, 0.4)' }}
+            />
+          </div>
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-blue-900 mb-2 tracking-tight">Welcome to the VIP Dashboard</h2>
+            <p className="text-lg text-blue-700 font-medium">Loading student data...</p>
+            <span className="block mt-2 text-sm text-yellow-700 font-semibold">Powered by Idara Al-Khair Foundation</span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">School Management Dashboard</h1>
-              <p className="text-muted-foreground">Academic performance and analytics overview</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#F6F8FA] flex">
+
+      {/* Main Content */}
+      <main className="flex-1 px-10 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-[#274c77]">School Management Dashboard</h1>
+          <Badge variant="secondary" className="text-sm bg-[#A3CEF1] text-[#274c77] px-4 py-2 rounded-xl shadow">Educational Management System</Badge>
+        </div>
+        <div className="bg-white rounded-3xl shadow-xl p-8">
           {/* VIP Donor Profile */}
-          <div className="flex items-center gap-3 bg-gradient-to-r from-blue-400 via-blue-200 to-white rounded-xl px-4 py-2 shadow border border-blue-300 cursor-pointer" onClick={() => setShowDonor(true)}>
+          <div className="flex items-center gap-3 bg-gradient-to-r from-blue-400 via-blue-200 to-white rounded-xl px-4 py-2 shadow border border-blue-300 cursor-pointer mb-8" onClick={() => setShowDonor(true)}>
             <div className="flex flex-col items-end mr-2">
               <span className="text-xs font-semibold text-blue-900 uppercase tracking-wider">Valuable Donor</span>
               <span className="text-base font-bold text-foreground">Donor Name</span>
@@ -216,227 +239,225 @@ export default function DashboardPage() {
               className="w-12 h-12 rounded-full border-2 border-blue-400 shadow"
             />
           </div>
-        </div>
-        {/* Donor Profile Popover */}
-        <div className="relative">
-          {showDonor && (
-            <div
-              className="absolute right-0 mt-2 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-blue-200 animate-slideDown"
-              style={{ minWidth: '320px', boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.18)' }}
-            >
-              <button
-                onClick={() => setShowDonor(false)}
-                className="absolute top-3 right-3 bg-blue-100 hover:bg-blue-300 text-blue-700 rounded-full p-2 shadow transition-all"
-                aria-label="Close"
+          {/* Donor Profile Popover */}
+          <div className="relative">
+            {showDonor && (
+              <div
+                className="absolute right-0 mt-2 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-blue-200 animate-slideDown"
+                style={{ minWidth: '320px', boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.18)' }}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-              <div className="flex flex-col items-center gap-2 pt-6 pb-2">
-                <img
-                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0rDiT9it7r-r__abYbK7u5UQ1av9CoxaChw&s"
-                  alt="VIP Donor"
-                  className="w-20 h-20 rounded-full border-4 border-blue-400 shadow-lg bg-white"
-                  style={{ boxShadow: '0 4px 16px 0 rgba(0, 110, 244, 0.4)' }}
-                />
-                <span className="text-xl font-bold text-yellow-700 mt-2">Donor Name</span>
-                <span className="text-xs font-semibold text-yellow-700 uppercase tracking-wider">Valuable Donor</span>
-              </div>
-              <div className="space-y-3 px-6 pb-6">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">Status:</span>
-                  <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-semibold">Active</span>
+                <button
+                  onClick={() => setShowDonor(false)}
+                  className="absolute top-3 right-3 bg-blue-100 hover:bg-blue-300 text-blue-700 rounded-full p-2 shadow transition-all"
+                  aria-label="Close"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+                <div className="flex flex-col items-center gap-2 pt-6 pb-2">
+                  <img
+                    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0rDiT9it7r-r__abYbK7u5UQ1av9CoxaChw&s"
+                    alt="VIP Donor"
+                    className="w-20 h-20 rounded-full border-4 border-blue-400 shadow-lg bg-white"
+                    style={{ boxShadow: '0 4px 16px 0 rgba(0, 110, 244, 0.4)' }}
+                  />
+                  <span className="text-xl font-bold text-yellow-700 mt-2">Donor Name</span>
+                  <span className="text-xs font-semibold text-yellow-700 uppercase tracking-wider">Valuable Donor</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">Organization:</span>
-                  <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-semibold">Thaakat Foundation</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">Role:</span>
-                  <span className="text-muted-foreground">Chief Patron</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">Member Since:</span>
-                  <span className="text-muted-foreground">January 2020</span>
-                </div>
-                <div>
-                  <span className="font-semibold text-foreground">Bio:</span>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    <b>Miss Uzma Ali </b>is a top-tier VIP donor supporting education for
-                    underprivileged children. Her generous contributions have enabled
-                    scholarships, infrastructure, and digital learning for thousands of
-                    students.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-          <style jsx global>{`
-            @keyframes slideDown {
-              0% { transform: translateY(-16px); opacity: 0; }
-              100% { transform: translateY(0); opacity: 1; }
-            }
-          `}</style>
-        </div>
-
-        <Card className="!bg-[#E7ECEF]">
-          <CardHeader className="!bg-[#E7ECEF]">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 rounded-xl shadow hover:bg-gray-100 transition"
-                onClick={() => window.history.back()}
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-              <Button onClick={resetFilters} variant="outline">
-                Reset Filters
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="!bg-[#E7ECEF]">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-              <MultiSelectFilter
-                title="Academic Year"
-                options={ACADEMIC_YEARS}
-                selectedValues={filters.academicYears}
-                onSelectionChange={updateAcademicYears}
-                placeholder="All years"
-              />
-              <MultiSelectFilter
-                title="Campus"
-                options={CAMPUSES}
-                selectedValues={filters.campuses}
-                onSelectionChange={updateCampuses}
-                placeholder="All campuses"
-              />
-              <MultiSelectFilter
-                title="Grade"
-                options={GRADES}
-                selectedValues={filters.grades}
-                onSelectionChange={updateGrades}
-                placeholder="All grades"
-              />
-              <MultiSelectFilter
-                title="Gender"
-                options={["Male", "Female"]}
-                selectedValues={filters.genders}
-                onSelectionChange={updateGenders}
-                placeholder="All genders"
-              />
-              <MultiSelectFilter
-                title="Mother Tongue"
-                options={MOTHER_TONGUES}
-                selectedValues={filters.motherTongues}
-                onSelectionChange={updateMotherTongues}
-                placeholder="All mother tongues"
-              />
-              <MultiSelectFilter
-                title="Religion"
-                options={RELIGIONS}
-                selectedValues={filters.religions}
-                onSelectionChange={updateReligions}
-                placeholder="All religions"
-              />
-            </div>
-
-            {(filters.academicYears.length > 0 ||
-              filters.campuses.length > 0 ||
-              filters.grades.length > 0 ||
-              filters.genders.length > 0 ||
-              filters.motherTongues.length > 0 ||
-              filters.religions.length > 0) && (
-                <div className="mt-4 pt-4 border-t">
-                  <h4 className="text-sm font-medium mb-2">Active Filters:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {filters.academicYears.length > 0 && (
-                      <Badge variant="default">Years: {filters.academicYears.join(", ")}</Badge>
-                    )}
-                    {filters.campuses.length > 0 && (
-                      <Badge variant="default">Campuses: {filters.campuses.join(", ")}</Badge>
-                    )}
-                    {filters.grades.length > 0 && (
-                      <Badge variant="default">
-                        Grades: {filters.grades.slice(0, 3).join(", ")}
-                        {filters.grades.length > 3 ? ` +${filters.grades.length - 3}` : ""}
-                      </Badge>
-                    )}
-                    {filters.genders.length > 0 && <Badge variant="default">Genders: {filters.genders.join(", ")}</Badge>}
-                    {filters.motherTongues.length > 0 && <Badge variant="default">Mother Tongues: {filters.motherTongues.join(", ")}</Badge>}
-                    {filters.religions.length > 0 && <Badge variant="default">Religions: {filters.religions.join(", ")}</Badge>}
+                <div className="space-y-3 px-6 pb-6">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-foreground">Status:</span>
+                    <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-semibold">Active</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-foreground">Organization:</span>
+                    <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-semibold">Thaakat Foundation</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-foreground">Role:</span>
+                    <span className="text-muted-foreground">Chief Patron</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-foreground">Member Since:</span>
+                    <span className="text-muted-foreground">January 2020</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-foreground">Bio:</span>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      <b>Miss Uzma Ali </b>is a top-tier VIP donor supporting education for
+                      underprivileged children. Her generous contributions have enabled
+                      scholarships, infrastructure, and digital learning for thousands of
+                      students.
+                    </p>
                   </div>
                 </div>
-              )}
-          </CardContent>
-        </Card>
+              </div>
+            )}
+            <style jsx global>{`
+              @keyframes slideDown {
+                0% { transform: translateY(-16px); opacity: 0; }
+                100% { transform: translateY(0); opacity: 1; }
+              }
+            `}</style>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <KpiCard
-            title="Total Students"
-            value={metrics.totalStudents}
-            description="Active enrollments"
-            icon={Users}
-            trend={trends.studentsTrend}
-            bgColor="#E7ECEF"
-            textColor="text-[#274c77]"
-          />
-          <KpiCard
-            title="Avg Attendance"
-            value={`${metrics.averageAttendance}%`}
-            description="Overall attendance rate"
-            icon={Calendar}
-            trend={trends.attendanceTrend}
-            progress={{
-              value: metrics.averageAttendance,
-              max: 100,
-            }}
-            bgColor="#8B8C89"
-            textColor="text-white"
-          />
-          <KpiCard
-            title="Avg Score"
-            value={metrics.averageScore}
-            description="Academic performance"
-            icon={GraduationCap}
-            trend={trends.scoreTrend}
-            progress={{
-              value: metrics.averageScore,
-              max: 100,
-            }}
-            bgColor="#6096BA"
-            textColor="text-white"
-          />
-          <KpiCard
-            title="Retention Rate"
-            value={`${metrics.retentionRate}%`}
-            description="Student retention"
-            icon={TrendingUp}
-            trend={trends.retentionTrend}
-            progress={{
-              value: metrics.retentionRate,
-              max: 100,
-            }}
-            bgColor="#A3CEF1"
-            textColor="text-[#274c77]"
-          />
+          <Card className="!bg-[#E7ECEF]">
+            <CardHeader className="!bg-[#E7ECEF]">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 rounded-xl shadow hover:bg-gray-100 transition"
+                  onClick={() => window.history.back()}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
+                </Button>
+                <Button onClick={resetFilters} variant="outline">
+                  Reset Filters
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="!bg-[#E7ECEF]">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                <MultiSelectFilter
+                  title="Academic Year"
+                  options={ACADEMIC_YEARS}
+                  selectedValues={filters.academicYears}
+                  onSelectionChange={updateAcademicYears}
+                  placeholder="All years"
+                />
+                <MultiSelectFilter
+                  title="Campus"
+                  options={CAMPUSES}
+                  selectedValues={filters.campuses}
+                  onSelectionChange={updateCampuses}
+                  placeholder="All campuses"
+                />
+                <MultiSelectFilter
+                  title="Grade"
+                  options={GRADES}
+                  selectedValues={filters.grades}
+                  onSelectionChange={updateGrades}
+                  placeholder="All grades"
+                />
+                <MultiSelectFilter
+                  title="Gender"
+                  options={["Male", "Female"]}
+                  selectedValues={filters.genders}
+                  onSelectionChange={updateGenders}
+                  placeholder="All genders"
+                />
+                <MultiSelectFilter
+                  title="Mother Tongue"
+                  options={MOTHER_TONGUES}
+                  selectedValues={filters.motherTongues}
+                  onSelectionChange={updateMotherTongues}
+                  placeholder="All mother tongues"
+                />
+                <MultiSelectFilter
+                  title="Religion"
+                  options={RELIGIONS}
+                  selectedValues={filters.religions}
+                  onSelectionChange={updateReligions}
+                  placeholder="All religions"
+                />
+              </div>
+
+              {(filters.academicYears.length > 0 ||
+                filters.campuses.length > 0 ||
+                filters.grades.length > 0 ||
+                filters.genders.length > 0 ||
+                filters.motherTongues.length > 0 ||
+                filters.religions.length > 0) && (
+                  <div className="mt-4 pt-4 border-t">
+                    <h4 className="text-sm font-medium mb-2">Active Filters:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {filters.academicYears.length > 0 && (
+                        <Badge variant="default">Years: {filters.academicYears.join(", ")}</Badge>
+                      )}
+                      {filters.campuses.length > 0 && (
+                        <Badge variant="default">Campuses: {filters.campuses.join(", ")}</Badge>
+                      )}
+                      {filters.grades.length > 0 && (
+                        <Badge variant="default">
+                          Grades: {filters.grades.slice(0, 3).join(", ")}
+                          {filters.grades.length > 3 ? ` +${filters.grades.length - 3}` : ""}
+                        </Badge>
+                      )}
+                      {filters.genders.length > 0 && <Badge variant="default">Genders: {filters.genders.join(", ")}</Badge>}
+                      {filters.motherTongues.length > 0 && <Badge variant="default">Mother Tongues: {filters.motherTongues.join(", ")}</Badge>}
+                      {filters.religions.length > 0 && <Badge variant="default">Religions: {filters.religions.join(", ")}</Badge>}
+                    </div>
+                  </div>
+                )}
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+            <KpiCard
+              title="Total Students"
+              value={metrics.totalStudents}
+              description="Active enrollments"
+              icon={Users}
+              trend={trends.studentsTrend}
+              bgColor="#E7ECEF"
+              textColor="text-[#274c77]"
+            />
+            <KpiCard
+              title="Avg Attendance"
+              value={`${metrics.averageAttendance}%`}
+              description="Overall attendance rate"
+              icon={Calendar}
+              trend={trends.attendanceTrend}
+              progress={{
+                value: metrics.averageAttendance,
+                max: 100,
+              }}
+              bgColor="#8B8C89"
+              textColor="text-white"
+            />
+            <KpiCard
+              title="Avg Score"
+              value={metrics.averageScore}
+              description="Academic performance"
+              icon={GraduationCap}
+              trend={trends.scoreTrend}
+              progress={{
+                value: metrics.averageScore,
+                max: 100,
+              }}
+              bgColor="#6096BA"
+              textColor="text-white"
+            />
+            <KpiCard
+              title="Retention Rate"
+              value={`${metrics.retentionRate}%`}
+              description="Student retention"
+              icon={TrendingUp}
+              trend={trends.retentionTrend}
+              progress={{
+                value: metrics.retentionRate,
+                max: 100,
+              }}
+              bgColor="#A3CEF1"
+              textColor="text-[#274c77]"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+            <GradeDistributionChart data={chartData.gradeDistribution} />
+            <GenderDistributionChart data={chartData.genderDistribution} />
+            <ReligionChart data={chartData.religionDistribution} />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+            <CampusPerformanceChart data={chartData.campusPerformance} />
+            <MotherTongueChart data={chartData.motherTongueDistribution} />
+          </div>
+
+          <StudentTable students={filteredStudents} />
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <GradeDistributionChart data={chartData.gradeDistribution} />
-          <GenderDistributionChart data={chartData.genderDistribution} />
-          <ReligionChart data={chartData.religionDistribution} />
-
-        </div>
-
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CampusPerformanceChart data={chartData.campusPerformance} />
-
-          <MotherTongueChart data={chartData.motherTongueDistribution} />
-        </div>
-
-        <StudentTable students={filteredStudents} />
-      </div>
+      </main>
     </div>
   )
+
 }

@@ -2,17 +2,32 @@
 import { TrendingUp } from "lucide-react"
 import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, LabelList, Cell } from "recharts"
 import {Card,CardContent,CardDescription,CardFooter,CardHeader,CardTitle} from "@/components/ui/card"
-import {ChartConfig,ChartContainer,ChartTooltip,ChartTooltipContent,} from "@/components/ui/chart"
+import {ChartConfig,ChartContainer,ChartTooltip} from "@/components/ui/chart"
 import type { ChartData } from "@/types/dashboard"
 
 interface MotherTongueChartProps {
   data: ChartData[]
 }
 
+// Custom tooltip to show full language and student count
+function MotherTongueTooltip({ active, payload }: any) {
+  if (active && payload && payload.length) {
+    const { payload: barData } = payload[0];
+    return (
+      <div style={{ background: 'white', border: '1px solid #eee', padding: 8, borderRadius: 6 }}>
+        <div><b>Language:</b> {barData.fullName}</div>
+        <div><b>Students:</b> {barData.students}</div>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function MotherTongueChart({ data }: MotherTongueChartProps) {
   // Prepare chart data for recharts
   const chartData = data.map((item) => ({
-    motherTongue: item.name,
+    motherTongue: item.name.slice(0, 3),
+    fullName: item.name,
     students: item.value,
   }))
 
@@ -44,25 +59,28 @@ export function MotherTongueChart({ data }: MotherTongueChartProps) {
             <BarChart
               accessibilityLayer
               data={chartData}
-              layout="vertical"
-              margin={{ left: -20 }}
+              margin={{ bottom: 30 }}
             >
-              <XAxis type="number" dataKey="students" hide />
-              <YAxis
+              <XAxis
                 dataKey="motherTongue"
-                type="category"
                 tickLine={false}
                 tickMargin={10}
                 axisLine={false}
-                width={110}
-                tickFormatter={(value) => value}
+                interval={0}
+                tickFormatter={(value) => value.slice(0, 3)}
               />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+              <YAxis
+                dataKey="students"
+                allowDecimals={false}
+                tickLine={false}
+                axisLine={false}
+              />
+              <ChartTooltip cursor={false} content={<MotherTongueTooltip />} />
               <Bar dataKey="students" radius={5}>
                 {chartData.map((entry, idx) => (
-                  <Cell key={entry.motherTongue} fill={BAR_COLORS[idx % BAR_COLORS.length]} />
+                  <Cell key={entry.fullName + idx} fill={BAR_COLORS[idx % BAR_COLORS.length]} />
                 ))}
-                <LabelList dataKey="students" position="right" fontSize={12} className="fill-foreground" />
+                <LabelList dataKey="students" position="top" fontSize={12} className="fill-foreground" />
               </Bar>
             </BarChart>
           </ResponsiveContainer>

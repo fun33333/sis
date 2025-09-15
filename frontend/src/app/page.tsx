@@ -22,7 +22,7 @@ type FormType = "students" | "campus" | "teachers"
 export default function AdminPanel() {
   const { toast } = useToast()
   const router = useRouter()
-  const [activeForm, setActiveForm] = useState<FormType>("campus")
+  const [activeForm, setActiveForm] = useState<FormType | undefined>("students")
   const [currentStep, setCurrentStep] = useState(1)
   const [showPreview, setShowPreview] = useState(false)
   const [showStudentList, setShowStudentList] = useState(false)
@@ -163,8 +163,8 @@ export default function AdminPanel() {
     },
   }
 
-  const currentForm = forms[activeForm]
-  const totalSteps = currentForm.steps.length
+  const currentForm = activeForm ? forms[activeForm] : null;
+  const totalSteps = currentForm ? currentForm.steps.length : 0;
 
   const requiredFieldsMap: { [form in FormType]?: { [step: number]: string[] } } = {
     students: {
@@ -228,7 +228,7 @@ export default function AdminPanel() {
   }
 
   const validateCurrentStep = () => {
-    const requiredForStep = requiredFieldsMap[activeForm]?.[currentStep] || []
+    const requiredForStep = activeForm ? (requiredFieldsMap[activeForm]?.[currentStep] || []) : []
     const invalid: string[] = []
     const newErrorFields: string[] = []
 
@@ -1463,11 +1463,21 @@ export default function AdminPanel() {
                 variant={"outline"}
                 onClick={() => {
                   // Check if all required fields across all steps are filled
+                  if (!currentForm) {
+                    toast({
+                      title: "Error",
+                      description: "Form configuration is missing.",
+                      variant: "destructive"
+                    });
+                    return;
+                  }
                   const stepsCount = currentForm.steps.length
                   const allRequired: string[] = []
-                  for (let s = 1; s <= stepsCount; s++) {
-                    const req = requiredFieldsMap[activeForm]?.[s] || []
-                    allRequired.push(...req)
+                  if (activeForm) {
+                    for (let s = 1; s <= stepsCount; s++) {
+                      const req = requiredFieldsMap[activeForm]?.[s] || []
+                      allRequired.push(...req)
+                    }
                   }
                   const missingFields = allRequired.filter(field => !formData[field])
                   
@@ -2449,7 +2459,6 @@ export default function AdminPanel() {
                   </div>
                   <div className="flex items-end">
                     <Button className="ml-auto bg-secondary hover:bg-secondary/90" onClick={() => {
-                      // keep summary fields in formData for preview/save
                       setFormData({ ...formData, totalExperienceYears, currentRole: formData.currentRole || "", subjects: formData.subjectsTaught || formData.subjects || "" })
                       // simple success toast could be shown by caller
                       alert('Summary updated')
@@ -2466,213 +2475,193 @@ export default function AdminPanel() {
     }
   }
 
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="bg-white border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-slate-800">Admin Panel</h1>
-            <Badge variant="secondary" className="text-sm">
-              Educational Management System
-            </Badge>
+    <div className="min-h-screen bg-[#e7ecef] flex">
+      {/* VIP Sidebar */}
+      <aside
+        className={`min-h-screen flex flex-col justify-between py-8 px-2 rounded-r-3xl shadow-2xl transition-all duration-300 backdrop-blur-lg border-r border-[#8b8c89]/30 ${sidebarOpen ? 'w-80 px-6' : 'w-20 px-2'}`}
+        style={{
+          background: sidebarOpen ? '#e7ecef' : '#a3cef1',
+          boxShadow: '0 8px 32px 0 rgba(96,150,186,0.18)',
+          borderRight: '2px solid #a3cef1',
+        }}
+      >
+        <div>
+          <div className="flex items-center gap-3 mb-10">
+            <button
+              className={`transition-all duration-300 bg-[#e7ecef] hover:bg-[#a3cef1] rounded-full p-2 shadow-lg mr-2 focus:outline-none border border-[#8b8c89]/40 ${sidebarOpen ? '' : 'mx-auto'}`}
+              onClick={() => setSidebarOpen((prev) => !prev)}
+              aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            >
+              {/* Hamburger/arrow icon for toggle */}
+              <span className="flex items-center justify-center">
+                {sidebarOpen ? (
+                  <svg width="24" height="24" fill="none" stroke="#6096ba" strokeWidth="2" viewBox="0 0 24 24" className="transition-transform duration-300 rotate-0"><path d="M19 12H5" /></svg>
+                ) : (
+                  <svg width="24" height="24" fill="none" stroke="#6096ba" strokeWidth="2" viewBox="0 0 24 24" className="transition-transform duration-300 rotate-180"><path d="M5 12H19" /></svg>
+                )}
+              </span>
+            </button>
+            <div className="bg-[#e7ecef] rounded-full p-2 shadow-lg border border-[#8b8c89]/40">
+              <img src="/logo.png" alt="Logo" className="w-10 h-10" />
+            </div>
+            {sidebarOpen && (
+              <span className="text-2xl font-bold text-[#274c77] tracking-tight drop-shadow-lg" style={{letterSpacing: '0.02em'}}>SIS Admin</span>
+            )}
           </div>
-        </div>
-      </div>
-
-
-
-      {/* leftside panel code */}
-
-
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="flex gap-6">
-          <div className="w-80 space-y-4">
-            <Card className="border-2">
-              <CardHeader>
-                <CardTitle className="text-lg">IAK SMS</CardTitle>
-                <CardDescription>Select a form to manage</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-
-
-                <Link href="/main-dashboard-sms" className="w-full">
-                  <Button variant="ghost" className="w-full justify-start gap-3 h-12">
-                    <TrendingUp className="h-5 w-5" />
-                    Dashboard
-                  </Button>
-                </Link>
-
-                {Object.entries(forms).map(([key, form]) => {
-                  const Icon = form.icon
-                  return (
-                    <Button
-                      key={key}
-                      variant="ghost"
-                      className="w-full justify-start gap-3 h-12"
-                      onClick={() => {
-                        setActiveForm(key as FormType)
-                        resetForm()
-                      }}
+          <nav className="space-y-2">
+            <Link href="/main-dashboard-sms">
+              <button className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg ${sidebarOpen ? 'text-[#274c77] bg-[#a3cef1] hover:bg-[#6096ba]' : 'justify-center text-[#274c77] bg-[#a3cef1] hover:bg-[#6096ba]'}`}
+                style={{ backdropFilter: 'blur(4px)', border: '1.5px solid #8b8c89' }}>
+                <TrendingUp className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" style={{color:'#6096ba'}} />
+                {sidebarOpen && <span className="transition-all duration-300">Dashboard</span>}
+              </button>
+            </Link>
+            {Object.entries(forms).map(([key, form]) => {
+              const isActive = activeForm === key;
+              return (
+                <div key={key}>
+                  <button
+                    className={`w-full flex items-center gap-3 mt-5 px-3 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg text-left group ${isActive ? 'bg-[#6096ba] text-[#e7ecef] shadow-xl' : 'text-[#274c77] hover:bg-[#a3cef1]'} ${sidebarOpen ? '' : 'justify-center'}`}
+                    style={{ backdropFilter: 'blur(4px)', border: isActive ? '2px solid #6096ba' : '1.5px solid #8b8c89' }}
+                    onClick={() => {
+                      if (activeForm === key) {
+                        setActiveForm(undefined);
+                      } else {
+                        setActiveForm(key as FormType);
+                        setCurrentStep(1);
+                        setShowPreview(false);
+                        setShowStudentList(false);
+                      }
+                    }}
+                  >
+                    {form.icon && <form.icon className={`h-5 w-5 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-[#e7ecef]' : 'text-[#6096ba]'}`} />}
+                    {sidebarOpen && <span className="transition-all duration-300">{form.title}</span>}
+                    {sidebarOpen && (
+                      <span className="ml-auto">
+                        <svg className={`h-4 w-4 transition-transform duration-300 ${isActive ? 'rotate-90 text-[#e7ecef]' : 'text-[#6096ba]'}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
+                      </span>
+                    )}
+                  </button>
+                  {sidebarOpen && (
+                    <div
+                      className={`ml-7 mt-2 mb-2 space-y-1 overflow-hidden transition-all duration-300 ${isActive ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+                      aria-hidden={!isActive}
                     >
-                      <Icon className="h-5 w-5" />
-                      {form.title}
-                    </Button>
-                  )
-                })}
-
-                {/* Quick-select dropdown for Add Students (left panel) */}
-                {activeForm === "students" && (
-                  <div className="pt-2">
-                    <Label htmlFor="quickName" className="text-sm">Students Portal</Label>
-                    <Select
-                      onValueChange={(value) => {
-                        if (value === "student-list") router.push("/students/student-list")
-                        if (value === "update-student") router.push("/students/update-student")
-                        if (value === "transfer-modal") router.push("/students/transfer-module")
-                        if (value === "student-termination") router.push("/students/termination-certificate")
-                        if (value === "student-leaving") router.push("/students/leaving-certificate")
-                        if (value === "student-profile") router.push("/students/profile")
-                      }}
-                    >
-                      <SelectTrigger className={`border-2 focus:border-primary w-full`}>
-                        <SelectValue placeholder="More About Student Portal" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="student-list">Student List</SelectItem>
-                        {/* <SelectItem value="update-student">Update Student</SelectItem> */}
-                        <SelectItem value="transfer-modal">Student Transfer Module</SelectItem>
-                        <SelectItem value="student-termination">Termination Certificate</SelectItem>
-                        <SelectItem value="student-leaving">Leaving Certificate</SelectItem>
-                        <SelectItem value="student-profile">Student Profile</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {/* Quick-select dropdown for Teachers (left panel) */}
-                {activeForm === "teachers" && (
-                  <div className="pt-2">
-                    <Label htmlFor="teacherQuick" className="text-sm">Teachers Portal</Label>
-                    <Select
-                      onValueChange={(value) => {
-                        if (value === "teacher-list") router.push("/teachers/list")
-                        if (value === "teacher-profile") router.push("/teachers/profile")
-                      }}
-                    >
-                      <SelectTrigger className={`border-2 focus:border-primary w-full`}>
-                        <SelectValue placeholder="More About Teacher Portal" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="teacher-list">Teacher List</SelectItem>
-                        <SelectItem value="teacher-profile">Teacher Profile</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {/* Quick-select dropdown for Campus (left panel) */}
-                {activeForm === "campus" && (
-                  <div className="pt-2">
-                    <Label htmlFor="campusQuick" className="text-sm">Campus Portal</Label>
-                    <Select
-                      onValueChange={(value) => {
-                        if (value === "campus-list") router.push("/campus/list")
-                        if (value === "campus-profile") router.push("/campus/profile")
-                      }}
-                    >
-                      <SelectTrigger className={`border-2 focus:border-primary w-full`}>
-                        <SelectValue placeholder="More About Campus Portal" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="campus-list">Campus List</SelectItem>
-                        <SelectItem value="campus-profile">Campus Profile</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex-1">
-            {!showPreview && !showStudentList && (
-              <Card className="border-2 mb-4">
-                <CardHeader>
-                  <div className="w-full">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-lg">Progress</CardTitle>
-                        <CardDescription className="text-sm">Step {currentStep} of {totalSteps}</CardDescription>
-                      </div>
-                      <div className="text-sm text-muted-foreground">{currentForm.title}</div>
+                      {key === 'students' && (
+                        <>
+                          <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/student-list')}>Student List</button>
+                          <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/transfer-module')}>Student Transfer Module</button>
+                          <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/termination-certificate')}>Termination Certificate</button>
+                          <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/leaving-certificate')}>Leaving Certificate</button>
+                          <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/profile')}>Student Profile</button>
+                        </>
+                      )}
+                      {key === 'teachers' && (
+                        <>
+                          <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/teachers/list')}>Teacher List</button>
+                          <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/teachers/profile')}>Teacher Profile</button>
+                        </>
+                      )}
+                      {key === 'campus' && (
+                        <>
+                          <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/campus/list')}>Campus List</button>
+                          <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/campus/profile')}>Campus Profile</button>
+                        </>
+                      )}
                     </div>
-                    <div className="mt-4">
-                      <Progress value={(currentStep / totalSteps) * 100} className="h-2 rounded-full" />
-                      <div className="flex items-center justify-between mt-3 gap-2">
-                        {currentForm.steps.map((step, index) => (
-                          <button
-                            key={step.id}
-                            onClick={() => handleStepChange(step.id)}
-                            className={`flex items-center gap-3 text-sm px-2 py-1 rounded-lg transition-all focus:outline-none ${currentStep === step.id
-                              ? "bg-primary text-white font-medium"
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 px-10 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-[#274c77]">Admin Panel</h1>
+          <Badge variant="secondary" className="text-sm bg-[#A3CEF1] text-[#274c77] px-4 py-2 rounded-xl shadow">Educational Management System</Badge>
+        </div>
+        <div className="bg-white rounded-3xl shadow-xl p-8">
+          {currentForm && !showPreview && !showStudentList && (
+            <Card className="border-2 mb-4">
+              <CardHeader>
+                <div className="w-full">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">Progress</CardTitle>
+                      <CardDescription className="text-sm">Step {currentStep} of {totalSteps}</CardDescription>
+                    </div>
+                    <div className="text-sm text-muted-foreground">{currentForm ? currentForm.title : ""}</div>
+                  </div>
+                  <div className="mt-4">
+                    <Progress value={(currentStep / totalSteps) * 100} className="h-2 rounded-full" />
+                    <div className="flex items-center justify-between mt-3 gap-2">
+                      {currentForm.steps.map((step, index) => (
+                        <button
+                          key={step.id}
+                          onClick={() => handleStepChange(step.id)}
+                          className={`flex items-center gap-3 text-sm px-2 py-1 rounded-lg transition-all focus:outline-none ${currentStep === step.id
+                            ? "bg-primary text-white font-medium"
+                            : currentStep > step.id
+                              ? "bg-green-50 text-green-700"
+                              : "text-muted-foreground"
+                            }`}
+                        >
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${currentStep === step.id
+                              ? "bg-primary text-white"
                               : currentStep > step.id
-                                ? "bg-green-50 text-green-700"
-                                : "text-muted-foreground"
+                                ? "bg-green-500 text-white"
+                                : "bg-muted text-muted-foreground"
                               }`}
                           >
-                            <div
-                              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${currentStep === step.id
-                                ? "bg-primary text-white"
-                                : currentStep > step.id
-                                  ? "bg-green-500 text-white"
-                                  : "bg-muted text-muted-foreground"
-                                }`}
-                            >
-                              {index + 1}
-                            </div>
-                            <span className="hidden sm:inline">{step.title}</span>
-                          </button>
-                        ))}
-                      </div>
+                            {index + 1}
+                          </div>
+                          <span className="hidden sm:inline">{step.title}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                </CardHeader>
-              </Card>
-            )}
-
-            <div className="space-y-6">
-              {renderCurrentForm()}
-
-              {!showPreview && !showStudentList && (
-                <div className="flex justify-between">
-                  <Button
-                    onClick={handlePrevious}
-                    disabled={currentStep === 1}
-                    variant="outline"
-                    className="flex items-center gap-2 bg-transparent"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                  <Button onClick={handleNext} className="flex items-center gap-2">
-                    {currentStep === totalSteps ? (
-                      <>
-                        <Eye className="h-4 w-4" />
-                        Preview
-                      </>
-                    ) : (
-                      <>
-                        Next
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
                 </div>
-              )}
-            </div>
+              </CardHeader>
+            </Card>
+          )}
+          <div className="space-y-6">
+            {renderCurrentForm()}
+            {!showPreview && !showStudentList && (
+              <div className="flex justify-between">
+                <Button
+                  onClick={handlePrevious}
+                  disabled={currentStep === 1}
+                  variant="outline"
+                  className="flex items-center gap-2 bg-transparent"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <Button onClick={handleNext} className="flex items-center gap-2">
+                  {currentStep === totalSteps ? (
+                    <>
+                      <Eye className="h-4 w-4" />
+                      Preview
+                    </>
+                  ) : (
+                    <>
+                      Next
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
