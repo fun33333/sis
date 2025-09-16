@@ -55,7 +55,7 @@ export function MultiSelectFilter({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between bg-white dark:bg-[oklch(0.145_0_0)]"
+            className="w-full justify-between bg-white dark:bg-[#ffffff]"
           >
             <span className="truncate">{displayText}</span>
             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

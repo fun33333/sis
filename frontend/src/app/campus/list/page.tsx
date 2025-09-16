@@ -23,7 +23,6 @@ export default function CampusListPage() {
   const filtered = CAMPUSES.filter((c) => c.toLowerCase().includes(query.toLowerCase()))
 
 
-  // derive quick stats from mock data for a more professional preview
   const campusPerformance = React.useMemo(() => getCampusPerformance(mockStudents), [])
 
   const getCampusMetric = (campus: string) => {
@@ -47,9 +46,6 @@ export default function CampusListPage() {
             placeholder="Search campuses..."
             className="px-3 py-2 border rounded-md w-64 focus:border-primary"
           />
-          <Link href="/add-campus">
-            <Button className="bg-secondary hover:bg-secondary/90">Add Campus</Button>
-          </Link>
         </div>
       </div>
 

@@ -2460,7 +2460,6 @@ export default function AdminPanel() {
                   <div className="flex items-end">
                     <Button className="ml-auto bg-secondary hover:bg-secondary/90" onClick={() => {
                       setFormData({ ...formData, totalExperienceYears, currentRole: formData.currentRole || "", subjects: formData.subjectsTaught || formData.subjects || "" })
-                      // simple success toast could be shown by caller
                       alert('Summary updated')
                     }}>Update Summary</Button>
                   </div>
@@ -2478,44 +2477,34 @@ export default function AdminPanel() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div className="min-h-screen bg-[#e7ecef] flex">
-      {/* VIP Sidebar */}
+    <div className="bg-[#e7ecef] flex h-screen overflow-hidden">
       <aside
-        className={`min-h-screen flex flex-col justify-between py-8 px-2 rounded-r-3xl shadow-2xl transition-all duration-300 backdrop-blur-lg border-r border-[#8b8c89]/30 ${sidebarOpen ? 'w-80 px-6' : 'w-20 px-2'}`}
+        className={`h-screen fixed left-0 top-0 flex flex-col justify-between py-8 px-2 rounded-r-3xl shadow-2xl transition-all duration-300 backdrop-blur-lg border-r border-[#8b8c89]/30 z-20 ${sidebarOpen ? 'w-72 px-4' : 'w-18 px-2'}`}
         style={{
           background: sidebarOpen ? '#e7ecef' : '#a3cef1',
-          boxShadow: '0 8px 32px 0 rgba(96,150,186,0.18)',
-          borderRight: '2px solid #a3cef1',
+          boxShadow: sidebarOpen ? '0 8px 32px 0 #add0e7bc' : '0 2px 8px 0 #a3cef1e8',
+          borderRight: '3px solid #1c3f67ff',
         }}
       >
         <div>
           <div className="flex items-center gap-3 mb-10">
-            <button
-              className={`transition-all duration-300 bg-[#e7ecef] hover:bg-[#a3cef1] rounded-full p-2 shadow-lg mr-2 focus:outline-none border border-[#8b8c89]/40 ${sidebarOpen ? '' : 'mx-auto'}`}
+            <div
+              className="p-2 rounded-xl cursor-pointer hover:scale-105 transition-transform duration-300"
               onClick={() => setSidebarOpen((prev) => !prev)}
               aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+              style={{ boxShadow: sidebarOpen ? '0 2px 8px 0 #6096ba33' : '0 2px 8px 0 #a3cef133' }}
             >
-              {/* Hamburger/arrow icon for toggle */}
-              <span className="flex items-center justify-center">
-                {sidebarOpen ? (
-                  <svg width="24" height="24" fill="none" stroke="#6096ba" strokeWidth="2" viewBox="0 0 24 24" className="transition-transform duration-300 rotate-0"><path d="M19 12H5" /></svg>
-                ) : (
-                  <svg width="24" height="24" fill="none" stroke="#6096ba" strokeWidth="2" viewBox="0 0 24 24" className="transition-transform duration-300 rotate-180"><path d="M5 12H19" /></svg>
-                )}
-              </span>
-            </button>
-            <div className="bg-[#e7ecef] rounded-full p-2 shadow-lg border border-[#8b8c89]/40">
-              <img src="/logo.png" alt="Logo" className="w-10 h-10" />
+              <img src="/logo 1 pen.png" alt="Logo" className="w-10 h-10" />
             </div>
             {sidebarOpen && (
-              <span className="text-2xl font-bold text-[#274c77] tracking-tight drop-shadow-lg" style={{letterSpacing: '0.02em'}}>SIS Admin</span>
+              <span className="text-2xl font-bold text-[#274c77] tracking-tight drop-shadow-lg" style={{letterSpacing: '0.02em'}}></span>
             )}
           </div>
           <nav className="space-y-2">
             <Link href="/main-dashboard-sms">
-              <button className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg ${sidebarOpen ? 'text-[#274c77] bg-[#a3cef1] hover:bg-[#6096ba]' : 'justify-center text-[#274c77] bg-[#a3cef1] hover:bg-[#6096ba]'}`}
+              <button className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg ${sidebarOpen ? 'text-[#274c77] bg-[#e7ecef] hover:bg-[#a3cef1]' : 'justify-center text-[#274c77] bg-[#a3cef1] hover:bg-[#6096ba]'}`}
                 style={{ backdropFilter: 'blur(4px)', border: '1.5px solid #8b8c89' }}>
-                <TrendingUp className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" style={{color:'#6096ba'}} />
+                <TrendingUp className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" style={{color:'#3d80a1e8'}} />
                 {sidebarOpen && <span className="transition-all duration-300">Dashboard</span>}
               </button>
             </Link>
@@ -2527,9 +2516,7 @@ export default function AdminPanel() {
                     className={`w-full flex items-center gap-3 mt-5 px-3 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg text-left group ${isActive ? 'bg-[#6096ba] text-[#e7ecef] shadow-xl' : 'text-[#274c77] hover:bg-[#a3cef1]'} ${sidebarOpen ? '' : 'justify-center'}`}
                     style={{ backdropFilter: 'blur(4px)', border: isActive ? '2px solid #6096ba' : '1.5px solid #8b8c89' }}
                     onClick={() => {
-                      if (activeForm === key) {
-                        setActiveForm(undefined);
-                      } else {
+                      if (activeForm !== key) {
                         setActiveForm(key as FormType);
                         setCurrentStep(1);
                         setShowPreview(false);
@@ -2556,7 +2543,7 @@ export default function AdminPanel() {
                           <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/transfer-module')}>Student Transfer Module</button>
                           <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/termination-certificate')}>Termination Certificate</button>
                           <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/leaving-certificate')}>Leaving Certificate</button>
-                          <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/profile')}>Student Profile</button>
+                          {/* <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/profile')}>Student Profile</button> */}
                         </>
                       )}
                       {key === 'teachers' && (
@@ -2581,7 +2568,7 @@ export default function AdminPanel() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 px-10 py-8">
+      <main className="flex-1 ml-[4.5rem] md:ml-[19rem] px-4 md:px-10 py-8 h-screen overflow-y-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-[#274c77]">Admin Panel</h1>
           <Badge variant="secondary" className="text-sm bg-[#A3CEF1] text-[#274c77] px-4 py-2 rounded-xl shadow">Educational Management System</Badge>

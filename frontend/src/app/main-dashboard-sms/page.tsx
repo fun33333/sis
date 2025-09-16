@@ -1,4 +1,3 @@
-
 "use client"
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -13,15 +12,45 @@ import { CampusPerformanceChart } from "@/components/dashboard/campus-performanc
 import { GenderDistributionChart } from "@/components/dashboard/gender-distribution-chart"
 import { MotherTongueChart } from "@/components/dashboard/mother-tongue-chart"
 import { ReligionChart } from "@/components/dashboard/religion-chart"
-import { ArrowLeft, Calendar, GraduationCap, TrendingUp, Users } from "lucide-react"
+import { ArrowLeft, Building2, Calendar, GraduationCap, TrendingUp, Users } from "lucide-react"
 import Link from "next/link"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+// import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { CAMPUSES, GRADES, ACADEMIC_YEARS, MOTHER_TONGUES, RELIGIONS, getGradeDistribution, getGenderDistribution, getCampusPerformance, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution } from "@/data/mockData"
 import type { FilterState, DashboardMetrics, Student } from "@/types/dashboard"
 import { StudentTable } from "@/components/dashboard/student-table"
 export default function MainDashboardPage() {
+  // Sidebar navigation structure (copied from AdminPanel)
+  const forms = {
+    students: {
+      title: "Add Students",
+      icon: Users,
+      subItems: [
+        { label: "Student List", href: "/students/student-list" },
+        { label: "Student Transfer Module", href: "/students/transfer-module" },
+        { label: "Termination Certificate", href: "/students/termination-certificate" },
+        { label: "Leaving Certificate", href: "/students/leaving-certificate" },
+      ],
+    },
+    campus: {
+      title: "Add Campus",
+      icon: Building2,
+      subItems: [
+        { label: "Campus List", href: "/campus/list" },
+        { label: "Campus Profile", href: "/campus/profile" },
+      ],
+    },
+    teachers: {
+      title: "Add Teachers",
+      icon: GraduationCap,
+      subItems: [
+        { label: "Teacher List", href: "/teachers/list" },
+        { label: "Teacher Profile", href: "/teachers/profile" },
+      ],
+    },
+  };
+  const [activeForm, setActiveForm] = useState<string | undefined>(undefined);
   // Sidebar expand/collapse state
-  const [activeForm, setActiveForm] = useState<string | undefined>(undefined)
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   useEffect(() => {
     document.title = "Dashboard | IAK SMS";
   }, []);
@@ -218,7 +247,74 @@ export default function MainDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F8FA] flex">
+    <div className="min-h-screen bg-[#e7ecef] flex">
+      <aside
+        className={`h-screen sticky top-0 left-0 flex flex-col justify-between py-8 px-2 rounded-r-3xl shadow-2xl transition-all duration-300 backdrop-blur-lg border-r border-[#8b8c89]/30 z-20 ${sidebarOpen ? 'w-72 px-4' : 'w-18 px-2'}`}
+        style={{
+          height: '100vh',
+          background: sidebarOpen ? '#e7ecef' : '#a3cef1',
+          boxShadow: sidebarOpen ? '0 8px 32px 0 #add0e7bc' : '0 2px 8px 0 #a3cef1e8',
+          borderRight: '3px solid #1c3f67ff',
+        }}
+      >
+        <div>
+          <div className="flex items-center gap-3 mb-10">
+            <div
+              className="p-2 rounded-xl cursor-pointer hover:scale-105 transition-transform duration-300"
+              onClick={() => setSidebarOpen((prev) => !prev)}
+              aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+              style={{ boxShadow: sidebarOpen ? '0 2px 8px 0 #6096ba33' : '0 2px 8px 0 #a3cef133' }}
+            >
+              <img src="/logo 1 pen.png" alt="Logo" className="w-10 h-10" />
+            </div>
+            {sidebarOpen && (
+              <span className="text-2xl font-bold text-[#274c77] tracking-tight drop-shadow-lg" style={{ letterSpacing: '0.02em' }}></span>
+            )}
+          </div>
+          <nav className="space-y-2">
+            <Link href="/main-dashboard-sms">
+              <button className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg ${sidebarOpen ? 'text-[#274c77] bg-[#e7ecef] hover:bg-[#a3cef1]' : 'justify-center text-[#274c77] bg-[#a3cef1] hover:bg-[#6096ba]'}`}
+                style={{ backdropFilter: 'blur(4px)', border: '1.5px solid #8b8c89' }}>
+                <TrendingUp className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" style={{ color: '#3d80a1e8' }} />
+                {sidebarOpen && <span className="transition-all duration-300">Dashboard</span>}
+              </button>
+            </Link>
+            {Object.entries(forms).map(([key, form]) => {
+              const isActive = activeForm === key;
+              return (
+                <div key={key}>
+                  <button
+                    className={`w-full flex items-center gap-3 mt-5 px-3 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg text-left group ${isActive ? 'bg-[#6096ba] text-[#e7ecef] shadow-xl' : 'text-[#274c77] hover:bg-[#a3cef1]'} ${sidebarOpen ? '' : 'justify-center'}`}
+                    style={{ backdropFilter: 'blur(4px)', border: isActive ? '2px solid #6096ba' : '1.5px solid #8b8c89' }}
+                    onClick={() => setActiveForm(isActive ? undefined : key)}
+                  >
+                    {form.icon && <form.icon className={`h-5 w-5 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-[#e7ecef]' : 'text-[#6096ba]'}`} />}
+                    {sidebarOpen && <span className="transition-all duration-300">{form.title}</span>}
+                    {sidebarOpen && (
+                      <span className="ml-auto">
+                        <svg className={`h-4 w-4 transition-transform duration-300 ${isActive ? 'rotate-90 text-[#e7ecef]' : 'text-[#6096ba]'}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
+                      </span>
+                    )}
+                  </button>
+                  {sidebarOpen && isActive && (
+                    <div className="ml-7 mt-2 mb-2 space-y-1 overflow-hidden transition-all duration-300 max-h-96 opacity-100">
+                      {form.subItems.map((item) => (
+                        <button
+                          key={item.label}
+                          className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300"
+                          onClick={() => window.location.href = item.href}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+      </aside>
 
       {/* Main Content */}
       <main className="flex-1 px-10 py-8">
@@ -227,78 +323,6 @@ export default function MainDashboardPage() {
           <Badge variant="secondary" className="text-sm bg-[#A3CEF1] text-[#274c77] px-4 py-2 rounded-xl shadow">Educational Management System</Badge>
         </div>
         <div className="bg-white rounded-3xl shadow-xl p-8">
-          {/* VIP Donor Profile */}
-          <div className="flex items-center gap-3 bg-gradient-to-r from-blue-400 via-blue-200 to-white rounded-xl px-4 py-2 shadow border border-blue-300 cursor-pointer mb-8" onClick={() => setShowDonor(true)}>
-            <div className="flex flex-col items-end mr-2">
-              <span className="text-xs font-semibold text-blue-900 uppercase tracking-wider">Valuable Donor</span>
-              <span className="text-base font-bold text-foreground">Donor Name</span>
-            </div>
-            <img
-              src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0rDiT9it7r-r__abYbK7u5UQ1av9CoxaChw&s"
-              alt="VIP Donor"
-              className="w-12 h-12 rounded-full border-2 border-blue-400 shadow"
-            />
-          </div>
-          {/* Donor Profile Popover */}
-          <div className="relative">
-            {showDonor && (
-              <div
-                className="absolute right-0 mt-2 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-blue-200 animate-slideDown"
-                style={{ minWidth: '320px', boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.18)' }}
-              >
-                <button
-                  onClick={() => setShowDonor(false)}
-                  className="absolute top-3 right-3 bg-blue-100 hover:bg-blue-300 text-blue-700 rounded-full p-2 shadow transition-all"
-                  aria-label="Close"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-                <div className="flex flex-col items-center gap-2 pt-6 pb-2">
-                  <img
-                    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0rDiT9it7r-r__abYbK7u5UQ1av9CoxaChw&s"
-                    alt="VIP Donor"
-                    className="w-20 h-20 rounded-full border-4 border-blue-400 shadow-lg bg-white"
-                    style={{ boxShadow: '0 4px 16px 0 rgba(0, 110, 244, 0.4)' }}
-                  />
-                  <span className="text-xl font-bold text-yellow-700 mt-2">Donor Name</span>
-                  <span className="text-xs font-semibold text-yellow-700 uppercase tracking-wider">Valuable Donor</span>
-                </div>
-                <div className="space-y-3 px-6 pb-6">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">Status:</span>
-                    <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-semibold">Active</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">Organization:</span>
-                    <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-semibold">Thaakat Foundation</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">Role:</span>
-                    <span className="text-muted-foreground">Chief Patron</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">Member Since:</span>
-                    <span className="text-muted-foreground">January 2020</span>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-foreground">Bio:</span>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      <b>Miss Uzma Ali </b>is a top-tier VIP donor supporting education for
-                      underprivileged children. Her generous contributions have enabled
-                      scholarships, infrastructure, and digital learning for thousands of
-                      students.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-            <style jsx global>{`
-              @keyframes slideDown {
-                0% { transform: translateY(-16px); opacity: 0; }
-                100% { transform: translateY(0); opacity: 1; }
-              }
-            `}</style>
-          </div>
 
           <Card className="!bg-[#E7ECEF]">
             <CardHeader className="!bg-[#E7ECEF]">
@@ -444,13 +468,13 @@ export default function MainDashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-            <GradeDistributionChart data={chartData.gradeDistribution} />
+            <CampusPerformanceChart data={chartData.campusPerformance} />
             <GenderDistributionChart data={chartData.genderDistribution} />
             <ReligionChart data={chartData.religionDistribution} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-            <CampusPerformanceChart data={chartData.campusPerformance} />
+            <GradeDistributionChart data={chartData.gradeDistribution} />
             <MotherTongueChart data={chartData.motherTongueDistribution} />
           </div>
 

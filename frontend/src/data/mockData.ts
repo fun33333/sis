@@ -127,21 +127,6 @@ function generateMockStudents(count = 1500): Student[] {
 
     // Generate enrollment date within academic year
     const enrollmentDate = new Date(academicYear, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-
-    students.push({
-      studentId: `STU${String(i + 1).padStart(4, "0")}`,
-      name: `${firstName} ${lastName}`,
-      academicYear,
-      campus,
-      grade,
-      gender,
-      motherTongue,
-      religion,
-      attendancePercentage,
-      averageScore,
-      retentionFlag,
-      enrollmentDate,
-    })
   }
 
   return students

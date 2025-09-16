@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -17,6 +19,8 @@ export const metadata: Metadata = {
   description: "Created by AIT",
 };
 
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -24,10 +28,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <div className="min-h-screen bg-[#e7ecef] flex">
+          <main className="flex-1 py-8">
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   );
