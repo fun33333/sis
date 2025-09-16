@@ -2543,7 +2543,6 @@ export default function AdminPanel() {
                           <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/transfer-module')}>Student Transfer Module</button>
                           <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/termination-certificate')}>Termination Certificate</button>
                           <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/leaving-certificate')}>Leaving Certificate</button>
-                          {/* <button className="block w-full text-left px-3 py-2 rounded-lg hover:bg-[#6096ba]/20 text-[#274c77] font-medium transition-all duration-300" onClick={() => router.push('/students/profile')}>Student Profile</button> */}
                         </>
                       )}
                       {key === 'teachers' && (

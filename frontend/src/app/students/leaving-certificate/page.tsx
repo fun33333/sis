@@ -17,10 +17,23 @@ export default function LeavingCertificatePage() {
   const { toast } = useToast()
 
   // local copy of students so we can update in-memory (append-only leavings)
-  const [students, setStudents] = useState(() => mockStudents.map((s) => ({ ...s, leavings: (s as any).leavings || [] })))
+  type LeavingEntry = {
+    date: string;
+    lastClassPassed: string;
+    remarks: string;
+    reason: string;
+    approvedBy: string;
+    approvalDate: string;
+    signature: string | null;
+    createdAt: string;
+  }
+  type StudentWithLeavings = typeof mockStudents[number] & { leavings: LeavingEntry[] }
+  const [students, setStudents] = useState<StudentWithLeavings[]>(() =>
+    mockStudents.map((s) => ({ ...s, leavings: Array.isArray((s as { leavings?: LeavingEntry[] }).leavings) ? (s as { leavings?: LeavingEntry[] }).leavings! : [] }))
+  )
 
   const [lookup, setLookup] = useState(initialStudentId)
-  const [lookupError, setLookupError] = useState<string | null>(null)
+  // Removed unused lookupError state
   const student = useMemo(() => students.find((s) => s.studentId === lookup), [students, lookup])
 
   const [dateOfLeaving, setDateOfLeaving] = useState("")
@@ -48,20 +61,16 @@ export default function LeavingCertificatePage() {
   }, [student])
 
   const handleLookup = () => {
-    // lookup-specific errors (keep separate from form validation errors)
-    setLookupError(null)
     setErrors([])
     if (!lookup) {
-      setLookupError("Enter Student ID or GR No")
+      setErrors(["Enter Student ID or GR No"])
       return
     }
     const found = students.find((s) => s.studentId.toLowerCase() === lookup.toLowerCase())
     if (!found) {
-      setLookupError("Student not found")
+      setErrors(["Student not found"])
       return
     }
-    // found -> clear any previous lookup error; student selected via lookup state
-    setLookupError(null)
   }
 
   // auto-run lookup if the page was opened with a studentId in query params
@@ -274,7 +283,12 @@ export default function LeavingCertificatePage() {
                 <div className="md:col-span-2">
                   <Label>Signature (optional)</Label>
                   <input ref={sigRef} type="file" accept="image/*" onChange={handleSignature} />
-                  {signaturePreview && <img src={signaturePreview} alt="signature" className="h-16 mt-2" />}
+                  {signaturePreview && (
+                    <div className="h-16 mt-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={signaturePreview} alt="signature" className="h-16 object-contain" />
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -311,7 +325,12 @@ export default function LeavingCertificatePage() {
                   <div>
                     <p><strong>Approved By:</strong> {approvedBy}</p>
                     <p><strong>Approval Date:</strong> {new Date(approvalDate).toLocaleDateString()}</p>
-                    {signaturePreview && <div className="mt-2"><img src={signaturePreview} alt="signature" className="h-16" /></div>}
+                    {signaturePreview && (
+                      <div className="mt-2 h-16">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={signaturePreview} alt="signature" className="h-16 object-contain" />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

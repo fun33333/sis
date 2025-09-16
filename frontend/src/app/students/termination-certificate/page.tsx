@@ -1,365 +1,212 @@
 "use client"
 
-import { useEffect, useState, useRef, useMemo } from "react"
-import Link from "next/link"
-import { Label } from "@/components/ui/label"
+import { useMemo, useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { useToast } from "@/hooks/use-toast"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
+import type { Student } from "@/types/dashboard"
+import { CAMPUSES, GRADES, ACADEMIC_YEARS } from "@/data/mockData"
 
-type Student = {
-  id: string
-  gr: string
-  name: string
-  campus: string
-  grade: string
-  section?: string
-  admissionDate: string // ISO date
-  status?: string
-  terminations?: Array<any>
-}
-
-const MOCK_STUDENTS: Student[] = [
-  {
-    id: "1",
-    gr: "GR1001",
-    name: "Ali Khan",
-    campus: "Central Campus",
-    grade: "8",
-    section: "A",
-    admissionDate: "2021-03-15",
-    status: "Active",
-    terminations: [],
-  },
-  {
-    id: "2",
-    gr: "GR1002",
-    name: "Sara Ahmed",
-    campus: "North Campus",
-    grade: "10",
-    section: "B",
-    admissionDate: "2020-08-20",
-    status: "Active",
-    terminations: [],
-  },
-]
-
-export default function TerminationCertificatePage() {
-  const { toast } = useToast()
-
-  const [lookup, setLookup] = useState("")
-  const [students, setStudents] = useState<Student[]>(MOCK_STUDENTS)
-  const [student, setStudent] = useState<Student | null>(null)
-  const [terminationDate, setTerminationDate] = useState<string>("")
-  const [reason, setReason] = useState<string>("")
-  const [otherReason, setOtherReason] = useState<string>("")
-  const [approvedBy, setApprovedBy] = useState<string>("")
-  const [approvalDate, setApprovalDate] = useState<string>(new Date().toISOString().slice(0, 10))
-  const [signaturePreview, setSignaturePreview] = useState<string | null>(null)
-  const [errors, setErrors] = useState<string[]>([])
-  const [previewing, setPreviewing] = useState(false)
-  const sigInputRef = useRef<HTMLInputElement | null>(null)
+export default function StudentListPage() {
+  useEffect(() => {
+    document.title = "Student List | IAK SMS";
+  }, []);
+  const router = useRouter()
+  const [search, setSearch] = useState("")
+  const [yearFilter, setYearFilter] = useState<string>("all")
+  const [campusFilter, setCampusFilter] = useState<string>("all")
+  const [gradeFilter, setGradeFilter] = useState<string>("all")
+  const [students, setStudents] = useState<Student[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // if student's status changed externally, refresh local student object
-    if (student) {
-      const refreshed = students.find((s) => s.id === student.id) || null
-      setStudent(refreshed)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [students])
-
-  const findStudent = (term: string) => {
-    const t = term.trim()
-    if (!t) return null
-    return (
-      students.find((s) => s.gr.toLowerCase() === t.toLowerCase() || s.id === t) || null
-    )
-  }
-
-  const handleLookup = () => {
-    setErrors([])
-    const found = findStudent(lookup)
-    if (!found) {
-      setErrors(["Student not found. Enter correct ID or GR No."])
-      setStudent(null)
-      return
-    }
-    setStudent(found)
-    // prefill terminationDate with today
-    setTerminationDate(new Date().toISOString().slice(0, 10))
-  }
-
-  const validate = () => {
-    const errs: string[] = []
-    if (!student) errs.push("Select a student first")
-    if (!terminationDate) errs.push("Termination date is required")
-    if (student && terminationDate) {
-      const adm = new Date(student.admissionDate)
-      const term = new Date(terminationDate)
-      if (term < adm) errs.push("Termination date must be on or after admission date")
-    }
-    if (!reason) errs.push("Select a reason")
-    if (reason === "other" && !otherReason.trim()) errs.push("Provide the reason details")
-    if (!approvedBy.trim()) errs.push("Approved By is required")
-    if (!approvalDate) errs.push("Approval date is required")
-    setErrors(errs)
-    return errs.length === 0
-  }
-
-  // pure validation (no side-effects) used for disabling buttons in render
-  const isFormValid = useMemo(() => {
-    const errs: string[] = []
-    if (!student) errs.push("Select a student first")
-    if (!terminationDate) errs.push("Termination date is required")
-    if (student && terminationDate) {
-      const adm = new Date(student.admissionDate)
-      const term = new Date(terminationDate)
-      if (term < adm) errs.push("Termination date must be on or after admission date")
-    }
-    if (!reason) errs.push("Select a reason")
-    if (reason === "other" && !otherReason.trim()) errs.push("Provide the reason details")
-    if (!approvedBy.trim()) errs.push("Approved By is required")
-    if (!approvalDate) errs.push("Approval date is required")
-    return errs.length === 0
-  }, [student, terminationDate, reason, otherReason, approvedBy, approvalDate])
-
-  const mappedStatusForReason = (r: string) => {
-    if (r === "Withdrawn") return "Withdrawn"
-    return "Terminated"
-  }
-
-  const handleSave = () => {
-    setErrors([])
-    if (!validate()) return
-    if (!student) return
-
-    const entry = {
-      date: terminationDate,
-      reason: reason === "other" ? otherReason : reason,
-      approvedBy,
-      approvalDate,
-      signature: signaturePreview,
-      createdAt: new Date().toISOString(),
-    }
-
-  setStudents((prev) => {
-      const next = prev.map((s) => {
-        if (s.id === student.id) {
-          const terminations = [...(s.terminations || []), entry]
-          const status = mappedStatusForReason(reason)
-          return { ...s, status, terminations }
+    async function fetchStudents() {
+      setLoading(true)
+      const res = await fetch("/csvjson.json")
+      const data = await res.json()
+      // Replace 'any' with Record<string, unknown> for item type
+      const mapped: Student[] = data.map((item: Record<string, unknown>, idx: number) => {
+        let academicYear = Number(item["Year of Admission"])
+        if (isNaN(academicYear)) academicYear = 2025
+        const attendancePercentage = Math.floor(Math.random() * 31) + 70
+        const averageScore = Math.floor(Math.random() * 41) + 60
+        const retentionFlag = Math.random() > 0.2
+        let enrollmentDate = new Date()
+        try {
+          enrollmentDate = new Date(item["Timestamp"] as string)
+        } catch { }
+        return {
+          studentId: `CSV${idx + 1}`,
+          name: (item["Student Name"] as string) || "Unknown",
+          academicYear,
+          campus: (item["Campus"] as string) || "Unknown",
+          grade: (item["Current Grade/Class"] as string) || "Unknown",
+          gender: (item["Gender"] === "Male" || item["Gender"] === "Female") ? (item["Gender"] as string) : "Other",
+          motherTongue: (item["Mother Tongue"] as string) || "Other",
+          religion: (item["Religion"] as string) || "Other",
+          attendancePercentage,
+          averageScore,
+          retentionFlag,
+          enrollmentDate,
         }
-        return s
       })
-      return next
+      setStudents(mapped)
+      setLoading(false)
+    }
+    fetchStudents()
+  }, [])
+
+  const filtered = useMemo(() => {
+    return students.filter((s) => {
+      if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false
+      if (yearFilter !== "all" && String(s.academicYear) !== yearFilter) return false
+      if (campusFilter !== "all" && s.campus !== campusFilter) return false
+      if (gradeFilter !== "all" && s.grade !== gradeFilter) return false
+      return true
     })
+  }, [search, yearFilter, campusFilter, gradeFilter, students])
 
-    setPreviewing(false)
-  toast({ title: "Saved", description: "Termination saved and student status updated." })
+  if (loading) {
+    return <div className="p-6 text-xl text-[#274c77]">Loading student data...</div>
   }
-
-  const handleSignature = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => setSignaturePreview(String(ev.target?.result || ""))
-    reader.readAsDataURL(file)
-  }
-
-  const handlePrint = () => {
-    const printWindow = window.open("", "_blank")
-    if (!printWindow) return
-    const content = document.getElementById("termination-certificate-print")?.innerHTML || ""
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Termination Certificate</title>
-          <style>body{font-family: Arial, sans-serif; padding: 40px;} .cert{border:1px solid #333;padding:30px;border-radius:8px;}</style>
-        </head>
-        <body>
-          ${content}
-          <script>window.print();</script>
-        </body>
-      </html>
-    `)
-    printWindow.document.close()
-  }
-
   return (
-    <div className="p-6 max-w-full">
+    <div className="p-6 bg-white min-h-screen">
+      {/* Page Header */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Termination Certificate</h2>
-        <Link href="/">Back</Link>
+        <div>
+          <h1 className="text-3xl font-bold text-[#274c77]">Student List</h1>
+          <p className="text-[#8b8c89]">Search, filter and select students to manage profiles and actions.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            className="bg-gradient-to-r from-[#6096ba] to-[#274c77] hover:from-[#274c77] hover:to-[#6096ba] text-white rounded-lg shadow-md"
+            onClick={() => router.push('/students')}
+          >
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Lookup Student</CardTitle>
-          <CardDescription>Enter Student ID or GR No to load student information</CardDescription>
+      {/* Filters */}
+      <Card className="mb-6 rounded-xl shadow-lg bg-[#e7ecef] text-black">
+        <CardHeader className=" rounded-t-xl">
+          <CardTitle className="text-xl">Filters</CardTitle>
+          <CardDescription className="text-[#274c77]">Use search and filters together to narrow results</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input placeholder="ID or GR No" value={lookup} onChange={(e) => setLookup(e.target.value)} />
-            <Button onClick={handleLookup}>Lookup</Button>
-            <Button variant="outline" onClick={() => { setLookup(""); setStudent(null); setErrors([]) }}>Clear</Button>
-          </div>
-          {errors.length > 0 && (
-            <div className="text-red-600">
-              {errors.map((err, i) => (
-                <div key={i}>{err}</div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Student Information</CardTitle>
-            <CardDescription>Autofilled after lookup (read-only after termination)</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {!student && <p className="text-muted-foreground">No student selected</p>}
-            {student && (
-              <div className="space-y-2">
-                <div>
-                  <Label>GR No / ID</Label>
-                  <p className="font-medium">{student.gr} ({student.id})</p>
-                </div>
-                <div>
-                  <Label>Student Name</Label>
-                  <p className="font-medium">{student.name}</p>
-                </div>
-                <div>
-                  <Label>Campus</Label>
-                  <p className="font-medium">{student.campus}</p>
-                </div>
-                <div>
-                  <Label>Grade & Section</Label>
-                  <p className="font-medium">{student.grade} {student.section || ""}</p>
-                </div>
-                <div>
-                  <Label>Date of Admission</Label>
-                  <p className="font-medium">{student.admissionDate}</p>
-                </div>
-                <div>
-                  <Label>Status</Label>
-                  <p className={`font-medium ${student.status !== 'Active' ? 'text-red-600' : ''}`}>{student.status || 'Active'}</p>
-                </div>
-                {student.terminations && student.terminations.length > 0 && (
-                  <div className="mt-2">
-                    <Label>Previous Terminations (append-only)</Label>
-                    <ul className="list-disc ml-6">
-                      {student.terminations.map((t: any, idx: number) => (
-                        <li key={idx} className="text-sm">{t.date} — {t.reason} (Approved by {t.approvedBy} on {t.approvalDate})</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Termination Details</CardTitle>
-            <CardDescription>Enter termination information and approval</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <CardContent className="mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <Label>Date of Termination *</Label>
-              <Input type="date" value={terminationDate} onChange={(e) => setTerminationDate(e.target.value)} />
+              <Label className="text-black mb-2">Search by name</Label>
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search students"
+                className="bg-transparent border-2 border-[#274c77] text-black placeholder-[white] rounded-lg focus:ring-2 focus:ring-[#274c77]"
+              />
             </div>
-
             <div>
-              <Label>Reason *</Label>
-              <Select value={reason} onValueChange={(v) => setReason(v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select reason" />
+              <Label className="text-black mb-2">Academic Year</Label>
+              <Select value={yearFilter} onValueChange={(v) => setYearFilter(v)}>
+                <SelectTrigger className="w-full border border-[#6096ba] text-[#274c77] bg-transparent rounded-lg">
+                  <SelectValue placeholder="All years" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Expelled">Expelled</SelectItem>
-                  <SelectItem value="Withdrawn">Withdrawn</SelectItem>
-                  <SelectItem value="Academic Dismissal">Academic Dismissal</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                <SelectContent className="bg-white text-[#274c77] shadow-lg">
+                  <SelectItem value="all">All</SelectItem>
+                  {ACADEMIC_YEARS.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-
-            {reason === 'other' && (
-              <div>
-                <Label>Reason Details</Label>
-                <Textarea value={otherReason} onChange={(e) => setOtherReason(e.target.value)} />
-              </div>
-            )}
-
             <div>
-              <Label>Approved By *</Label>
-              <Input value={approvedBy} onChange={(e) => setApprovedBy(e.target.value)} placeholder="Name of Principal/Admin" />
+              <Label className="text-black mb-2">Campus</Label>
+              <Select value={campusFilter} onValueChange={(v) => setCampusFilter(v)}>
+                <SelectTrigger className="w-full border border-[#6096ba] text-[#274c77] bg-transparent rounded-lg">
+                  <SelectValue placeholder="All campuses" />
+                </SelectTrigger>
+                <SelectContent className="bg-white text-[#274c77] shadow-lg">
+                  <SelectItem value="all">All</SelectItem>
+                  {CAMPUSES.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-
             <div>
-              <Label>Approval Date *</Label>
-              <Input type="date" value={approvalDate} onChange={(e) => setApprovalDate(e.target.value)} />
-            </div>
-
-            <div>
-              <Label>Signature (optional)</Label>
-              <input ref={sigInputRef} type="file" accept="image/*" onChange={handleSignature} />
-              {signaturePreview && <img src={signaturePreview} alt="signature" className="h-16 mt-2" />}
-            </div>
-
-            <div className="flex gap-2 pt-4">
-              <Button onClick={() => { if (validate()) setPreviewing(true) }}>Preview Certificate</Button>
-              <Button variant="outline" onClick={() => { setPreviewing(false); setErrors([]) }}>Cancel Preview</Button>
-              <Button className="bg-secondary hover:bg-secondary/90" onClick={handleSave} disabled={!isFormValid}>
-                Save & Update Status
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {previewing && student && (
-        <div className="mt-6">
-          <div id="termination-certificate-print">
-            <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow cert">
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold">Institution Name</h3>
-                <p className="text-sm text-muted-foreground">Official Termination Certificate</p>
-                <Separator className="my-4" />
-              </div>
-              <div>
-                <p>This certifies that <strong>{student.name}</strong> (GR: {student.gr}) of <strong>{student.campus}</strong>, Grade {student.grade} {student.section ? `- ${student.section}` : ''} has had their admission terminated.</p>
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <div>
-                    <p><strong>Date of Admission:</strong> {student.admissionDate}</p>
-                    <p><strong>Date of Termination:</strong> {terminationDate}</p>
-                    <p><strong>Reason:</strong> {reason === 'other' ? otherReason : reason}</p>
-                  </div>
-                  <div>
-                    <p><strong>Approved By:</strong> {approvedBy}</p>
-                    <p><strong>Approval Date:</strong> {approvalDate}</p>
-                    {signaturePreview && <div className="mt-2"><img src={signaturePreview} alt="signature" className="h-16"/></div>}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-8 flex justify-end gap-2">
-                <Button onClick={handlePrint} className="bg-primary">Print</Button>
-                <Button variant="outline" onClick={() => setPreviewing(false)}>Close Preview</Button>
-              </div>
+              <Label className="text-black mb-2">Grade</Label>
+              <Select value={gradeFilter} onValueChange={(v) => setGradeFilter(v)}>
+                <SelectTrigger className="w-full border border-[#6096ba] text-[#274c77] bg-transparent rounded-lg">
+                  <SelectValue placeholder="All grades" />
+                </SelectTrigger>
+                <SelectContent className="bg-white text-[#274c77] shadow-lg">
+                  <SelectItem value="all">All</SelectItem>
+                  {GRADES.map((g) => (
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      <Card className="rounded-xl shadow-lg bg-white">
+        <CardHeader className="rounded-t-xl">
+          <CardTitle className="text-[#274c77] text-xl text-bold">Student Records</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow className="bg-[#274c77] text-white hover:bg-[#274c77]">
+                <TableHead className="text-white">Name</TableHead>
+                <TableHead className="text-white">GR No</TableHead>
+                <TableHead className="text-white">Campus</TableHead>
+                <TableHead className="text-white">Class-Section</TableHead>
+                <TableHead className="text-white">Shift</TableHead>
+                <TableHead className="text-white">Status</TableHead>
+                <TableHead className="text-white">Contact</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((s, idx) => {
+                const isActive = Math.random() > 0.2
+                return (
+                  <TableRow
+                    key={s.studentId}
+                    className={`cursor-pointer hover:bg-[#a3cef1]  transition ${idx % 2 === 0 ? "bg-[#e7ecef]" : "bg-white"
+                      }`}
+                    onClick={() => router.push(`/students/profile?studentId=${s.studentId}`)}
+                  >
+                    <TableCell className="font-medium">{s.name}</TableCell>
+                    <TableCell>{s.studentId}</TableCell>
+                    <TableCell>{s.campus}</TableCell>
+                    <TableCell>{s.grade}</TableCell>
+                    <TableCell>{Math.random() > 0.5 ? 'Morning' : 'Evening'}</TableCell>
+                    <TableCell>
+                      {isActive ? (
+                        <span className="px-2 py-1 text-xs font-semibold text-white bg-green-600/70 rounded-full shadow">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 text-xs font-semibold text-white bg-red-600/70 rounded-full shadow">
+                          Not Active
+                        </span>
+                      )}
+
+                    </TableCell>
+                    <TableCell>0300-1234567</TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }
