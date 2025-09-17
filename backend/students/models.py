@@ -81,3 +81,4 @@ class Student(models.Model):
     def __str__(self):
         return f"{self.name} ({self.gr_no or 'No GR'})"
 
+#done
