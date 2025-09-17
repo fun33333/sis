@@ -8,7 +8,7 @@ export const CAMPUSES = [
   "Campus 4",
   "Campus 5",
   "Campus 6",
-  "Campus 7",
+  "Campus 8",
 ]
 
 export const GRADES = [

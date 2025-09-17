@@ -24,12 +24,27 @@ function MotherTongueTooltip({ active, payload }: any) {
 }
 
 export function MotherTongueChart({ data }: MotherTongueChartProps) {
+  // Group languages with < 20 students into 'Others'
+  const threshold = 20;
+  const mainLanguages = data.filter((item) => item.value >= threshold);
+  const otherLanguages = data.filter((item) => item.value < threshold);
+
+  const othersCount = otherLanguages.reduce((sum, item) => sum + item.value, 0);
+
   // Prepare chart data for recharts
-  const chartData = data.map((item) => ({
+  let chartData = mainLanguages.map((item) => ({
     motherTongue: item.name.slice(0, 3),
     fullName: item.name,
     students: item.value,
-  }))
+  }));
+
+  if (othersCount > 0) {
+    chartData.push({
+      motherTongue: 'Oth',
+      fullName: 'Others',
+      students: othersCount,
+    });
+  }
 
   const BAR_COLORS = [
     '#E7ECEF',

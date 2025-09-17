@@ -23,12 +23,20 @@ interface ReligionChartProps {
 }
 
 export function ReligionChart({ data }: ReligionChartProps) {
-  // Prepare chart data for recharts
-  const chartData = data.map((item) => ({
-    religion: item.name,
-    students: item.value,
-    fill: item.fill || undefined,
-  }))
+  // Merge all 'islam'/'Islam' (case-insensitive) into one 'Islam' entry
+  let islamCount = 0;
+  const otherReligions: { religion: string; students: number; fill?: string }[] = [];
+  data.forEach((item) => {
+    if (item.name.trim().toLowerCase() === 'islam') {
+      islamCount += item.value;
+    } else {
+      otherReligions.push({ religion: item.name, students: item.value, fill: item.fill || undefined });
+    }
+  });
+  const chartData = [
+    ...(islamCount > 0 ? [{ religion: 'Islam', students: islamCount }] : []),
+    ...otherReligions,
+  ];
 
   // Custom palette for pie slices
   const PIE_COLORS = [
