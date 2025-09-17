@@ -38,9 +38,12 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
       icon: GraduationCap,
       href: "/admin/teachers",
       subItems: [
-        { title: "Teacher List", href: "/admin/teachers" },
+        { title: "Teacher List", href: "/admin/teachers/list" },
         { title: "Add Teacher", href: "/admin/teachers/add" },
-        { title: "Teacher Profile", href: "/admin/teachers/profile" },
+        { title: "Request / Complain", href: "/admin/teachers/request" },
+        { title: "Time Table", href: "/admin/teachers/timetable" },
+        { title: "Attendance", href: "/admin/teachers/attendance" },
+        { title: "Class Statistics", href: "/admin/teachers/stats" },
       ],
     },
     {

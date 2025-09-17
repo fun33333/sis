@@ -26,7 +26,7 @@ export function StudentForm() {
   const [formData, setFormData] = useState<any>({})
   const [uploadedImages, setUploadedImages] = useState<{ [key: string]: string }>({})
   const [invalidFields, setInvalidFields] = useState<string[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null) as React.RefObject<HTMLInputElement>
 
   const totalSteps = steps.length
 

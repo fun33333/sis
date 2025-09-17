@@ -17,12 +17,18 @@ export default function AdminLayout({
       <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <main
-        className={`flex-1 transition-all duration-300 px-4 md:px-10 py-8 h-screen overflow-y-auto ${
+        className={`flex-1 transition-all duration-300 px-4 md:px-10 py-8 h-screen overflow-y-auto hide-scrollbar ${
           sidebarOpen ? 'ml-[4.5rem] md:ml-[19rem]' : 'ml-[4.5rem] md:ml-[5.5rem]'
         }`}
       >
-        <div className="bg-white rounded-3xl shadow-xl">{children}</div>
+        <div className="flex items-center justify-between mb-8">
+          <div></div>
+          
+        </div>
+        <div className="bg-white rounded-3xl shadow-xl p-8">{children}</div>
       </main>
     </div>
   )
+
+
 }

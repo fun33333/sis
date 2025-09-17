@@ -168,7 +168,7 @@ export default function CampusDashboard() {
   const { campusData, staffSummaryData, quickStats } = dashboardData;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 rounded-3xl">
       <div className="container mx-auto px-4 py-8 space-y-8">
         <CampusHeader
           campusName={campusData.campusName}

@@ -106,30 +106,45 @@ function generateMockStudents(count = 1500): Student[] {
   const students: Student[] = []
 
   for (let i = 0; i < count; i++) {
-    const firstName = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)]
-    const lastName = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)]
-    const academicYear = ACADEMIC_YEARS[Math.floor(Math.random() * ACADEMIC_YEARS.length)]
-    const campus = CAMPUSES[Math.floor(Math.random() * CAMPUSES.length)]
-    const grade = GRADES[Math.floor(Math.random() * GRADES.length)]
+    const firstName = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
+    const lastName = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+    const academicYear = ACADEMIC_YEARS[Math.floor(Math.random() * ACADEMIC_YEARS.length)];
+    const campus = CAMPUSES[Math.floor(Math.random() * CAMPUSES.length)];
+    const grade = GRADES[Math.floor(Math.random() * GRADES.length)];
     const gender = Math.random() < 0.48 ? "Female" : Math.random() < 0.96 ? "Male" : "Other";
-    const motherTongue = MOTHER_TONGUES[Math.floor(Math.random() * MOTHER_TONGUES.length)]
-    const religion = RELIGIONS[Math.floor(Math.random() * RELIGIONS.length)]
+    const motherTongue = MOTHER_TONGUES[Math.floor(Math.random() * MOTHER_TONGUES.length)];
+    const religion = RELIGIONS[Math.floor(Math.random() * RELIGIONS.length)];
 
     // Generate realistic attendance (70-100%)
-    const attendancePercentage = Math.round(70 + Math.random() * 30)
+    const attendancePercentage = Math.round(70 + Math.random() * 30);
 
     // Generate realistic scores (60-100, with some correlation to attendance)
-    const baseScore = 60 + (attendancePercentage - 70) * 0.8 + Math.random() * 20
-    const averageScore = Math.round(Math.min(100, Math.max(60, baseScore)))
+    const baseScore = 60 + (attendancePercentage - 70) * 0.8 + Math.random() * 20;
+    const averageScore = Math.round(Math.min(100, Math.max(60, baseScore)));
 
     // Retention flag (higher for better students)
-    const retentionFlag = averageScore > 75 && attendancePercentage > 80 ? Math.random() > 0.1 : Math.random() > 0.3
+    const retentionFlag = averageScore > 75 && attendancePercentage > 80 ? Math.random() > 0.1 : Math.random() > 0.3;
 
     // Generate enrollment date within academic year
-    const enrollmentDate = new Date(academicYear, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-  }
+    const enrollmentDate = new Date(academicYear, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
 
-  return students
+    students.push({
+      rawData: {},
+      studentId: `S${i + 1}`,
+      name: `${firstName} ${lastName}`,
+      academicYear,
+      campus,
+      grade,
+      gender,
+      motherTongue,
+      religion,
+      attendancePercentage,
+      averageScore,
+      retentionFlag,
+      enrollmentDate,
+    });
+  }
+  return students;
 }
 // Generate chart data for mother tongue distribution
 export function getMotherTongueDistribution(students: Student[]): ChartData[] {
