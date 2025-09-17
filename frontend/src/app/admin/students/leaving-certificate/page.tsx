@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { mockStudents } from "@/data/mockData"
+// import { mockStudents } from "@/data/mockData"
 import { useToast } from "@/hooks/use-toast"
 
 export default function LeavingCertificatePage() {
@@ -27,14 +27,64 @@ export default function LeavingCertificatePage() {
     signature: string | null;
     createdAt: string;
   }
-  type StudentWithLeavings = typeof mockStudents[number] & { leavings: LeavingEntry[] }
-  const [students, setStudents] = useState<StudentWithLeavings[]>(() =>
-    mockStudents.map((s) => ({ ...s, leavings: Array.isArray((s as { leavings?: LeavingEntry[] }).leavings) ? (s as { leavings?: LeavingEntry[] }).leavings! : [] }))
-  )
+  // Student type for CSV
+  type CsvStudent = {
+    [key: string]: any;
+    "Student Name": string;
+    "Campus": string;
+    "Current Grade/Class": string;
+    "Section": string;
+    "Year of Admission": string | number;
+    "Student ID"?: string;
+    "GR No"?: string;
+    "Last Class Passed"?: string;
+    "Religion"?: string;
+    "Mother Tongue"?: string;
+    "Gender"?: string;
+    "Date of Birth"?: string;
+    "Father Name"?: string;
+    "Father Contact Number"?: string;
+    "Guardian Name"?: string;
+    "Guardian Phone Number"?: string;
+    "Last School Name"?: string;
+    "Old GR No"?: string;
+    "Composite key"?: string;
+  };
+
+  type StudentWithLeavings = CsvStudent & { leavings: LeavingEntry[]; studentId: string; name: string; campus: string; grade: string; enrollmentDate: string; };
+
+  const [students, setStudents] = useState<StudentWithLeavings[]>([]);
 
   const [lookup, setLookup] = useState(initialStudentId)
   // Removed unused lookupError state
-  const student = useMemo(() => students.find((s) => s.studentId === lookup), [students, lookup])
+  // Lookup by studentId, GR No, or name (case-insensitive)
+  const student = useMemo(() => {
+    if (!lookup) return undefined;
+    const l = lookup.trim().toLowerCase();
+    return students.find((s) =>
+      s.studentId?.toLowerCase() === l ||
+      s["GR No"]?.toLowerCase?.() === l ||
+      s.name?.toLowerCase() === l
+    );
+  }, [students, lookup]);
+  // Fetch students from csvjson.json on mount
+  useEffect(() => {
+    fetch("/csvjson.json")
+      .then((res) => res.json())
+      .then((data: CsvStudent[]) => {
+        // Map CSV fields to our expected fields
+        const mapped = data.map((s) => ({
+          ...s,
+          leavings: [],
+          studentId: (s["Student ID"] || s["GR No"] || s["Composite key"] || s["Student Name"]+s["Father Name"]+s["Father Contact Number"] || "").toString(),
+          name: s["Student Name"] || "",
+          campus: s["Campus"] || "",
+          grade: s["Current Grade/Class"] || "",
+          enrollmentDate: s["Year of Admission"] ? `${s["Year of Admission"]}-01-01` : "",
+        }));
+        setStudents(mapped);
+      });
+  }, []);
 
   const [dateOfLeaving, setDateOfLeaving] = useState("")
   const [lastClassPassed, setLastClassPassed] = useState("")

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useMemo, useState } from "react"
-import { mockStudents, CAMPUSES } from "@/data/mockData"
+import { CAMPUSES } from "@/data/mockData"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -75,8 +75,42 @@ export default function TransferModulePage() {
   const [showCertificate, setShowCertificate] = useState(false);
 
   // local copy of students (in-memory)
-  const [students, setStudents] = useState(() => mockStudents.slice(0, 200)); // keep list manageable
-  // Search/filter state for student dropdown
+  // CSV student type
+  type CsvStudent = {
+    [key: string]: any;
+    "Student Name": string;
+    "Campus": string;
+    "Current Grade/Class": string;
+    "Section": string;
+    "Year of Admission": string | number;
+    "Student ID"?: string;
+    "GR No"?: string;
+    "Composite key"?: string;
+  };
+  type Student = {
+    studentId: string;
+    name: string;
+    campus: string;
+    grade: string;
+    academicYear?: number;
+  };
+  const [students, setStudents] = useState<Student[]>([]);
+
+  // Fetch students from csvjson.json on mount
+  React.useEffect(() => {
+    fetch("/csvjson.json")
+      .then((res) => res.json())
+      .then((data: CsvStudent[]) => {
+        const mapped = data.map((s) => ({
+          studentId: (s["Student ID"] || s["GR No"] || s["Composite key"] || s["Student Name"]+s["Father Name"]+s["Father Contact Number"] || "").toString(),
+          name: s["Student Name"] || "",
+          campus: s["Campus"] || "",
+          grade: s["Current Grade/Class"] || "",
+          academicYear: Number(s["Year of Admission"] || new Date().getFullYear()),
+        }));
+        setStudents(mapped);
+      });
+  }, []);
   const [search, setSearch] = useState("");
   const filteredStudents = useMemo(() => {
     if (!search) return students;
@@ -86,7 +120,6 @@ export default function TransferModulePage() {
         s.studentId.toLowerCase().includes(search.toLowerCase())
     );
   }, [search, students]);
-  // Dropdown always open, so no need for selectOpen state
 
 
   const [selectedStudentId, setSelectedStudentId] = useState<string | undefined>(undefined);
@@ -345,8 +378,8 @@ export default function TransferModulePage() {
                         className="cursor-pointer px-3 py-2 text-[#274c77] bg-[#e7ecef] hover:bg-[#274c77] hover:text-white rounded flex items-center justify-between"
                         onClick={() => setSelectedStudentId(s.studentId)}
                       >
-                        <span className="font-medium text-sm">{s.name}</span>
-                        <span className="text-xs ml-4">{s.studentId}</span>
+                        <span className="font-medium text-base">{s.name}</span>
+                        <span className="text-xs ml-4 font-mono tracking-wider">{s.studentId}</span>
                       </div>
                     ))
                   )}

@@ -180,7 +180,7 @@ export default function StudentListPage() {
                     key={s.studentId}
                     className={`cursor-pointer hover:bg-[#a3cef1]  transition ${idx % 2 === 0 ? "bg-[#e7ecef]" : "bg-white"
                       }`}
-                    onClick={() => router.push(`/students/profile?studentId=${s.studentId}`)}
+                    onClick={() => router.push(`/admin/students/profile?studentId=${s.studentId}`)}
                   >
                     <TableCell className="font-medium">{s.name}</TableCell>
                     <TableCell>{s.studentId}</TableCell>
