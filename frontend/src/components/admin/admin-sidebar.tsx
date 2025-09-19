@@ -1,7 +1,10 @@
+
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, Building2, GraduationCap, TrendingUp } from "lucide-react"
+import { Users, Building2, GraduationCap, TrendingUp, LogOut } from "lucide-react"
+import { useState, useEffect } from "react"
+
 
 interface AdminSidebarProps {
   sidebarOpen: boolean
@@ -9,55 +12,96 @@ interface AdminSidebarProps {
 }
 
 export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps) {
-  const pathname = usePathname()
 
-  const menuItems = [
-    {
-      key: "dashboard",
-      title: "Dashboard",
-      icon: TrendingUp,
-      href: "/admin",
-      subItems: [],
-    },
-    {
-      key: "students",
-      title: "Students",
-      icon: Users,
-      href: "/admin/students",
-      subItems: [
-        { title: "Add Student", href: "/admin/students/add" },
-        { title: "Student List", href: "/admin/students/student-list" },
-        { title: "Transfer Module", href: "/admin/students/transfer-modal" },
-        { title: "Leaving Certificate", href: "/admin/students/leaving-certificate" },
-        { title: "Termination Certificate", href: "/admin/students/termination-certificate" },
-      ],
-    },
-    {
-      key: "teachers",
-      title: "Teachers",
-      icon: GraduationCap,
-      href: "/admin/teachers",
-      subItems: [
-        { title: "Teacher List", href: "/admin/teachers/list" },
-        { title: "Add Teacher", href: "/admin/teachers/add" },
-        { title: "Request / Complain", href: "/admin/teachers/request" },
-        { title: "Time Table", href: "/admin/teachers/timetable" },
-        { title: "Attendance", href: "/admin/teachers/attendance" },
-        { title: "Class Statistics", href: "/admin/teachers/stats" },
-      ],
-    },
-    {
-      key: "campus",
-      title: "Campus",
-      icon: Building2,
-      href: "/admin/campus",
-      subItems: [
-        { title: "Campus List", href: "/admin/campus/list" },
-        { title: "Add Campus", href: "/admin/campus/add" },
-        { title: "Campus Profile", href: "/admin/campus/profile" },
-      ],
-    },
-  ]
+  const pathname = usePathname()
+  const [userRole, setUserRole] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userStr = window.localStorage.getItem("sis_user");
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          setUserRole(user.role);
+        } catch { }
+      } else {
+        setUserRole(null);
+      }
+    }
+  }, []);
+
+  // Restrict teacher menu if teacher is logged in, superadmin gets all access
+  const menuItems = userRole === "teacher"
+
+    ? [
+      {
+        key: "students",
+        title: "Students",
+        icon: Users,
+        href: "/admin/students",
+        subItems: [
+          { title: "Student List", href: "/admin/students/student-list" },
+        ],
+      },
+      {
+        key: "teachers",
+        title: "Teachers",
+        icon: GraduationCap,
+        href: "/admin/teachers",
+        subItems: [
+          { title: "Request / Complain", href: "/admin/teachers/request" },
+          { title: "Time Table", href: "/admin/teachers/timetable" },
+          { title: "Attendance", href: "/admin/teachers/attendance" },
+          { title: "Class Statistics", href: "/admin/teachers/stats" },
+        ],
+      },
+    ]
+    : [
+      {
+        key: "dashboard",
+        title: "Dashboard",
+        icon: TrendingUp,
+        href: "/admin",
+        subItems: [],
+      },
+      {
+        key: "students",
+        title: "Students",
+        icon: Users,
+        href: "/admin/students",
+        subItems: [
+          { title: "Add Student", href: "/admin/students/add" },
+          { title: "Student List", href: "/admin/students/student-list" },
+          { title: "Transfer Module", href: "/admin/students/transfer-modal" },
+          { title: "Leaving Certificate", href: "/admin/students/leaving-certificate" },
+          { title: "Termination Certificate", href: "/admin/students/termination-certificate" },
+        ],
+      },
+      {
+        key: "teachers",
+        title: "Teachers",
+        icon: GraduationCap,
+        href: "/admin/teachers",
+        subItems: [
+          { title: "Teacher List", href: "/admin/teachers/list" },
+          { title: "Add Teacher", href: "/admin/teachers/add" },
+          { title: "Request / Complain", href: "/admin/teachers/request" },
+          { title: "Time Table", href: "/admin/teachers/timetable" },
+          { title: "Attendance", href: "/admin/teachers/attendance" },
+          { title: "Class Statistics", href: "/admin/teachers/stats" },
+        ],
+      },
+      {
+        key: "campus",
+        title: "Campus",
+        icon: Building2,
+        href: "/admin/campus",
+        subItems: [
+          { title: "Campus List", href: "/admin/campus/list" },
+          { title: "Add Campus", href: "/admin/campus/add" },
+          { title: "Campus Profile", href: "/admin/campus/profile" },
+        ],
+      },
+    ];
 
   return (
     <aside
@@ -144,6 +188,25 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
             )
           })}
         </nav>
+        {/* Logout button for teacher and superadmin */}
+        {(userRole === "teacher" || userRole === "superadmin") && (
+          <button
+            className={`w-full mt-2 flex items-center justify-center ${sidebarOpen ? "py-2 px-4" : "py-2 px-0"} border-3 border-red-500 rounded-lg bg-red-100 text-red-600 font-bold hover:bg-red-200 transition-colors`}
+            title="Logout"
+            onClick={() => {
+              window.localStorage.removeItem("sis_user");
+              window.location.href = "/Universal_Login";
+            }}
+          >
+            {sidebarOpen ? (
+              <>
+                <LogOut className="mr-2" /> Logout
+              </>
+            ) : (
+              <LogOut className="text-2xl" />
+            )}
+          </button>
+        )}
       </div>
     </aside>
   )

@@ -22,8 +22,21 @@ export default function StudentListPage() {
   const [gradeFilter, setGradeFilter] = useState<string>("all")
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
+  const [teacherClass, setTeacherClass] = useState<string | null>(null)
 
   useEffect(() => {
+    // Check if teacher is logged in
+    if (typeof window !== "undefined") {
+      const userStr = window.localStorage.getItem("sis_user");
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user.role === "teacher" && user.class) {
+            setTeacherClass(user.class);
+          }
+        } catch {}
+      }
+    }
     async function fetchStudents() {
       setLoading(true)
       const res = await fetch("/csvjson.json")
@@ -62,13 +75,14 @@ export default function StudentListPage() {
 
   const filtered = useMemo(() => {
     return students.filter((s) => {
+      if (teacherClass && s.grade !== teacherClass) return false;
       if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false
       if (yearFilter !== "all" && String(s.academicYear) !== yearFilter) return false
       if (campusFilter !== "all" && s.campus !== campusFilter) return false
       if (gradeFilter !== "all" && s.grade !== gradeFilter) return false
       return true
     })
-  }, [search, yearFilter, campusFilter, gradeFilter, students])
+  }, [search, yearFilter, campusFilter, gradeFilter, students, teacherClass])
 
   if (loading) {
     return <div className="p-6 text-xl text-[#274c77]">Loading student data...</div>

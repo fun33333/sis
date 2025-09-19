@@ -1,18 +1,93 @@
 "use client";
 
 import { useState, useEffect } from "react";
+// For navigation after login (if needed)
+import { useRouter } from "next/navigation";
 import { FaLock, FaEnvelope } from "react-icons/fa";
+
+
+type Teacher = {
+  id: string;
+  name: string;
+  username: string;
+  password: string;
+  class: string;
+};
 
 export default function LoginPage() {
   const [showForgot, setShowForgot] = useState(false);
-  const [role, setRole] = useState<"coordinator" | "teacher">("teacher");
+  const [role, setRole] = useState<"coordinator" | "teacher" | "admin" | "superadmin">("teacher");
   const [animate, setAnimate] = useState(false);
+  const [id, setId] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  // Store logged-in teacher info (for demo, can use context/global state)
+  const [teacherInfo, setTeacherInfo] = useState<Teacher | null>(null);
 
-  // Trigger animation on page load
   useEffect(() => {
     const timer = setTimeout(() => setAnimate(true), 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Dummy login handler
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    if (role === "teacher") {
+      try {
+        const res = await fetch("/teachers.json");
+        const teachers: Teacher[] = await res.json();
+        const found = teachers.find((t) => (t.id === id || t.username === id) && t.password === password);
+        if (found) {
+          setTeacherInfo(found);
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("sis_user", JSON.stringify({ role: "teacher", ...found }));
+          }
+          router.push("/admin");
+        } else {
+          setError("Invalid teacher ID or password");
+        }
+      } catch (err) {
+        setError("Login failed. Please try again.");
+      }
+    } else if (role === "superadmin") {
+      try {
+        const res = await fetch("/superadmins.json");
+        const superadmins = await res.json();
+        const found = superadmins.find((s: any) => (s.id === id || s.username === id) && s.password === password);
+        if (found) {
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("sis_user", JSON.stringify({ role: "superadmin", ...found }));
+          }
+          router.push("/admin");
+        } else {
+          setError("Invalid super admin ID or password");
+        }
+      } catch (err) {
+        setError("Login failed. Please try again.");
+      }
+    } else {
+      setError("Coordinator login not implemented in demo");
+    }
+    setLoading(false);
+  };
+
+  // If already logged in, show info (for demo)
+  if (teacherInfo) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white p-4">
+        <div className="bg-white border rounded-xl shadow-md p-8">
+          <h2 className="text-2xl font-bold mb-4">Welcome, {teacherInfo.name}!</h2>
+          <p className="mb-2">Role: Teacher</p>
+          <p className="mb-2">Assigned Class: {teacherInfo.class}</p>
+          <button className="mt-4 px-4 py-2 bg-[#a3cef1] rounded" onClick={() => { setTeacherInfo(null); window.localStorage.removeItem("sis_user"); }}>Logout</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-4">
@@ -33,68 +108,74 @@ export default function LoginPage() {
             {showForgot ? "Reset Password" : "Login"}
           </h2>
 
-          <form action="#">
+          <form onSubmit={handleLogin}>
             {!showForgot ? (
               <>
-                {/* Role Selection Tabs */}
-                <div className="w-full bg-[#e3edf3] rounded-lg inline-flex p-1 mb-4 transition-all duration-700">
-                  <button
-                    type="button"
-                    onClick={() => setRole("coordinator")}
-                    className={`px-6 py-2 rounded-lg text-sm mr-1 cursor-pointer transition-all ${
-                      role === "coordinator"
-                        ? "bg-white text-black font-bold shadow-sm"
-                        : "bg-transparent text-gray-700 font-normal"
-                    }`}
-                  >
-                    Coordinator
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole("teacher")}
-                    className={`px-6 py-2 rounded-lg text-sm cursor-pointer transition-all ${
-                      role === "teacher"
-                        ? "bg-white text-black font-bold shadow-sm"
-                        : "bg-transparent text-gray-700 font-normal"
-                    }`}
-                  >
-                    Teacher
-                  </button>
+                {/* Role Selection Dropdown */}
+                <div className="w-full mb-6">
+                  <div className="relative">
+                    <select
+                      value={role}
+                      onChange={e => setRole(e.target.value as any)}
+                      className="w-full h-12 rounded-xl px-5 text-base text-[#274c77] font-semibold shadow focus:outline-none focus:ring-2 focus:ring-[#6096ba] border-2 border-[#a3cef1] appearance-none transition-all duration-200"
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
+                    >
+                      <option value="teacher">Teacher</option>
+                      <option value="coordinator">Coordinator</option>
+                      <option value="admin">Admin</option>
+                      <option value="superadmin">Super Admin</option>
+                    </select>
+                    <span className="pointer-events-none absolute right-4 top-1/2 transform -translate-y-1/2 text-[#274c77] text-lg">
+                      ▼
+                    </span>
+                  </div>
                 </div>
 
                 {/* ID Input */}
-                <div className="relative w-full h-12 my-6">
+                <div className="relative w-full h-14 mb-6">
                   <input
                     type="text"
                     id="login-email"
                     required
-                    className="w-full h-full bg-transparent border-2 border-gray-300 rounded-full pl-5 pr-12 text-black text-base focus:outline-none focus:border-gray-400 peer"
-                    placeholder=" "
+                    value={id}
+                    onChange={e => setId(e.target.value)}
+                    className="w-full h-full border-2 border-[#a3cef1] rounded-xl pl-14 pr-12 text-[#274c77] text-lg font-medium focus:outline-none focus:ring-2 focus:ring-[#6096ba] shadow transition-all duration-200 placeholder:font-normal placeholder:text-[#6096ba]"
+                    placeholder={
+                      role === "teacher"
+                        ? "Teacher ID or Username"
+                        : role === "coordinator"
+                        ? "Coordinator ID"
+                        : role === "admin"
+                        ? "Admin ID"
+                        : "Super Admin ID"
+                    }
                   />
-                  <label className="absolute left-5 top-1/2 -translate-y-1/2 text-black text-base pointer-events-none transition-all duration-200 bg-transparent px-1 peer-focus:-top-2 peer-focus:text-xs peer-focus:text-[#6096ba] peer-[:not(:placeholder-shown)]:-top-2 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-[#6096ba]">
-                    {role === "teacher" ? "Teacher ID" : "Coordinator ID"}
-                  </label>
-                  <span className="absolute right-5 top-1/2 transform -translate-y-1/2">
-                    <FaEnvelope className="text-lg text-black" />
+                  <span className="absolute left-5 top-1/2 transform -translate-y-1/2 text-[#6096ba] text-xl">
+                    <FaEnvelope />
                   </span>
                 </div>
 
                 {/* Password Input */}
-                <div className="relative w-full h-12 my-6">
+                <div className="relative w-full h-14 mb-6">
                   <input
                     type="password"
                     id="login-password"
                     required
-                    className="w-full h-full bg-transparent border-2 border-gray-300 rounded-full pl-5 pr-12 text-black text-base focus:outline-none focus:border-gray-400 peer"
-                    placeholder=" "
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full h-full border-2 border-[#a3cef1] rounded-xl pl-14 pr-12 text-[#274c77] text-lg font-medium focus:outline-none focus:ring-2 focus:ring-[#6096ba] shadow transition-all duration-200 placeholder:font-normal placeholder:text-[#6096ba]"
+                    placeholder={
+                      role === "teacher"
+                        ? "Teacher Password"
+                        : role === "coordinator"
+                        ? "Coordinator Password"
+                        : role === "admin"
+                        ? "Admin Password"
+                        : "Super Admin Password"
+                    }
                   />
-                  <label className="absolute left-5 top-1/2 -translate-y-1/2 text-black text-base pointer-events-none transition-all duration-200 bg-transparent px-1 peer-focus:-top-2 peer-focus:text-xs peer-focus:text-[#6096ba] peer-[:not(:placeholder-shown)]:-top-2 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-[#6096ba]">
-                    {role === "teacher"
-                      ? "Teacher Password"
-                      : "Coordinator Password"}
-                  </label>
-                  <span className="absolute right-5 top-1/2 transform -translate-y-1/2">
-                    <FaLock className="text-lg text-black" />
+                  <span className="absolute left-5 top-1/2 transform -translate-y-1/2 text-[#6096ba] text-xl">
+                    <FaLock />
                   </span>
                 </div>
 
@@ -102,9 +183,11 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   className="w-full h-11 bg-[#a3cef1] border-none rounded-full shadow-sm cursor-pointer text-base text-black font-semibold mt-3 hover:bg-[#87b9e3] transition-colors"
+                  disabled={loading}
                 >
-                  Login
+                  {loading ? "Logging in..." : "Login"}
                 </button>
+                {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
 
                 {/* Forgot Password Link */}
                 <div className="text-sm text-center my-5">

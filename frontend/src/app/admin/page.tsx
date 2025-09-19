@@ -1,8 +1,7 @@
 "use client"
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { MultiSelectFilter } from "@/components/dashboard/multi-select-filter"
 import { KpiCard } from "@/components/dashboard/kpi-card"
 import { GradeDistributionChart } from "@/components/dashboard/grade-distribution-chart"
@@ -10,12 +9,98 @@ import { CampusPerformanceChart } from "@/components/dashboard/campus-performanc
 import { GenderDistributionChart } from "@/components/dashboard/gender-distribution-chart"
 import { MotherTongueChart } from "@/components/dashboard/mother-tongue-chart"
 import { ReligionChart } from "@/components/dashboard/religion-chart"
-import { ArrowLeft, Calendar, GraduationCap, TrendingUp, Users } from "lucide-react"
+import { ArrowLeft, Calendar, GraduationCap, TrendingUp, Users, Download, ChevronDown } from "lucide-react"
 import { CAMPUSES, GRADES, ACADEMIC_YEARS, MOTHER_TONGUES, RELIGIONS, getGradeDistribution, getGenderDistribution, getCampusPerformance, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution } from "@/data/mockData"
 import type { FilterState, DashboardMetrics, Student } from "@/types/dashboard"
 import { StudentTable } from "@/components/dashboard/student-table"
 
+import { useRouter } from "next/navigation";
+
+if (typeof window !== 'undefined') {
+  import('html2pdf.js').then(mod => { (window as any).html2pdf = mod.default; });
+}
+
 export default function MainDashboardPage() {
+  // Utility to convert students to CSV
+  function studentsToCSV(students: Student[]) {
+    if (!students.length) return '';
+    const header = Object.keys(students[0]);
+    const rows = students.map(s => header.map(h => JSON.stringify(s[h as keyof Student] ?? "")).join(","));
+    return [header.join(","), ...rows].join("\r\n");
+  }
+
+  // Utility to convert students to Excel (basic CSV with .xls extension)
+  function studentsToExcel(students: Student[]) {
+    return studentsToCSV(students); 
+  }
+
+  // Download helper
+  function downloadFile(data: string, filename: string, type: string) {
+    const blob = new Blob([data], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }
+
+  // Export dropdown state
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false);
+      }
+    }
+    if (exportOpen) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [exportOpen]);
+
+  // Export handlers
+  async function handleExport(type: string) {
+    if (type === 'csv') {
+      const csv = studentsToCSV(filteredStudents);
+      downloadFile(csv, 'students.csv', 'text/csv');
+    } else if (type === 'excel') {
+      const excel = studentsToExcel(filteredStudents);
+      downloadFile(excel, 'students.xls', 'application/vnd.ms-excel');
+    } else if (type === 'pdf') {
+      const main = document.querySelector('main');
+      if (main && typeof window !== 'undefined' && (window as any).html2pdf) {
+        (window as any).html2pdf().from(main).set({
+          margin: 0.5,
+          filename: 'dashboard.pdf',
+          html2canvas: { scale: 1 },
+          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        }).save();
+      } else {
+        alert('PDF export requires html2pdf.js.');
+      }
+    }
+    setExportOpen(false);
+  }
+  const router = useRouter();
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userStr = window.localStorage.getItem("sis_user");
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user.role === "teacher") {
+            router.replace("/admin/students/student-list");
+          }
+        } catch {}
+      }
+    }
+  }, []);
   const [filters, setFilters] = useState<FilterState>({
     academicYears: [],
     campuses: [],
@@ -123,6 +208,7 @@ export default function MainDashboardPage() {
 
   return (
     <main className="">
+
       <div className="bg-white rounded-3xl shadow-xl p-8">
 
         <Card className="!bg-[#E7ECEF]">
@@ -132,9 +218,30 @@ export default function MainDashboardPage() {
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </Button>
-              <Button onClick={resetFilters} variant="outline">
-                Reset Filters
-              </Button>
+              <div className="flex gap-2 items-center">
+                <Button onClick={resetFilters} variant="outline">
+                  Reset Filters
+                </Button>
+                {/* Export Button Dropdown (moved here) */}
+                <div className="relative" ref={exportRef}>
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg shadow hover:bg-gray-100"
+                    onClick={() => setExportOpen((v) => !v)}
+                    aria-haspopup="true"
+                    aria-expanded={exportOpen}
+                  >
+                    <Download className="w-4 h-4" /> Export <ChevronDown className="w-4 h-4" />
+                  </Button>
+                  {exportOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-50 animate-fade-in">
+                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100" onClick={() => handleExport('excel')}>Excel</button>
+                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100" onClick={() => handleExport('csv')}>CSV</button>
+                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100" onClick={() => handleExport('pdf')}>PDF</button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="!bg-[#E7ECEF]">

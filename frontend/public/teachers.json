@@ -1,0 +1,30 @@
+[
+  {
+    "id": "T1",
+    "name": "Mr. Ali",
+    "username": "ali",
+    "password": "1234",
+    "class": "7A"
+  },
+  {
+    "id": "T2",
+    "name": "Ms. Sara",
+    "username": "sara",
+    "password": "5678",
+    "class": "3B"
+  },
+  {
+    "id": "T3",
+    "name": "Mr. Ahmed",
+    "username": "ahmed",
+    "password": "abcd",
+    "class": "5A"
+  },
+  {
+    "id": "T4",
+    "name": "Ms. Fatima",
+    "username": "fatima",
+    "password": "efgh",
+    "class": "2B"
+  }
+]

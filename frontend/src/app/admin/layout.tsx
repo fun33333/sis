@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
+import ProtectedRoute from "@/components/ProtectedRoute"
 
 export default function AdminLayout({
   children,
@@ -25,7 +26,9 @@ export default function AdminLayout({
           <div></div>
           
         </div>
-        <div className="bg-white rounded-3xl shadow-xl p-8">{children}</div>
+        <ProtectedRoute>
+          <div className="bg-white rounded-3xl shadow-xl p-8">{children}</div>
+        </ProtectedRoute>
       </main>
     </div>
   )
