@@ -105,7 +105,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
 
   return (
     <aside
-      className={`h-screen fixed left-0 top-0 flex flex-col justify-between py-8 px-2 rounded-r-3xl shadow-2xl transition-all duration-300 backdrop-blur-lg border-r border-[#8b8c89]/30 z-20 ${sidebarOpen ? "w-72 px-4" : "w-18 px-2"
+      className={`h-screen fixed left-0 top-0 flex flex-col justify-between py-8 py- rounded-r-3xl shadow-2xl transition-all duration-300 backdrop-blur-lg border-r border-[#8b8c89]/30 z-20 ${sidebarOpen ? "w-72 px-4" : "w-18 px-2"
         }`}
       style={{
         background: sidebarOpen ? "#e7ecef" : "#a3cef1",

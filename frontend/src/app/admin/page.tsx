@@ -13,7 +13,6 @@ import { ArrowLeft, Calendar, GraduationCap, TrendingUp, Users, Download, Chevro
 import { CAMPUSES, GRADES, ACADEMIC_YEARS, MOTHER_TONGUES, RELIGIONS, getGradeDistribution, getGenderDistribution, getCampusPerformance, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution } from "@/data/mockData"
 import type { FilterState, DashboardMetrics, Student } from "@/types/dashboard"
 import { StudentTable } from "@/components/dashboard/student-table"
-
 import { useRouter } from "next/navigation";
 
 if (typeof window !== 'undefined') {
