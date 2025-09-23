@@ -28,12 +28,10 @@ export default function MainDashboardPage() {
     return [header.join(","), ...rows].join("\r\n");
   }
 
-  // Utility to convert students to Excel (basic CSV with .xls extension)
   function studentsToExcel(students: Student[]) {
     return studentsToCSV(students); 
   }
 
-  // Download helper
   function downloadFile(data: string, filename: string, type: string) {
     const blob = new Blob([data], { type });
     const url = URL.createObjectURL(blob);

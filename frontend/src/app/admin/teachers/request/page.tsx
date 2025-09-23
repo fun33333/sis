@@ -1,130 +1,263 @@
-
 "use client";
-
-
-import React, { useState } from "react";
-import { Input } from "@/components/ui/input";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { FaChalkboardTeacher } from "react-icons/fa";
-import { MdSubject, MdDescription } from "react-icons/md";
+import { Eye } from "lucide-react";
 
-const requestTypes = [
-  "Leave Request",
-  "Resource Request",
-  "Schedule Change",
-  "Other",
-];
-
+type Request = {
+  to: string;
+  subject: string;
+  type: string;
+  content: string;
+  date: string;
+};
 
 export default function TeacherRequestPage() {
-	const [form, setForm] = useState({
-		subject: "",
-		requestType: "",
-		description: "",
-	});
-	const [submitted, setSubmitted] = useState(false);
-	const [error, setError] = useState("");
+  const currentUser = { name: "Ali Raza", id: "12345" };
+  const [showModal, setShowModal] = useState(false);
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [form, setForm] = useState({
+    to: "",
+    subject: "",
+    type: "",
+    content: "",
+  });
+  const [detailsIdx, setDetailsIdx] = useState<number | null>(null);
 
-	const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-		setForm({ ...form, [e.target.name]: e.target.value });
-		setError("");
-	};
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-[#f8fbfd] py-8 px-2">
+      <div
+        className="w-full max-w-5xl rounded-2xl shadow-lg border border-[#e3eaf2] bg-white p-8 relative"
+        style={{ minHeight: 540 }}
+      >
+        {/* Add New Request Button */}
+        <div className="absolute right-8 top-8">
+          <Button
+            className="bg-[#a3c8e6] text-[#222] font-bold px-6 py-2 rounded-lg shadow hover:bg-[#8bb8d6] transition-colors"
+            onClick={() => setShowModal(true)}
+          >
+            Add New Request
+          </Button>
+        </div>
+        <h1 className="text-3xl font-bold mb-8 text-center">
+          Teachers Requests & Complaints
+        </h1>
 
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!form.subject || !form.requestType || !form.description) {
-			setError("All fields are required.");
-			return;
-		}
-		setSubmitted(true);
-	};
+        {/* Requests Table */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full border border-[#e3eaf2] rounded-lg overflow-hidden">
+            <thead className="bg-[#f3f6fa]">
+              <tr>
+                <th className="px-6 py-4 border-b border-[#e3eaf2] text-left font-semibold">
+                  ID
+                </th>
+                <th className="px-6 py-4 border-b border-[#e3eaf2] text-left font-semibold">
+                  TO
+                </th>
+                <th className="px-6 py-4 border-b border-[#e3eaf2] text-left font-semibold">
+                  Complain Subject
+                </th>
+                <th className="px-6 py-4 border-b border-[#e3eaf2] text-left font-semibold">
+                  Status
+                </th>
+                <th className="px-6 py-4 border-b border-[#e3eaf2] text-left font-semibold">
+                  Date
+                </th>
+                <th className="px-6 py-4 border-b border-[#e3eaf2] text-left font-semibold">
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.length === 0 ? (
+                <tr>
+                  <td
+                    className="px-6 py-8 border-b border-[#e3eaf2] text-center text-gray-400"
+                    colSpan={6}
+                  >
+                    No requests or complaints found.
+                  </td>
+                </tr>
+              ) : (
+                requests.map((req, idx) => (
+                  <tr key={idx}>
+                    <td className="px-6 py-4 border-b border-[#e3eaf2]">
+                      {idx + 1}
+                    </td>
+                    <td className="px-6 py-4 border-b border-[#e3eaf2]">
+                      {req.to}
+                    </td>
+                    <td className="px-6 py-4 border-b border-[#e3eaf2]">
+                      {req.subject}
+                    </td>
+                    <td className="px-6 py-4 border-b border-[#e3eaf2]">
+                      Pending
+                    </td>
+                    <td className="px-6 py-4 border-b border-[#e3eaf2]">
+                      {req.date}
+                    </td>
+                    <td className="px-6 py-4 border-b border-[#e3eaf2]">
+                      <button
+                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                        onClick={() => setDetailsIdx(idx)}
+                      >
+                        <Eye size={18} />
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-		return (
-			<div className="flex items-center justify-center min-h-screen bg-[#f8fbfd] py-8 px-2">
-				<div className="w-full max-w-4xl rounded-2xl shadow-lg border border-[#e3eaf2] bg-white flex overflow-hidden" style={{ minHeight: 540 }}>
-					{/* Left: Form */}
-					<div className="flex-1 flex flex-col justify-center px-10 py-12 gap-6">
-						<h1 className="text-3xl font-bold mb-2 text-center">Teachers Request Form</h1>
-						{submitted ? (
-							<div className="flex flex-col items-center justify-center gap-4 py-8">
-								<div className="text-green-600 text-xl font-semibold">Request submitted successfully!</div>
-								<Button variant="secondary" className="mt-2" onClick={() => setSubmitted(false)}>
-									Submit Another Request
-								</Button>
-							</div>
-						) : (
-							<form onSubmit={handleSubmit} className="flex flex-col gap-8">
-								<div className="flex flex-col gap-1">
-									<Label htmlFor="subject" className="text-base font-medium">Teacher Name</Label>
-									<div className="relative">
-										<Input
-											type="text"
-											id="subject"
-											name="subject"
-											value={form.subject}
-											onChange={handleChange}
-											placeholder="Enter Teacher's name"
-											className="rounded-md bg-[#e3eaf2] pl-5 pr-12 py-3 text-lg border-none focus:ring-2 focus:ring-[#a3c8e6]"
-											required
-										/>
-										<MdSubject className="absolute right-4 top-1/2 -translate-y-1/2 text-[#222] text-xl pointer-events-none" />
-									</div>
-								</div>
-								<div className="flex flex-col gap-1">
-									<Label htmlFor="subject" className="text-base font-medium">Subject</Label>
-									<div className="relative">
-										<Input
-											type="text"
-											id="subject"
-											name="subject"
-											value={form.subject}
-											onChange={handleChange}
-											placeholder="Enter Subject"
-											className="rounded-md bg-[#e3eaf2] pl-5 pr-12 py-3 text-lg border-none focus:ring-2 focus:ring-[#a3c8e6]"
-											required
-										/>
-										<MdSubject className="absolute right-4 top-1/2 -translate-y-1/2 text-[#222] text-xl pointer-events-none" />
-									</div>
-								</div>
-								
-								<div className="flex flex-col gap-1">
-									<Label htmlFor="description" className="text-base font-medium">Description</Label>
-									<div className="relative">
-										<Textarea
-											id="description"
-											name="description"
-											value={form.description}
-											onChange={handleChange}
-											placeholder="Describe your request"
-											rows={3}
-											className="rounded-2xl bg-[#e3eaf2] pl-5 pr-12 py-3 text-lg border-none focus:ring-2 focus:ring-[#a3c8e6] resize-none"
-											required
-										/>
-										<MdDescription className="absolute right-4 top-1/2 -translate-y-1/2 text-[#222] text-xl pointer-events-none" />
-									</div>
-								</div>
-								{error && <div className="text-destructive text-sm text-center font-medium animate-shake">{error}</div>}
-								<Button
-									type="submit"
-									className="w-full rounded-md bg-[#a3c8e6] text-[#222] text-lg font-bold py-5 mt-2 shadow hover:bg-[#8bb8d6] transition-colors"
-									variant="default"
-								>
-									Submit Request
-								</Button>
-							</form>
-						)}
-					</div>
-					{/* Right: Welcome Section */}
-					<div className="hidden md:flex flex-col items-center justify-center flex-1 bg-gradient-to-tr from-[#a3c8e6] to-[#7bb3df] relative p-0">
-						<div className="absolute inset-0 clip-diagonal bg-gradient-to-tr from-[#a3c8e6] to-[#7bb3df]" style={{clipPath:'polygon(20% 0, 100% 0, 100% 100%, 0 100%)'}}></div>
-						<div className="relative z-10 flex flex-col items-center justify-center w-full h-full px-8">
-							<h2 className="text-3xl font-extrabold text-white mb-2 text-center">WELCOME</h2>
-							<p className="text-white text-lg text-center font-medium">Submit your request to school admin<br/>in one place.</p>
-						</div>
-					</div>
-				</div>
-			</div>
-		);
-	}
+        {/* Add Request Modal */}
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl px-12 py-6 w-full max-w-3xl border-2 border-[#a3c8e6] relative animate-fade-in">
+              <button
+                className="absolute top-3 right-3 text-[#a3c8e6] text-2xl font-bold hover:text-[#222]"
+                onClick={() => setShowModal(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+              <div className="flex justify-between items-center mb-6">
+                <div className="text-xl font-bold bg-[#e3eaf2] px-6 py-2 rounded-lg">
+                  Form
+                </div>
+                <div className="text-base font-semibold bg-[#e3eaf2] px-6 py-2 rounded-lg">
+                  {new Date().toLocaleDateString()}
+                </div>
+              </div>
+              <form
+                className="grid grid-cols-2 gap-x-8 gap-y-4 items-start"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setRequests((prev) => [
+                    ...prev,
+                    {
+                      to:
+                        form.to === "head"
+                          ? "Subject Head"
+                          : form.to === "coordinator"
+                          ? "Coordinator"
+                          : "",
+                      subject: form.subject,
+                      type: form.type,
+                      content: form.content,
+                      date: new Date().toLocaleDateString(),
+                    },
+                  ]);
+                  setShowModal(false);
+                  setForm({ to: "", subject: "", type: "", content: "" });
+                }}
+              >
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1">TO</label>
+                  <select
+                    className="w-full rounded-lg border border-[#a3c8e6] px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#a3c8e6]"
+                    value={form.to}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, to: e.target.value }))
+                    }
+                  >
+                    <option value="">
+                      Select Subject Head/Coordinator
+                    </option>
+                    <option value="head">Subject Head</option>
+                    <option value="coordinator">Coordinator</option>
+                  </select>
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1">From</label>
+                  <input
+                    type="text"
+                    value={`${currentUser.name} (ID: ${currentUser.id})`}
+                    disabled
+                    className="w-full rounded-lg border border-[#a3c8e6] px-4 py-2 bg-gray-100 text-gray-700 cursor-not-allowed font-semibold"
+                  />
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter Subject"
+                    value={form.subject}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, subject: e.target.value }))
+                    }
+                    className="w-full rounded-lg border border-[#a3c8e6] px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#a3c8e6]"
+                  />
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1">Type</label>
+                  <select
+                    className="w-full rounded-lg border border-[#a3c8e6] px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#a3c8e6]"
+                    value={form.type}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, type: e.target.value }))
+                    }
+                  >
+                    <option value="">Select Type</option>
+                    <option value="complain">Complain</option>
+                    <option value="request">Request</option>
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">
+                    Main Content
+                  </label>
+                  <textarea
+                    placeholder="Enter details here..."
+                    rows={3}
+                    value={form.content}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, content: e.target.value }))
+                    }
+                    className="w-full rounded-lg border border-[#a3c8e6] px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#a3c8e6] resize-none"
+                  />
+                </div>
+                <div className="col-span-2 flex justify-end">
+                  <button
+                    type="submit"
+                    className="mt-2 bg-[#a3c8e6] text-[#222] font-bold px-6 py-2 rounded-lg shadow hover:bg-[#8bb8d6] transition-colors"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Details Modal */}
+        {detailsIdx !== null && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl px-10 py-6 w-full max-w-2xl border-2 border-[#a3c8e6] relative animate-fade-in">
+              <button
+                className="absolute top-3 right-3 text-[#a3c8e6] text-2xl font-bold hover:text-[#222]"
+                onClick={() => setDetailsIdx(null)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+              <h2 className="text-2xl font-bold mb-4 text-center">Request Details</h2>
+              <div className="space-y-3">
+                <p><span className="font-semibold">To:</span> {requests[detailsIdx].to}</p>
+                <p><span className="font-semibold">From:</span> {currentUser.name} (ID: {currentUser.id})</p>
+                <p><span className="font-semibold">Subject:</span> {requests[detailsIdx].subject}</p>
+                <p><span className="font-semibold">Type:</span> {requests[detailsIdx].type}</p>
+                <p><span className="font-semibold">Content:</span> {requests[detailsIdx].content}</p>
+                <p><span className="font-semibold">Date:</span> {requests[detailsIdx].date}</p>
+                <p><span className="font-semibold">Status:</span> Pending</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

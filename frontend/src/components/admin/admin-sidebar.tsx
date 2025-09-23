@@ -52,6 +52,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Time Table", href: "/admin/teachers/timetable" },
           { title: "Attendance", href: "/admin/teachers/attendance" },
           { title: "Class Statistics", href: "/admin/teachers/stats" },
+          { title: "Class Reasult", href: "/admin/teachers/reasult" },
         ],
       },
     ]
