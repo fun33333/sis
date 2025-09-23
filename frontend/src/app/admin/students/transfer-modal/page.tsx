@@ -207,131 +207,146 @@ export default function TransferModulePage() {
   return (
     <div className="p-6">
       {/* Certificate Preview Modal */}
-      {showCertificate && selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div
-            id="certificate-preview"
-            className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-4xl relative flex flex-col items-center"
-            style={{
-              background: "linear-gradient(135deg, #f8f9fa 0%, #edf2f4 100%)",
-            }}
-          >
-            {/* Close Button */}
-            <button
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl"
-              onClick={() => setShowCertificate(false)}
-            >
-              &times;
-            </button>
+{showCertificate && selectedStudent && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div
+      id="certificate-preview"
+      className="relative bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col items-center border-[16px] border-[#d4af37]"
+      style={{
+        background: "linear-gradient(145deg, #ffffff 0%, #fefefe 50%, #fdf6e3 100%)",
+      }}
+    >
+      {/* Decorative Corner Borders */}
+      <div className="absolute top-0 left-0 w-20 h-20 border-t-[10px] border-l-[10px] border-[#d4af37] rounded-tl-xl"></div>
+      <div className="absolute top-0 right-0 w-20 h-20 border-t-[10px] border-r-[10px] border-[#d4af37] rounded-tr-xl"></div>
+      <div className="absolute bottom-0 left-0 w-20 h-20 border-b-[10px] border-l-[10px] border-[#d4af37] rounded-bl-xl"></div>
+      <div className="absolute bottom-0 right-0 w-20 h-20 border-b-[10px] border-r-[10px] border-[#d4af37] rounded-br-xl"></div>
 
-            {/* Header Section */}
-            <div className="flex justify-between items-center w-full mb-6">
-              <div className="flex items-center gap-2">
-                <Image src="/vercel.svg" alt="Logo" width={50} height={50} />
-                <span className="font-bold text-xl text-[#274c77]">SIS School</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-[#274c77] font-bold text-lg tracking-wide">
-                  TRANSFER CERTIFICATE
-                </span>
-                <div className="h-10 w-10 bg-gradient-to-r from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold shadow">
-                  TC
-                </div>
-              </div>
-            </div>
+      {/* Watermark */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+        <Image src="/vercel.svg" alt="Watermark" width={500} height={500} />
+      </div>
 
-            {/* Title */}
-            <h2 className="text-4xl font-extrabold text-[#274c77] mb-2 tracking-wider uppercase">
-              Certificate of Transfer
-            </h2>
-            <p className="text-[#457b9d] text-lg mb-6 italic">
-              This certificate is proudly presented to
-            </p>
+      {/* Close Button */}
+      <button
+        className="absolute top-5 right-6 text-gray-500 hover:text-gray-800 text-3xl font-bold"
+        onClick={() => setShowCertificate(false)}
+      >
+        &times;
+      </button>
 
-            {/* Student Name */}
-            <h3 className="text-3xl font-bold text-[#1d3557] mb-2">
-              {selectedStudent.name}
-            </h3>
-            <div className="w-2/3 border-t-2 border-gray-400 mb-6"></div>
-
-            {/* Details Section */}
-            <div className="grid grid-cols-2 gap-x-10 gap-y-3 text-[#274c77] text-base w-full px-10">
-              <p>
-                <span className="font-semibold">Student ID:</span>{" "}
-                {selectedStudent.studentId}
-              </p>
-              <p>
-                <span className="font-semibold">New Student ID:</span>{" "}
-                {previewNewId}
-              </p>
-              <p>
-                <span className="font-semibold">Campus:</span>{" "}
-                {selectedStudent.campus}
-              </p>
-              <p>
-                <span className="font-semibold">Grade / Section:</span>{" "}
-                {selectedStudent.grade}
-              </p>
-              <p className="col-span-2">
-                <span className="font-semibold">Transfer Date:</span>{" "}
-                {effectiveDate}
-              </p>
-            </div>
-
-            {/* Statement */}
-            <div className="w-full border-t border-gray-300 my-6"></div>
-            <p className="text-[#274c77] text-lg text-center px-6">
-              This is to certify that{" "}
-              <span className="font-semibold">{selectedStudent.name}</span> has been
-              transferred from{" "}
-              <span className="font-semibold">{selectedStudent.campus}</span> to{" "}
-              <span className="font-semibold">
-                {newCampus || selectedStudent.campus}
-              </span>{" "}
-              effective <span className="font-semibold">{effectiveDate}</span>.
-            </p>
-
-            {/* Signatures */}
-            <div className="flex justify-between items-center w-full mt-10 px-12">
-              <div className="text-center">
-                <div className="h-10 border-b-2 border-gray-500 w-40 mx-auto mb-1"></div>
-                <p className="font-bold text-[#1d3557]">Principal</p>
-              </div>
-              <div className="text-center">
-                <div className="h-10 border-b-2 border-gray-500 w-40 mx-auto mb-1"></div>
-                <p className="font-bold text-[#1d3557]">Administrator</p>
-              </div>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex justify-center gap-6 mt-10">
-              <button
-                className="bg-[#6096ba] text-white px-8 py-3 rounded-xl font-bold shadow hover:bg-[#274c77] transition"
-                onClick={() => window.print()}
-              >
-                Save / Print
-              </button>
-              <button
-                className="bg-gray-500 text-white px-8 py-3 rounded-xl font-bold shadow hover:bg-[#274c77] transition"
-                onClick={() => {
-                  const cert = document.getElementById("certificate-preview");
-                  if (!cert) return;
-                  import("html2canvas").then((html2canvas) => {
-                    html2canvas.default(cert).then((canvas: HTMLCanvasElement) => {
-                      const link = document.createElement("a");
-                      link.download = `transfer-certificate-${selectedStudent.name}.png`;
-                      link.href = canvas.toDataURL();
-                      link.click();
-                    });
-                  });
-                }}
-              >
-                Download
-              </button>
-            </div>
+      {/* Header */}
+      <div className="flex justify-between items-center w-full px-12 mt-8 relative z-10">
+        <div className="flex items-center gap-4">
+          <Image src="/vercel.svg" alt="Logo" width={70} height={70} />
+          <span className="font-extrabold text-3xl text-[#1d3557] tracking-widest uppercase">
+            SIS School
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-[#1d3557] font-bold text-lg uppercase tracking-wide">
+            Transfer Certificate
+          </span>
+          <div className="h-14 w-14 bg-gradient-to-br from-yellow-500 to-yellow-700 rounded-full flex items-center justify-center text-white font-extrabold shadow-xl">
+            TC
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Title */}
+      <div className="mt-10 text-center relative z-10">
+        <h2 className="text-5xl font-extrabold text-[#1d3557] tracking-[0.25em] uppercase mb-4">
+          Certificate of Transfer
+        </h2>
+        <div className="w-40 h-1.5 mx-auto bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full"></div>
+        <p className="text-[#457b9d] text-lg italic mt-6">
+          This certificate is proudly presented to
+        </p>
+      </div>
+
+      {/* Student Name */}
+      <h3 className="text-4xl font-bold text-[#1d3557] my-6 text-center uppercase relative z-10">
+        {selectedStudent.name}
+      </h3>
+      <div className="w-1/3 border-t-4 border-yellow-600 mb-12"></div>
+
+      {/* Details Section */}
+      <div className="grid grid-cols-2 gap-x-16 gap-y-6 text-[#1d3557] text-lg w-4/5 bg-[#fffaf0] rounded-2xl shadow-inner py-8 px-14 relative z-10 border border-yellow-300">
+        <p>
+          <span className="font-semibold">Student ID:</span>{" "}
+          {selectedStudent.studentId}
+        </p>
+        <p>
+          <span className="font-semibold">New Student ID:</span> {previewNewId}
+        </p>
+        <p>
+          <span className="font-semibold">Campus:</span>{" "}
+          {selectedStudent.campus}
+        </p>
+        <p>
+          <span className="font-semibold">Grade / Section:</span>{" "}
+          {selectedStudent.grade}
+        </p>
+        <p className="col-span-2">
+          <span className="font-semibold">Transfer Date:</span> {effectiveDate}
+        </p>
+      </div>
+
+      {/* Statement */}
+      <p className="text-[#1d3557] text-lg text-center px-16 leading-relaxed my-12 relative z-10">
+        This is to certify that{" "}
+        <span className="font-semibold">{selectedStudent.name}</span> has been
+        officially transferred from{" "}
+        <span className="font-semibold">{selectedStudent.campus}</span> to{" "}
+        <span className="font-semibold">
+          {newCampus || selectedStudent.campus}
+        </span>{" "}
+        effective <span className="font-semibold">{effectiveDate}</span>.
+      </p>
+
+      {/* Signatures */}
+      <div className="flex justify-between items-center w-full mt-10 px-24 relative z-10">
+        <div className="text-center">
+          <div className="h-12 border-b-2 border-gray-700 w-64 mx-auto mb-2"></div>
+          <p className="font-bold text-[#1d3557] tracking-wide">Principal</p>
+        </div>
+        <div className="text-center">
+          <div className="h-12 border-b-2 border-gray-700 w-64 mx-auto mb-2"></div>
+          <p className="font-bold text-[#1d3557] tracking-wide">Administrator</p>
+        </div>
+      </div>
+
+      {/* Buttons */}
+      <div className="flex justify-center gap-12 mt-14 mb-10 relative z-10">
+        <button
+          className="bg-gradient-to-r from-yellow-500 to-yellow-700 text-white px-12 py-3 rounded-2xl font-bold shadow-xl hover:scale-105 transition"
+          onClick={() => window.print()}
+        >
+          Save / Print
+        </button>
+        <button
+          className="bg-gradient-to-r from-gray-700 to-gray-900 text-white px-12 py-3 rounded-2xl font-bold shadow-xl hover:scale-105 transition"
+          onClick={() => {
+            const cert = document.getElementById("certificate-preview");
+            if (!cert) return;
+            import("html2canvas").then((html2canvas) => {
+              html2canvas.default(cert).then((canvas: HTMLCanvasElement) => {
+                const link = document.createElement("a");
+                link.download = `transfer-certificate-${selectedStudent.name}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+              });
+            });
+          }}
+        >
+          Download
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
 
       <div className="flex items-center justify-between mb-6 text-[#274c77]">
         <h2 className="text-2xl font-bold">Student Transfer Module</h2>
