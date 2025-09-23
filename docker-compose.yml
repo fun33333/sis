@@ -6,6 +6,7 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+      -  ./backend/credentials.json:/app/credentials.json
     ports:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
     env_file:
