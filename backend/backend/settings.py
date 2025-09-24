@@ -135,6 +135,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+
 # superuser credentials
 SUPERUSER_USERNAME = 'ait-ubaid'
 SUPERUSER_PASSWORD = 'bitBYTE8'
