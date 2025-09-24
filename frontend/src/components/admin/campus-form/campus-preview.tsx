@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Eye, ArrowLeft, Save } from "lucide-react"
+import { apiPost } from "@/lib/api"
+import { useState } from "react"
 
 interface CampusPreviewProps {
   formData: any
@@ -11,9 +13,70 @@ interface CampusPreviewProps {
 }
 
 export function CampusPreview({ formData, onBack }: CampusPreviewProps) {
-  const handleSave = () => {
-    // Handle save logic here
-    alert("Campus information saved successfully!")
+  const [saving, setSaving] = useState(false)
+
+  const buildPayload = () => {
+    return {
+      name: formData.campusName,
+      code: formData.campusCode || null,
+      description: formData.description || null,
+      status: formData.campusStatus || "active",
+      governing_body: formData.governingBody || null,
+      registration_no: formData.registrationNumber || null,
+      address: formData.address,
+      grades_offered: formData.gradesOffered,
+      languages_of_instruction: formData.languagesOfInstruction,
+      academic_year_start: formData.academicYearStart,
+      academic_year_end: formData.academicYearEnd,
+      capacity: Number(formData.campusCapacity || formData.totalStudentCapacity || 0),
+      classes_per_grade: Number(formData.classesPerGrade || 0),
+      avg_class_size: Number(formData.averageClassSize || 0),
+      num_students: Number(formData.totalStudents || formData.currentStudentEnrollment || 0),
+      num_students_male: Number(formData.maleStudents || 0),
+      num_students_female: Number(formData.femaleStudents || 0),
+      num_teachers: Number(formData.totalTeachers || 0),
+      num_teachers_male: Number(formData.maleTeachers || 0),
+      num_teachers_female: Number(formData.femaleTeachers || 0),
+      num_rooms: Number(formData.totalRooms || 0),
+      total_classrooms: Number(formData.totalClassrooms || 0),
+      office_rooms: Number(formData.officeRooms || 0),
+      biology_labs: Number(formData.biologyLabs || formData.scienceLabs || 0),
+      chemistry_labs: Number(formData.chemistryLabs || 0),
+      physics_labs: Number(formData.physicsLabs || 0),
+      computer_labs: Number(formData.computerLabs || 0),
+      library: Boolean(formData.library) || false,
+      toilets_male: Number(formData.boysWashrooms || 0),
+      toilets_female: Number(formData.girlsWashrooms || 0),
+      toilets_accessible: Number(formData.accessibleWashrooms || 0),
+      toilets_teachers: Number(
+        (formData.maleTeacherWashrooms || 0) + (formData.femaleTeacherWashrooms || 0)
+      ),
+      facilities: formData.facilities || null,
+      power_backup: Boolean(formData.powerBackup) || false,
+      internet_wifi: Boolean(formData.internetWifi) || false,
+      established_date: formData.campusEstablishedYear || null,
+      campus_address: formData.address || null,
+      special_classes: formData.specialClasses || null,
+      total_teachers: Number(formData.totalTeachers || 0),
+      total_non_teaching_staff: Number(formData.totalStaffMembers || 0),
+      teacher_student_ratio: formData.teacherStudentRatio || null,
+      staff_contact_hr: formData.staffContactHr || null,
+      admission_office_contact: formData.admissionOfficeContact || null,
+      is_draft: false,
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      setSaving(true)
+      const payload = buildPayload()
+      await apiPost("/api/campus/", payload)
+      alert("Campus information saved successfully!")
+    } catch (err: any) {
+      alert(err?.message || "Failed to save campus")
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -95,6 +158,10 @@ export function CampusPreview({ formData, onBack }: CampusPreviewProps) {
           <Button onClick={onBack} variant="outline" className="flex items-center gap-2 bg-transparent">
             <ArrowLeft className="h-4 w-4" />
             Back to Edit
+          </Button>
+          <Button onClick={handleSave} className="flex items-center gap-2">
+            <Save className="h-4 w-4" />
+            Save Campus
           </Button>
         </div>
       </CardContent>
