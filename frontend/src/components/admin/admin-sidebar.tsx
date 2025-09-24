@@ -152,21 +152,31 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
                       className={`h-5 w-5 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-[#e7ecef]" : "text-[#6096ba]"
                         }`}
                     />
-                    {sidebarOpen && <span className="transition-all duration-300">{item.title}</span>}
-                    {sidebarOpen && hasSubItems && (
-                      <span className="ml-auto">
-                        <svg
-                          className={`h-4 w-4 transition-transform duration-300 ${isActive ? "rotate-90 text-[#e7ecef]" : "text-[#6096ba]"
-                            }`}
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M9 5l7 7-7 7" />
-                        </svg>
-                      </span>
-                    )}
+                    <span
+                      className={`sidebar-label transition-all duration-300 inline-block whitespace-nowrap overflow-hidden ${sidebarOpen ? 'opacity-100 max-w-xs ml-1' : 'opacity-0 max-w-0 ml-0'}`}
+                      style={{
+                        transition: 'opacity 0.3s, max-width 0.3s, margin-left 0.3s',
+                      }}
+                    >
+                      {item.title}
+                    </span>
+                    <span
+                      className={`sidebar-label transition-all duration-300 ml-auto ${sidebarOpen && hasSubItems ? 'opacity-100 max-w-xs' : 'opacity-0 max-w-0'}`}
+                      style={{
+                        transition: 'opacity 0.3s, max-width 0.3s',
+                        display: hasSubItems ? 'inline-block' : 'none',
+                      }}
+                    >
+                      <svg
+                        className={`h-4 w-4 transition-transform duration-300 ${isActive ? "rotate-90 text-[#e7ecef]" : "text-[#6096ba]"}`}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
                   </button>
                 </Link>
 
