@@ -3,18 +3,21 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Eye, ArrowLeft, Save } from "lucide-react"
+import { Eye, ArrowLeft, Save, Loader2 } from "lucide-react"
 import { apiPost } from "@/lib/api"
 import type { CampusCreateRequest, CampusStatus } from "@/types/dashboard"
 import { useState } from "react"
+import { toast as sonnerToast } from "sonner"
 
 interface CampusPreviewProps {
   formData: any
   onBack: () => void
+  onSaved?: () => void
 }
 
-export function CampusPreview({ formData, onBack }: CampusPreviewProps) {
+export function CampusPreview({ formData, onBack, onSaved }: CampusPreviewProps) {
   const [saving, setSaving] = useState(false)
+
 
   const formatDate = (value: any) => {
     if (!value) return null
@@ -98,14 +101,31 @@ export function CampusPreview({ formData, onBack }: CampusPreviewProps) {
   }
 
   const handleSave = async () => {
+    setSaving(true)
     try {
-      setSaving(true)
       ensureRequiredOrThrow()
       const payload = buildPayload()
-      await apiPost("/api/campus/", payload)
-      alert("Campus information saved successfully!")
+
+      // start API call and a 2s minimum delay in parallel so UI always shows loader for ~2s
+      const apiPromise = apiPost("/api/campus/", payload)
+      const delay = new Promise((res) => setTimeout(res, 2000))
+
+      // wait for both the api call and the minimum delay
+      await Promise.all([apiPromise, delay])
+
+      // show a polished Sonner toast (success)
+      sonnerToast.success("Campus saved", {
+        description: "Campus has been saved successfully.",
+        duration: 4000,
+      })
+
+      // notify parent to reset/redirect to step 1
+      onSaved?.()
     } catch (err: any) {
-      alert(err?.message || "Failed to save campus")
+      // show polished Sonner error toast
+      sonnerToast.error(err?.message || "An unexpected error occurred while saving.", {
+        duration: 6000,
+      })
     } finally {
       setSaving(false)
     }
@@ -191,9 +211,13 @@ export function CampusPreview({ formData, onBack }: CampusPreviewProps) {
             <ArrowLeft className="h-4 w-4" />
             Back to Edit
           </Button>
-          <Button onClick={handleSave} className="flex items-center gap-2">
-            <Save className="h-4 w-4" />
-            Save Campus
+          <Button onClick={handleSave} className="flex items-center gap-2" disabled={saving}>
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {saving ? "Saving..." : "Save Campus"}
           </Button>
         </div>
       </CardContent>

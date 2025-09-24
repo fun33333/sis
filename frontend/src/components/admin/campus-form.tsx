@@ -19,28 +19,9 @@ const steps = [
 
 export function CampusForm() {
   const [submitting, setSubmitting] = useState(false);
+  // this submit is kept for backwards compatibility but the preview handles the final save.
   const handleSubmit = async () => {
-    setSubmitting(true);
-    try {
-      const res = await fetch("http://localhost:8000/api/campus/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-      if (res.ok) {
-        toast({ title: "Campus added successfully!" });
-        setShowPreview(false);
-        setFormData({});
-        setCurrentStep(1);
-      } else {
-        toast({ title: "Failed to add campus", description: await res.text() });
-      }
-    } catch (err) {
-      toast({ title: "Error", description: String(err) });
-    }
-    setSubmitting(false);
+    // noop: final save happens from preview save button to ensure payload normalization
   };
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
@@ -169,12 +150,21 @@ export function CampusForm() {
     if (showPreview) {
       return (
         <div>
-          <CampusPreview formData={formData} onBack={() => setShowPreview(false)} />
-          <div className="flex justify-end mt-6">
-            <Button onClick={handleSubmit} disabled={submitting} className="bg-primary text-white">
-              {submitting ? "Submitting..." : "Submit Campus"}
-            </Button>
-          </div>
+          <CampusPreview
+            formData={formData}
+            onBack={() => setShowPreview(false)}
+            onSaved={() => {
+              // brief UX: show the progress card's submitting state for a short moment
+              setSubmitting(true)
+              setTimeout(() => {
+                setSubmitting(false)
+                setShowPreview(false)
+                setFormData({})
+                setCurrentStep(1)
+              }, 300)
+            }}
+          />
+
         </div>
       );
     }
