@@ -43,6 +43,24 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
           </div>
 
           <div>
+            <Label htmlFor="campusCode">Campus Code</Label>
+            <Input
+              id="campusCode"
+              value={formData.campusCode || ""}
+              onChange={e => onInputChange("campusCode", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="governingBody">Governing Body</Label>
+            <Input
+              id="governingBody"
+              value={formData.governingBody || ""}
+              onChange={e => onInputChange("governingBody", e.target.value)}
+            />
+          </div>
+
+          <div>
             <Label htmlFor="registrationNumber">Registration Number *</Label>
             <Input
               id="registrationNumber"
@@ -306,6 +324,66 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
                <p className="text-sm text-red-600 mt-1">Total teachers is required</p>
              )}
            </div>
+
+          <div>
+            <Label htmlFor="maleTeachers">No. of Male Teachers</Label>
+            <Input
+              id="maleTeachers"
+              type="number"
+              value={formData.maleTeachers || ""}
+              onChange={e => onInputChange("maleTeachers", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="femaleTeachers">No. of Female Teachers</Label>
+            <Input
+              id="femaleTeachers"
+              type="number"
+              value={formData.femaleTeachers || ""}
+              onChange={e => onInputChange("femaleTeachers", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="maleStudents">No. of Male Students</Label>
+            <Input
+              id="maleStudents"
+              type="number"
+              value={formData.maleStudents || ""}
+              onChange={e => onInputChange("maleStudents", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="femaleStudents">No. of Female Students</Label>
+            <Input
+              id="femaleStudents"
+              type="number"
+              value={formData.femaleStudents || ""}
+              onChange={e => onInputChange("femaleStudents", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="classesPerGrade">Classes per Grade</Label>
+            <Input
+              id="classesPerGrade"
+              type="number"
+              value={formData.classesPerGrade || ""}
+              onChange={e => onInputChange("classesPerGrade", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="specialClasses">Special Classes (e.g. Montessori, Prep)</Label>
+            <Input
+              id="specialClasses"
+              value={formData.specialClasses || ""}
+              onChange={e => onInputChange("specialClasses", e.target.value)}
+              placeholder="Montessori, Prep Section, etc"
+            />
+          </div>
 
            <div>
              <Label htmlFor="totalCoordinators">Total Coordinators *</Label>

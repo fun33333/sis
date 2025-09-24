@@ -35,7 +35,6 @@ class Campus(models.Model):
     capacity = models.PositiveIntegerField(help_text="Maximum student capacity")
 
     # Academic Structure
-    classes_per_grade = models.PositiveIntegerField(default=0)
     avg_class_size = models.PositiveIntegerField(default=0)
 
     # Students
@@ -49,7 +48,6 @@ class Campus(models.Model):
     num_teachers_female = models.PositiveIntegerField(default=0, help_text="Number of female teachers")
 
     # Infrastructure
-    num_rooms = models.PositiveIntegerField(default=0)
     total_classrooms = models.PositiveIntegerField(default=0)
     office_rooms = models.PositiveIntegerField(default=0, help_text="Number of office rooms")
 
@@ -65,7 +63,6 @@ class Campus(models.Model):
     toilets_accessible = models.PositiveIntegerField(default=0)
     toilets_teachers = models.PositiveIntegerField(default=0, help_text="Number of toilets reserved for teachers")
 
-    facilities = models.TextField(blank=True, null=True)
     power_backup = models.BooleanField(default=False)
     internet_wifi = models.BooleanField(default=False)
 
@@ -82,7 +79,6 @@ class Campus(models.Model):
     # Staff Summary
     total_teachers = models.PositiveIntegerField(default=0)
     total_non_teaching_staff = models.PositiveIntegerField(default=0)
-    teacher_student_ratio = models.CharField(max_length=20, blank=True, null=True)
     staff_contact_hr = models.CharField(max_length=100, blank=True, null=True)
     admission_office_contact = models.CharField(max_length=100, blank=True, null=True)
 

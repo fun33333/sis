@@ -193,6 +193,42 @@ export function ContactStep({ formData, invalidFields, onInputChange }: ContactS
               <p className="text-sm text-red-600 mt-1">Coordinator email is required</p>
             )}
           </div>
+
+          <div>
+            <Label htmlFor="totalNonTeachingStaff">Total Non-Teaching Staff</Label>
+            <Input
+              id="totalNonTeachingStaff"
+              type="number"
+              value={formData.totalNonTeachingStaff || ""}
+              onChange={e => onInputChange("totalNonTeachingStaff", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="staffContactHr">Staff Contact (HR)</Label>
+            <Input
+              id="staffContactHr"
+              value={formData.staffContactHr || ""}
+              onChange={e => onInputChange("staffContactHr", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="admissionOfficeContact">Admission Office Contact</Label>
+            <Input
+              id="admissionOfficeContact"
+              value={formData.admissionOfficeContact || ""}
+              onChange={e => onInputChange("admissionOfficeContact", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="isDraft">Save as Draft</Label>
+            <select id="isDraft" value={formData.isDraft || "false"} onChange={e => onInputChange("isDraft", e.target.value)} className="w-full border rounded px-3 py-2">
+              <option value="false">No</option>
+              <option value="true">Yes</option>
+            </select>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -91,6 +91,88 @@ export function FacilitiesStep({ formData, invalidFields, onInputChange }: Facil
             </div>
 
             <div>
+              <Label htmlFor="biologyLabs">No. of Biology Labs</Label>
+              <Input
+                id="biologyLabs"
+                type="number"
+                value={formData.biologyLabs || ""}
+                onChange={e => onInputChange("biologyLabs", e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="chemistryLabs">No. of Chemistry Labs</Label>
+              <Input
+                id="chemistryLabs"
+                type="number"
+                value={formData.chemistryLabs || ""}
+                onChange={e => onInputChange("chemistryLabs", e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="physicsLabs">No. of Physics Labs</Label>
+              <Input
+                id="physicsLabs"
+                type="number"
+                value={formData.physicsLabs || ""}
+                onChange={e => onInputChange("physicsLabs", e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="library">Library Available</Label>
+              <select
+                id="library"
+                value={formData.library || ""}
+                onChange={e => onInputChange("library", e.target.value)}
+                className="w-full border rounded px-3 py-2"
+              >
+                <option value="">Select</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+
+            <div>
+              <Label htmlFor="toiletsTeachers">Toilets (Teachers)</Label>
+              <Input
+                id="toiletsTeachers"
+                type="number"
+                value={formData.toiletsTeachers || ""}
+                onChange={e => onInputChange("toiletsTeachers", e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="powerBackup">Power Backup</Label>
+              <select id="powerBackup" value={formData.powerBackup || ""} onChange={e => onInputChange("powerBackup", e.target.value)} className="w-full border rounded px-3 py-2">
+                <option value="">Select</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+
+            <div>
+              <Label htmlFor="internetWifi">Internet / Wi-Fi</Label>
+              <select id="internetWifi" value={formData.internetWifi || ""} onChange={e => onInputChange("internetWifi", e.target.value)} className="w-full border rounded px-3 py-2">
+                <option value="">Select</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+
+            <div>
+              <Label htmlFor="establishedDate">Established Date</Label>
+              <Input id="establishedDate" type="date" value={formData.establishedDate || ""} onChange={e => onInputChange("establishedDate", e.target.value)} />
+            </div>
+
+            <div>
+              <Label htmlFor="campusAddress">Campus Address (full)</Label>
+              <Input id="campusAddress" value={formData.campusAddress || ""} onChange={e => onInputChange("campusAddress", e.target.value)} />
+            </div>
+
+            <div>
               <Label htmlFor="scienceLabs">No. of Science Labs *</Label>
               <Input
                 id="scienceLabs"
