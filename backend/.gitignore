@@ -1,0 +1,10 @@
+# Python cache files
+*.pyc
+__pycache__/
+
+# Django migration caches
+*/migrations/__pycache__/
+
+# Env / credentials
+.env
+credentials.json

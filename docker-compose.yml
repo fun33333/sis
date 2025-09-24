@@ -5,6 +5,8 @@ services:
     command: python manage.py runserver 0.0.0.0:${BACKEND_PORT}
     volumes:
       - ./backend:/app
+      - /app/node_modules
+      -  ./backend/credentials.json:/app/credentials.json
     ports:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
     env_file:
