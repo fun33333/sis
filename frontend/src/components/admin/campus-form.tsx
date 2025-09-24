@@ -37,30 +37,64 @@ export function CampusForm() {
     const requiredFields: { [step: number]: string[] } = {
       1: [
         "campusName",
-        "campusCode",
         "registrationNumber",
-        "description",
-        "status",
-        "governingBody",
-        "address",
-        "gradesOffered",
         "languagesOfInstruction",
         "academicYearStart",
         "academicYearEnd",
+        "address",
+        "city",
+        "district",
+        "postalCode",
+        "primaryPhone",
+        "secondaryPhone",
+        "officialEmail",
+        "campusEstablishedYear",
+        "shiftAvailable",
+        "educationLevelAvailable",
+        "currentGradeClass",
+        "totalStudentCapacity",
+        "currentStudentEnrollment",
+        "campusStatus",
+        "totalStaffMembers",
+        "totalTeachers",
+        "totalCoordinators",
+        "totalMaids",
+        "totalGuards"
       ],
       2: [
-        "campusCapacity",
-        "classesPerGrade",
-        "averageClassSize",
-        "totalStudents",
-        "totalTeachers",
         "totalRooms",
         "totalClassrooms",
+        "averageClassSize",
+        "averageCurrentClassCapacity",
         "computerLabs",
-        "library",
+        "scienceLabs",
+        "teacherTransportFacility",
+        "canteenFacility",
+        "mealPrograms",
+        "boysWashrooms",
+        "girlsWashrooms",
+        "maleTeacherWashrooms",
+        "femaleTeacherWashrooms",
         "facilities",
+       "anyOtherRoom",
+       "sportsFacilities"
+
       ],
-      3: [], // Optional fields
+      3: [
+        "address",
+        "city",
+        "district",
+        "postalCode",
+        "primaryPhone",
+        "secondaryPhone",
+        "officialEmail",
+        "campusHeadName",
+        "campusHeadPhone",
+        "campusHeadEmail",
+        "campusHeadCoordinatorName",
+        "campusHeadCoordinatorPhone",
+        "campusHeadCoordinatorEmail"
+      ], 
     }
 
     const required = requiredFields[currentStep] || []
@@ -112,13 +146,13 @@ export function CampusForm() {
 
     switch (currentStep) {
       case 1:
-        return <GeneralInfoStep formData={formData} invalidFields={invalidFields} onInputChange={handleInputChange} />
+        return <GeneralInfoStep formData={formData} invalidFields={invalidFields} onInputChange={handleInputChange} />;
       case 2:
-        return <FacilitiesStep formData={formData} invalidFields={invalidFields} onInputChange={handleInputChange} />
+        return <FacilitiesStep formData={formData} invalidFields={invalidFields} onInputChange={handleInputChange} />;
       case 3:
-        return <ContactStep formData={formData} invalidFields={invalidFields} onInputChange={handleInputChange} />
+        return <ContactStep formData={formData} invalidFields={invalidFields} onInputChange={handleInputChange} />;
       default:
-        return null
+        return null;
     }
   }
 
@@ -143,23 +177,27 @@ export function CampusForm() {
                   {steps.map((step, index) => (
                     <button
                       key={step.id}
-                      onClick={() => handleStepChange(step.id)}
-                      className={`flex items-center gap-3 text-sm px-2 py-1 rounded-lg transition-all focus:outline-none ${
-                        currentStep === step.id
+                      onClick={() => {
+                        // Only allow going back or staying on current step
+                        if (step.id <= currentStep) {
+                          handleStepChange(step.id)
+                        }
+                      }}
+                      disabled={step.id > currentStep}
+                      className={`flex items-center gap-3 text-sm px-2 py-1 rounded-lg transition-all focus:outline-none ${currentStep === step.id
                           ? "bg-primary text-white font-medium"
                           : currentStep > step.id
                             ? "bg-green-50 text-green-700"
                             : "text-muted-foreground"
-                      }`}
+                        } ${step.id > currentStep ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
                       <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${
-                          currentStep === step.id
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${currentStep === step.id
                             ? "bg-primary text-white"
                             : currentStep > step.id
                               ? "bg-green-500 text-white"
                               : "bg-muted text-muted-foreground"
-                        }`}
+                          }`}
                       >
                         {index + 1}
                       </div>

@@ -22,27 +22,23 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="campusName">Campus Name *</Label>
-            <Input
+            <select
               id="campusName"
               value={formData.campusName || ""}
-              onChange={(e) => onInputChange("campusName", e.target.value)}
-              className={invalidFields.includes("campusName") ? "border-red-500" : ""}
-            />
+              onChange={e => onInputChange("campusName", e.target.value)}
+              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('campusName') ? 'border-red-500' : ''}`}
+            >
+              <option value="">Select Campus</option>
+              <option value="campus 1">Campus 1</option>
+              <option value="campus 2">Campus 2</option>
+              <option value="campus 3">Campus 3</option>
+              <option value="campus 4">Campus 4</option>
+              <option value="campus 5">Campus 5</option>
+              <option value="campus 6">Campus 6</option>
+              <option value="campus 8">Campus 8</option>
+            </select>
             {invalidFields.includes("campusName") && (
               <p className="text-sm text-red-600 mt-1">Campus name is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="campusCode">Campus Code *</Label>
-            <Input
-              id="campusCode"
-              value={formData.campusCode || ""}
-              onChange={(e) => onInputChange("campusCode", e.target.value)}
-              className={invalidFields.includes("campusCode") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("campusCode") && (
-              <p className="text-sm text-red-600 mt-1">Campus code is required</p>
             )}
           </div>
 
@@ -60,110 +56,31 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
           </div>
 
           <div>
-            <Label htmlFor="status">Status *</Label>
-            <Select value={formData.status || ""} onValueChange={(v) => onInputChange("status", v)}>
-              <SelectTrigger
-                className={`border-2 focus:border-primary ${invalidFields.includes("status") ? "border-red-500" : ""}`}
-              >
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="under-construction">Under Construction</SelectItem>
-              </SelectContent>
-            </Select>
-            {invalidFields.includes("status") && <p className="text-sm text-red-600 mt-1">Status is required</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="governingBody">Governing Body *</Label>
-            <Input
-              id="governingBody"
-              value={formData.governingBody || ""}
-              onChange={(e) => onInputChange("governingBody", e.target.value)}
-              className={invalidFields.includes("governingBody") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("governingBody") && (
-              <p className="text-sm text-red-600 mt-1">Governing body is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="gradesOffered">Grades Offered *</Label>
-            <Select value={formData.gradesOffered || ""} onValueChange={(v) => onInputChange("gradesOffered", v)}>
-              <SelectTrigger
-                className={`border-2 focus:border-primary ${invalidFields.includes("gradesOffered") ? "border-red-500" : ""}`}
-              >
-                <SelectValue placeholder="Select grades" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="primary">Primary (1-5)</SelectItem>
-                <SelectItem value="elementary">Elementary (6-8)</SelectItem>
-                <SelectItem value="secondary">Secondary (9-10)</SelectItem>
-                <SelectItem value="higher-secondary">Higher Secondary (11-12)</SelectItem>
-                <SelectItem value="all-levels">All Levels</SelectItem>
-              </SelectContent>
-            </Select>
-            {invalidFields.includes("gradesOffered") && (
-              <p className="text-sm text-red-600 mt-1">Grades offered is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="languagesOfInstruction">Languages of Instruction *</Label>
-            <Select
+            <Label htmlFor="languagesOfInstruction">Language of Instruction *</Label>
+            <select
+              id="languagesOfInstruction"
               value={formData.languagesOfInstruction || ""}
-              onValueChange={(v) => onInputChange("languagesOfInstruction", v)}
+              onChange={e => onInputChange("languagesOfInstruction", e.target.value)}
+              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('languagesOfInstruction') ? 'border-red-500' : ''}`}
             >
-              <SelectTrigger
-                className={`border-2 focus:border-primary ${invalidFields.includes("languagesOfInstruction") ? "border-red-500" : ""}`}
-              >
-                <SelectValue placeholder="Select languages" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="english">English</SelectItem>
-                <SelectItem value="urdu">Urdu</SelectItem>
-                <SelectItem value="both">Both (English & Urdu)</SelectItem>
-              </SelectContent>
-            </Select>
+              <option value="">Select Language</option>
+              <option value="English">English</option>
+              <option value="Urdu">Urdu</option>
+              <option value="Both">Both</option>
+            </select>
             {invalidFields.includes("languagesOfInstruction") && (
-              <p className="text-sm text-red-600 mt-1">Languages of instruction is required</p>
+              <p className="text-sm text-red-600 mt-1">Language of instruction is required</p>
             )}
           </div>
 
           <div>
             <Label htmlFor="academicYearStart">Academic Year Start *</Label>
-            <Select
+            <Input
+              id="academicYearStart"
               value={formData.academicYearStart || ""}
-              onValueChange={(v) => onInputChange("academicYearStart", v)}
-            >
-              <SelectTrigger
-                className={`border-2 focus:border-primary ${invalidFields.includes("academicYearStart") ? "border-red-500" : ""}`}
-              >
-                <SelectValue placeholder="Select start month" />
-              </SelectTrigger>
-              <SelectContent>
-                {[
-                  "January",
-                  "February",
-                  "March",
-                  "April",
-                  "May",
-                  "June",
-                  "July",
-                  "August",
-                  "September",
-                  "October",
-                  "November",
-                  "December",
-                ].map((month) => (
-                  <SelectItem key={month.toLowerCase()} value={month.toLowerCase()}>
-                    {month}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(e) => onInputChange("academicYearStart", e.target.value)}
+              className={invalidFields.includes("academicYearStart") ? "border-red-500" : ""}
+            />
             {invalidFields.includes("academicYearStart") && (
               <p className="text-sm text-red-600 mt-1">Academic year start is required</p>
             )}
@@ -171,61 +88,260 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
 
           <div>
             <Label htmlFor="academicYearEnd">Academic Year End *</Label>
-            <Select value={formData.academicYearEnd || ""} onValueChange={(v) => onInputChange("academicYearEnd", v)}>
-              <SelectTrigger
-                className={`border-2 focus:border-primary ${invalidFields.includes("academicYearEnd") ? "border-red-500" : ""}`}
-              >
-                <SelectValue placeholder="Select end month" />
-              </SelectTrigger>
-              <SelectContent>
-                {[
-                  "January",
-                  "February",
-                  "March",
-                  "April",
-                  "May",
-                  "June",
-                  "July",
-                  "August",
-                  "September",
-                  "October",
-                  "November",
-                  "December",
-                ].map((month) => (
-                  <SelectItem key={month.toLowerCase()} value={month.toLowerCase()}>
-                    {month}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              id="academicYearEnd"
+              value={formData.academicYearEnd || ""}
+              onChange={(e) => onInputChange("academicYearEnd", e.target.value)}
+              className={invalidFields.includes("academicYearEnd") ? "border-red-500" : ""}
+            />
             {invalidFields.includes("academicYearEnd") && (
               <p className="text-sm text-red-600 mt-1">Academic year end is required</p>
             )}
           </div>
-        </div>
 
-        <div>
-          <Label htmlFor="description">Description *</Label>
-          <Textarea
-            id="description"
-            value={formData.description || ""}
-            onChange={(e) => onInputChange("description", e.target.value)}
-            className={`min-h-[100px] ${invalidFields.includes("description") ? "border-red-500" : ""}`}
-          />
-          {invalidFields.includes("description") && (
-            <p className="text-sm text-red-600 mt-1">Description is required</p>
-          )}
-        </div>
+          <div>
+            <Label htmlFor="address">Address *</Label>
+            <Input
+              id="address"
+              value={formData.address || ""}
+              onChange={(e) => onInputChange("address", e.target.value)}
+              className={invalidFields.includes("address") ? "border-red-500" : ""}
+            />
+            {invalidFields.includes("address") && (
+              <p className="text-sm text-red-600 mt-1">Address is required</p>
+            )}
+          </div>
 
-        <div>
-          <Label htmlFor="address">Campus Address *</Label>
-          <Textarea
-            id="address"
-            value={formData.address || ""}
-            onChange={(e) => onInputChange("address", e.target.value)}
-            className={invalidFields.includes("address") ? "border-red-500" : ""}
-          />
-          {invalidFields.includes("address") && <p className="text-sm text-red-600 mt-1">Address is required</p>}
+          <div>
+            <Label htmlFor="city">City *</Label>
+            <Input
+              id="city"
+              value={formData.city || ""}
+              onChange={(e) => onInputChange("city", e.target.value)}
+              className={invalidFields.includes("city") ? "border-red-500" : ""}
+            />
+            {invalidFields.includes("city") && (
+              <p className="text-sm text-red-600 mt-1">City is required</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="district">District *</Label>
+            <select
+              id="district"
+              value={formData.district || ""}
+              onChange={e => onInputChange("district", e.target.value)}
+              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('district') ? 'border-red-500' : ''}`}
+            >
+              <option value="">Select District</option>
+              <option value="Karachi Central">Karachi Central</option>
+              <option value="Karachi East">Karachi East</option>
+              <option value="Karachi South">Karachi South</option>
+              <option value="Karachi West">Karachi West</option>
+              <option value="Korangi">Korangi</option>
+              <option value="Malir">Malir</option>
+              <option value="Keamari">Keamari</option>
+            </select>
+            {invalidFields.includes("district") && (
+              <p className="text-sm text-red-600 mt-1">District is required</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="postalCode">Postal Code *</Label>
+            <Input
+              id="postalCode"
+              value={formData.postalCode || ""}
+              onChange={(e) => onInputChange("postalCode", e.target.value)}
+              className={invalidFields.includes("postalCode") ? "border-red-500" : ""}
+            />
+            {invalidFields.includes("postalCode") && (
+              <p className="text-sm text-red-600 mt-1">Postal code is required</p>
+            )}
+          </div>
+           {/* Newly added fields start here */}
+           <div>
+             <Label htmlFor="campusEstablishedYear">Campus Established Year *</Label>
+             <Input
+               id="campusEstablishedYear"
+               type="number"
+               value={formData.campusEstablishedYear || ""}
+               onChange={e => onInputChange("campusEstablishedYear", e.target.value)}
+               className={invalidFields.includes("campusEstablishedYear") ? "border-red-500" : ""}
+             />
+             {invalidFields.includes("campusEstablishedYear") && (
+               <p className="text-sm text-red-600 mt-1">Established year is required</p>
+             )}
+           </div>
+
+           <div>
+             <Label htmlFor="shiftAvailable">Shift Available *</Label>
+             <select
+               id="shiftAvailable"
+               value={formData.shiftAvailable || ""}
+               onChange={e => onInputChange("shiftAvailable", e.target.value)}
+               className={`w-full border rounded px-3 py-2 ${invalidFields.includes('shiftAvailable') ? 'border-red-500' : ''}`}
+             >
+               <option value="">Select Shift</option>
+               <option value="Morning">Morning</option>
+               <option value="Afternoon">Afternoon</option>
+               <option value="Both">Both</option>
+             </select>
+             {invalidFields.includes("shiftAvailable") && (
+               <p className="text-sm text-red-600 mt-1">Shift is required</p>
+             )}
+           </div>
+
+           <div>
+             <Label htmlFor="educationLevelAvailable">Education Level Available *</Label>
+             <select
+               id="educationLevelAvailable"
+               value={formData.educationLevelAvailable || ""}
+               onChange={e => onInputChange("educationLevelAvailable", e.target.value)}
+               className={`w-full border rounded px-3 py-2 ${invalidFields.includes('educationLevelAvailable') ? 'border-red-500' : ''}`}
+             >
+               <option value="">Select Level</option>
+               <option value="Pre-Primary">Pre-Primary</option>
+               <option value="Primary">Primary</option>
+               <option value="Secondary">Secondary</option>
+               <option value="All">All</option>
+             </select>
+             {invalidFields.includes("educationLevelAvailable") && (
+               <p className="text-sm text-red-600 mt-1">Education level is required</p>
+             )}
+           </div>
+
+           <div>
+             <Label htmlFor="currentGradeClass">Current Grade/Class *</Label>
+             <Input
+               id="currentGradeClass"
+               value={formData.currentGradeClass || ""}
+               onChange={e => onInputChange("currentGradeClass", e.target.value)}
+               className={invalidFields.includes("currentGradeClass") ? "border-red-500" : ""}
+               placeholder="e.g. Nursery, KG-1, Grade 10, Section A/B/C/D/Other"
+             />
+             {invalidFields.includes("currentGradeClass") && (
+               <p className="text-sm text-red-600 mt-1">Current grade/class is required</p>
+             )}
+           </div>
+
+           <div>
+             <Label htmlFor="totalStudentCapacity">Total Student Capacity *</Label>
+             <Input
+               id="totalStudentCapacity"
+               type="number"
+               value={formData.totalStudentCapacity || ""}
+               onChange={e => onInputChange("totalStudentCapacity", e.target.value)}
+               className={invalidFields.includes("totalStudentCapacity") ? "border-red-500" : ""}
+             />
+             {invalidFields.includes("totalStudentCapacity") && (
+               <p className="text-sm text-red-600 mt-1">Total student capacity is required</p>
+             )}
+           </div>
+
+           <div>
+             <Label htmlFor="currentStudentEnrollment">Current Student Enrollment *</Label>
+             <Input
+               id="currentStudentEnrollment"
+               type="number"
+               value={formData.currentStudentEnrollment || ""}
+               onChange={e => onInputChange("currentStudentEnrollment", e.target.value)}
+               className={invalidFields.includes("currentStudentEnrollment") ? "border-red-500" : ""}
+             />
+             {invalidFields.includes("currentStudentEnrollment") && (
+               <p className="text-sm text-red-600 mt-1">Current student enrollment is required</p>
+             )}
+           </div>
+
+           <div>
+             <Label htmlFor="campusStatus">Campus Status *</Label>
+             <select
+               id="campusStatus"
+               value={formData.campusStatus || ""}
+               onChange={e => onInputChange("campusStatus", e.target.value)}
+               className={`w-full border rounded px-3 py-2 ${invalidFields.includes('campusStatus') ? 'border-red-500' : ''}`}
+             >
+               <option value="">Select Status</option>
+               <option value="Active">Active</option>
+               <option value="Inactive">Inactive</option>
+               <option value="Closed">Closed</option>
+               <option value="Under Construction">Under Construction</option>
+             </select>
+             {invalidFields.includes("campusStatus") && (
+               <p className="text-sm text-red-600 mt-1">Campus status is required</p>
+             )}
+           </div>
+
+           <div>
+             <Label htmlFor="totalStaffMembers">Total Staff Members *</Label>
+             <Input
+               id="totalStaffMembers"
+               type="number"
+               value={formData.totalStaffMembers || ""}
+               onChange={e => onInputChange("totalStaffMembers", e.target.value)}
+               className={invalidFields.includes("totalStaffMembers") ? "border-red-500" : ""}
+             />
+             {invalidFields.includes("totalStaffMembers") && (
+               <p className="text-sm text-red-600 mt-1">Total staff members is required</p>
+             )}
+           </div>
+
+           <div>
+             <Label htmlFor="totalTeachers">Total Teachers *</Label>
+             <Input
+               id="totalTeachers"
+               type="number"
+               value={formData.totalTeachers || ""}
+               onChange={e => onInputChange("totalTeachers", e.target.value)}
+               className={invalidFields.includes("totalTeachers") ? "border-red-500" : ""}
+             />
+             {invalidFields.includes("totalTeachers") && (
+               <p className="text-sm text-red-600 mt-1">Total teachers is required</p>
+             )}
+           </div>
+
+           <div>
+             <Label htmlFor="totalCoordinators">Total Coordinators *</Label>
+             <Input
+               id="totalCoordinators"
+               type="number"
+               value={formData.totalCoordinators || ""}
+               onChange={e => onInputChange("totalCoordinators", e.target.value)}
+               className={invalidFields.includes("totalCoordinators") ? "border-red-500" : ""}
+             />
+             {invalidFields.includes("totalCoordinators") && (
+               <p className="text-sm text-red-600 mt-1">Total coordinators is required</p>
+             )}
+           </div>
+
+           <div>
+             <Label htmlFor="totalMaids">Total Maids *</Label>
+             <Input
+               id="totalMaids"
+               type="number"
+               value={formData.totalMaids || ""}
+               onChange={e => onInputChange("totalMaids", e.target.value)}
+               className={invalidFields.includes("totalMaids") ? "border-red-500" : ""}
+             />
+             {invalidFields.includes("totalMaids") && (
+               <p className="text-sm text-red-600 mt-1">Total maids is required</p>
+             )}
+           </div>
+
+           <div>
+             <Label htmlFor="totalGuards">Total Guards *</Label>
+             <Input
+               id="totalGuards"
+               type="number"
+               value={formData.totalGuards || ""}
+               onChange={e => onInputChange("totalGuards", e.target.value)}
+               className={invalidFields.includes("totalGuards") ? "border-red-500" : ""}
+             />
+             {invalidFields.includes("totalGuards") && (
+               <p className="text-sm text-red-600 mt-1">Total guards is required</p>
+             )}
+           </div>
+           {/* Newly added fields end here */}
         </div>
       </CardContent>
     </Card>

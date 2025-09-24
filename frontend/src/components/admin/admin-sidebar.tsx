@@ -147,11 +147,12 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
                       border: isActive ? "2px solid #6096ba" : "1.5px solid #8b8c89",
                     }}
                   >
-                    <span className={`${sidebarOpen ? "flex items-center justify-center" : "flex items-center justify-center w-12 h-12"}`}>
-                      <item.icon
-                        className={`h-6 w-6 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-[#e7ecef]" : "text-[#6096ba]"}`}
-                      />
-                    </span>
+
+=======
+                    <item.icon
+                      className={`h-5 w-5 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-[#e7ecef]" : "text-[#6096ba]"
+                        }`}
+                    />
                     <span
                       className={`sidebar-label transition-all duration-300 inline-block whitespace-nowrap overflow-hidden ${sidebarOpen ? 'opacity-100 max-w-xs ml-1' : 'opacity-0 max-w-0 ml-0'}`}
                       style={{
