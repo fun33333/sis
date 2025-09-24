@@ -74,30 +74,37 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
           </div>
 
           <div>
-            <Label htmlFor="academicYearStart">Academic Year Start *</Label>
+            <Label htmlFor="gradesOffered">Grades Offered *</Label>
             <Input
-              id="academicYearStart"
-              value={formData.academicYearStart || ""}
-              onChange={(e) => onInputChange("academicYearStart", e.target.value)}
-              className={invalidFields.includes("academicYearStart") ? "border-red-500" : ""}
+              id="gradesOffered"
+              placeholder="e.g. Grade 1 - Grade 12"
+              value={formData.gradesOffered || ""}
+              onChange={(e) => onInputChange("gradesOffered", e.target.value)}
+              className={invalidFields.includes("gradesOffered") ? "border-red-500" : ""}
             />
-            {invalidFields.includes("academicYearStart") && (
-              <p className="text-sm text-red-600 mt-1">Academic year start is required</p>
+            {invalidFields.includes("gradesOffered") && (
+              <p className="text-sm text-red-600 mt-1">Grades offered is required</p>
             )}
           </div>
 
           <div>
-            <Label htmlFor="academicYearEnd">Academic Year End *</Label>
-            <Input
-              id="academicYearEnd"
-              value={formData.academicYearEnd || ""}
-              onChange={(e) => onInputChange("academicYearEnd", e.target.value)}
-              className={invalidFields.includes("academicYearEnd") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("academicYearEnd") && (
-              <p className="text-sm text-red-600 mt-1">Academic year end is required</p>
+            <Label>Academic Year Start Month *</Label>
+            <select
+              value={formData.academicYearStartMonth || ""}
+              onChange={e => onInputChange("academicYearStartMonth", e.target.value)}
+              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('academicYearStartMonth') ? 'border-red-500' : ''}`}
+            >
+              <option value="">Month</option>
+              {Array.from({length:12},(_,i)=>i+1).map(m=> (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+            {invalidFields.includes("academicYearStartMonth") && (
+              <p className="text-sm text-red-600 mt-1">Start month required</p>
             )}
           </div>
+
+          {/* Academic Year End removed per requirement */}
 
           <div>
             <Label htmlFor="address">Address *</Label>

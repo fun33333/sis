@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Eye, ArrowLeft, Save } from "lucide-react"
 import { apiPost } from "@/lib/api"
+import type { CampusCreateRequest, CampusStatus } from "@/types/dashboard"
 import { useState } from "react"
 
 interface CampusPreviewProps {
@@ -15,19 +16,49 @@ interface CampusPreviewProps {
 export function CampusPreview({ formData, onBack }: CampusPreviewProps) {
   const [saving, setSaving] = useState(false)
 
-  const buildPayload = () => {
+  const formatDate = (value: any) => {
+    if (!value) return null
+    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+    const d = new Date(value)
+    if (isNaN(d.getTime())) return null
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, "0")
+    const dd = String(d.getDate()).padStart(2, "0")
+    return `${yyyy}-${mm}-${dd}`
+  }
+
+  const normalizeStatus = (val: any): CampusStatus => {
+    const s = String(val || "").toLowerCase().trim()
+    if (s === "active") return "active"
+    if (s === "inactive") return "inactive"
+    if (s === "temporary_closed" || s === "temporary closed" || s === "temporary-closed") return "temporary_closed"
+    return "active"
+  }
+
+  const ensureRequiredOrThrow = () => {
+    const missing: string[] = []
+    if (!formData.campusName) missing.push("campusName")
+    if (!formData.gradesOffered) missing.push("gradesOffered")
+    if (!formData.languagesOfInstruction) missing.push("languagesOfInstruction")
+    if (!formData.address) missing.push("address")
+    if (!formData.academicYearStartMonth) missing.push("academicYearStartMonth")
+    if (missing.length) {
+      throw new Error(`Missing/invalid required: ${missing.join(", ")}`)
+    }
+  }
+
+  const buildPayload = (): CampusCreateRequest => {
     return {
       name: formData.campusName,
       code: formData.campusCode || null,
       description: formData.description || null,
-      status: formData.campusStatus || "active",
+      status: normalizeStatus(formData.campusStatus),
       governing_body: formData.governingBody || null,
       registration_no: formData.registrationNumber || null,
       address: formData.address,
       grades_offered: formData.gradesOffered,
       languages_of_instruction: formData.languagesOfInstruction,
-      academic_year_start: formData.academicYearStart,
-      academic_year_end: formData.academicYearEnd,
+      academic_year_start_month: Number(formData.academicYearStartMonth),
       capacity: Number(formData.campusCapacity || formData.totalStudentCapacity || 0),
       classes_per_grade: Number(formData.classesPerGrade || 0),
       avg_class_size: Number(formData.averageClassSize || 0),
@@ -54,7 +85,7 @@ export function CampusPreview({ formData, onBack }: CampusPreviewProps) {
       facilities: formData.facilities || null,
       power_backup: Boolean(formData.powerBackup) || false,
       internet_wifi: Boolean(formData.internetWifi) || false,
-      established_date: formData.campusEstablishedYear || null,
+      established_date: formatDate(formData.campusEstablishedYear),
       campus_address: formData.address || null,
       special_classes: formData.specialClasses || null,
       total_teachers: Number(formData.totalTeachers || 0),
@@ -69,6 +100,7 @@ export function CampusPreview({ formData, onBack }: CampusPreviewProps) {
   const handleSave = async () => {
     try {
       setSaving(true)
+      ensureRequiredOrThrow()
       const payload = buildPayload()
       await apiPost("/api/campus/", payload)
       alert("Campus information saved successfully!")
