@@ -80,16 +80,25 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv("DB_NAME"),
-        'USER': os.getenv("DB_USER"),
-        'PASSWORD': os.getenv("DB_PASSWORD"),
-        'HOST': os.getenv("DB_HOST", "db"),
-        'PORT': os.getenv("DB_PORT", "5432"),
+if os.getenv("DB_NAME"):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv("DB_NAME"),
+            'USER': os.getenv("DB_USER"),
+            'PASSWORD': os.getenv("DB_PASSWORD"),
+            'HOST': os.getenv("DB_HOST", "db"),
+            'PORT': os.getenv("DB_PORT", "5432"),
+        }
     }
-}
+else:
+    # Dev fallback: SQLite if Postgres env vars are not provided
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 
@@ -134,10 +143,26 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# CORS/CSRF settings for frontend dev
+# Allow all origins in development; tighten in production
+CORS_ALLOW_ALL_ORIGINS = True
+
+# If you prefer specific origins instead of allow-all, set like below and remove the flag above
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://127.0.0.1:3000",
+# ]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+
 
 # superuser credentials
-SUPERUSER_USERNAME = 'ait-ubaid'
-SUPERUSER_PASSWORD = 'bitBYTE8'
+SUPERUSER_USERNAME = 'Ubaid'
+SUPERUSER_PASSWORD = '1234'
 SUPERUSER_EMAIL = 'internfun3@gmail.com'
 
 CORS_ALLOWED_ORIGINS = [

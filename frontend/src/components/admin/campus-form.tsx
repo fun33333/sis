@@ -18,6 +18,30 @@ const steps = [
 ]
 
 export function CampusForm() {
+  const [submitting, setSubmitting] = useState(false);
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetch("http://localhost:8000/api/campus/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+      if (res.ok) {
+        toast({ title: "Campus added successfully!" });
+        setShowPreview(false);
+        setFormData({});
+        setCurrentStep(1);
+      } else {
+        toast({ title: "Failed to add campus", description: await res.text() });
+      }
+    } catch (err) {
+      toast({ title: "Error", description: String(err) });
+    }
+    setSubmitting(false);
+  };
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
   const [showPreview, setShowPreview] = useState(false)
@@ -39,15 +63,12 @@ export function CampusForm() {
         "campusName",
         "registrationNumber",
         "languagesOfInstruction",
-        "academicYearStart",
-        "academicYearEnd",
+        "gradesOffered",
+        "academicYearStartMonth",
         "address",
         "city",
         "district",
         "postalCode",
-        "primaryPhone",
-        "secondaryPhone",
-        "officialEmail",
         "campusEstablishedYear",
         "shiftAvailable",
         "educationLevelAvailable",
@@ -101,9 +122,14 @@ export function CampusForm() {
     const invalid: string[] = []
 
     for (const field of required) {
-      const value = formData[field]
-      if (!value || (typeof value === "string" && value.trim() === "")) {
-        invalid.push(field)
+      const value = formData[field];
+      // Accept 0 and non-empty string as valid
+      if (
+        value === undefined ||
+        value === null ||
+        (typeof value === "string" && value.trim() === "")
+      ) {
+        invalid.push(field);
       }
     }
 
@@ -141,7 +167,16 @@ export function CampusForm() {
 
   const renderCurrentStep = () => {
     if (showPreview) {
-      return <CampusPreview formData={formData} onBack={() => setShowPreview(false)} />
+      return (
+        <div>
+          <CampusPreview formData={formData} onBack={() => setShowPreview(false)} />
+          <div className="flex justify-end mt-6">
+            <Button onClick={handleSubmit} disabled={submitting} className="bg-primary text-white">
+              {submitting ? "Submitting..." : "Submit Campus"}
+            </Button>
+          </div>
+        </div>
+      );
     }
 
     switch (currentStep) {

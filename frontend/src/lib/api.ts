@@ -19,9 +19,4 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   }
   return (await res.json()) as T;
 }
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}

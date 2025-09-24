@@ -6,12 +6,25 @@ import { Users, Building2, GraduationCap, TrendingUp, LogOut } from "lucide-reac
 import { useState, useEffect } from "react"
 
 
+
+
 interface AdminSidebarProps {
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
 }
 
 export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps) {
+  // For smooth text appearance after sidebar opens
+  const [showText, setShowText] = useState(sidebarOpen);
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (sidebarOpen) {
+      timeout = setTimeout(() => setShowText(true), 400); // match transition duration
+    } else {
+      setShowText(false);
+    }
+    return () => clearTimeout(timeout);
+  }, [sidebarOpen]);
 
   const pathname = usePathname()
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -106,12 +119,12 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
 
   return (
     <aside
-      className={`h-screen fixed left-0 top-0 flex flex-col justify-between py-8 py- rounded-r-3xl shadow-2xl transition-all duration-300 backdrop-blur-lg border-r border-[#8b8c89]/30 z-20 ${sidebarOpen ? "w-72 px-4" : "w-18 px-2"
-        }`}
+      className={`h-screen fixed left-0 top-0 flex flex-col justify-between rounded-r-3xl shadow-2xl backdrop-blur-lg border-r border-[#8b8c89]/30 z-20 transition-all duration-500 ${sidebarOpen ? "w-72 px-4 py-8" : "w-18 px-2 py-4"}`}
       style={{
         background: sidebarOpen ? "#e7ecef" : "#a3cef1",
         boxShadow: sidebarOpen ? "0 8px 32px 0 #add0e7bc" : "0 2px 8px 0 #a3cef1e8",
         borderRight: "3px solid #1c3f67ff",
+        transition: 'background 0.5s, box-shadow 0.5s, width 0.5s, padding 0.5s',
       }}
     >
       <div>
@@ -141,41 +154,43 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
               <div key={item.key}>
                 <Link href={item.href}>
                   <button
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg ${isActive ? "bg-[#6096ba] text-[#e7ecef] shadow-xl" : "text-[#274c77] hover:bg-[#a3cef1]"
-                      } ${sidebarOpen ? "" : "justify-center"}`}
+                    className={`w-full flex ${sidebarOpen ? "items-center gap-3 px-4 py-3" : "justify-center items-center p-0"} rounded-xl font-semibold shadow-lg transition-all duration-500 ${isActive ? "bg-[#6096ba] text-[#e7ecef] shadow-xl" : "text-[#274c77] hover:bg-[#a3cef1]"}`}
                     style={{
                       backdropFilter: "blur(4px)",
                       border: isActive ? "2px solid #6096ba" : "1.5px solid #8b8c89",
                     }}
                   >
-                    <item.icon
-                      className={`h-5 w-5 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-[#e7ecef]" : "text-[#6096ba]"
-                        }`}
-                    />
-                    <span
-                      className={`sidebar-label transition-all duration-300 inline-block whitespace-nowrap overflow-hidden ${sidebarOpen ? 'opacity-100 max-w-xs ml-1' : 'opacity-0 max-w-0 ml-0'}`}
-                      style={{
-                        transition: 'opacity 0.3s, max-width 0.3s, margin-left 0.3s',
-                      }}
-                    >
-                      {item.title}
+                    <span className={`${sidebarOpen ? "flex items-center justify-center" : "flex items-center justify-center w-12 h-12"} transition-all duration-500`}>
+                      <item.icon
+                        className={`h-6 w-6 transition-transform duration-500 group-hover:scale-110 ${isActive ? "text-[#e7ecef]" : "text-[#6096ba]"}`}
+                      />
                     </span>
                     <span
-                      className={`sidebar-label transition-all duration-300 ml-auto ${sidebarOpen && hasSubItems ? 'opacity-100 max-w-xs' : 'opacity-0 max-w-0'}`}
+                      className={`sidebar-label inline-block whitespace-nowrap overflow-hidden transition-all duration-500 ${sidebarOpen && showText ? 'opacity-100 max-w-xs ml-2' : 'opacity-0 max-w-0 ml-0'}`}
                       style={{
-                        transition: 'opacity 0.3s, max-width 0.3s',
+                        transition: 'opacity 0.5s, max-width 0.5s, margin-left 0.5s',
+                      }}
+                    >
+                      {showText ? item.title : ''}
+                    </span>
+                    <span
+                      className={`sidebar-label ml-auto transition-all duration-500 ${sidebarOpen && showText && hasSubItems ? 'opacity-100 max-w-xs' : 'opacity-0 max-w-0'}`}
+                      style={{
+                        transition: 'opacity 0.5s, max-width 0.5s',
                         display: hasSubItems ? 'inline-block' : 'none',
                       }}
                     >
-                      <svg
-                        className={`h-4 w-4 transition-transform duration-300 ${isActive ? "rotate-90 text-[#e7ecef]" : "text-[#6096ba]"}`}
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M9 5l7 7-7 7" />
-                      </svg>
+                      {showText && hasSubItems ? (
+                        <svg
+                          className={`h-4 w-4 transition-transform duration-500 ${isActive ? "rotate-90 text-[#e7ecef]" : "text-[#6096ba]"}`}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M9 5l7 7-7 7" />
+                        </svg>
+                      ) : null}
                     </span>
                   </button>
                 </Link>

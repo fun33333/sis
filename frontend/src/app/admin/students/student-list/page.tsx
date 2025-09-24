@@ -38,39 +38,17 @@ export default function StudentListPage() {
       }
     }
     async function fetchStudents() {
-      setLoading(true)
-      const res = await fetch("/csvjson.json")
-      const data = await res.json()
-      // Replace 'any' with Record<string, unknown> for item type
-      const mapped: Student[] = data.map((item: Record<string, unknown>, idx: number) => {
-        let academicYear = Number(item["Year of Admission"])
-        if (isNaN(academicYear)) academicYear = 2025
-        const attendancePercentage = Math.floor(Math.random() * 31) + 70
-        const averageScore = Math.floor(Math.random() * 41) + 60
-        const retentionFlag = Math.random() > 0.2
-        let enrollmentDate = new Date()
-        try {
-          enrollmentDate = new Date(item["Timestamp"] as string)
-        } catch { }
-        return {
-          studentId: `CSV${idx + 1}`,
-          name: (item["Student Name"] as string) || "Unknown",
-          academicYear,
-          campus: (item["Campus"] as string) || "Unknown",
-          grade: (item["Current Grade/Class"] as string) || "Unknown",
-          gender: (item["Gender"] === "Male" || item["Gender"] === "Female") ? (item["Gender"] as string) : "Other",
-          motherTongue: (item["Mother Tongue"] as string) || "Other",
-          religion: (item["Religion"] as string) || "Other",
-          attendancePercentage,
-          averageScore,
-          retentionFlag,
-          enrollmentDate,
-        }
-      })
-      setStudents(mapped)
-      setLoading(false)
+      setLoading(true);
+      try {
+        const res = await fetch("http://localhost:8000/api/students/");
+        const data = await res.json();
+        setStudents(data);
+      } catch (err) {
+        setStudents([]);
+      }
+      setLoading(false);
     }
-    fetchStudents()
+    fetchStudents();
   }, [])
 
   const filtered = useMemo(() => {

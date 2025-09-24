@@ -16,7 +16,7 @@ class Campus(models.Model):
         blank=True,     # form me optional
         null=True       # database me NULL allow
     )
-    description = models.TextField(blank=True, null=True)
+    # description = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
     governing_body = models.CharField(max_length=255, blank=True, null=True)
 
@@ -30,8 +30,8 @@ class Campus(models.Model):
     address = models.TextField()
     grades_offered = models.CharField(max_length=255, help_text="e.g. Grade 1 - Grade 12")
     languages_of_instruction = models.CharField(max_length=255, help_text="e.g. English, Urdu")
-    academic_year_start = models.DateField()
-    academic_year_end = models.DateField()
+    # Academic year start month (1-12)
+    academic_year_start_month = models.PositiveSmallIntegerField(default=1)
     capacity = models.PositiveIntegerField(help_text="Maximum student capacity")
 
     # Academic Structure
