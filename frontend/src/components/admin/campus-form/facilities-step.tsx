@@ -19,167 +19,242 @@ export function FacilitiesStep({ formData, invalidFields, onInputChange }: Facil
         <CardTitle>Facilities</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="campusCapacity">Campus Capacity *</Label>
-            <Input
-              id="campusCapacity"
-              type="number"
-              value={formData.campusCapacity || ""}
-              onChange={(e) => onInputChange("campusCapacity", e.target.value)}
-              className={invalidFields.includes("campusCapacity") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("campusCapacity") && (
-              <p className="text-sm text-red-600 mt-1">Campus capacity is required</p>
-            )}
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="totalRooms">Total No. of Rooms *</Label>
+              <Input
+                id="totalRooms"
+                type="number"
+                value={formData.totalRooms || ""}
+                onChange={e => onInputChange("totalRooms", e.target.value)}
+                className={invalidFields.includes("totalRooms") ? "border-red-500" : ""}
+              />
+              {invalidFields.includes("totalRooms") && (
+                <p className="text-sm text-red-600 mt-1">Total rooms is required</p>
+              )}
+            </div>
 
-          <div>
-            <Label htmlFor="classesPerGrade">Classes per Grade *</Label>
-            <Input
-              id="classesPerGrade"
-              type="number"
-              value={formData.classesPerGrade || ""}
-              onChange={(e) => onInputChange("classesPerGrade", e.target.value)}
-              className={invalidFields.includes("classesPerGrade") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("classesPerGrade") && (
-              <p className="text-sm text-red-600 mt-1">Classes per grade is required</p>
-            )}
-          </div>
+            <div>
+              <Label htmlFor="totalClassrooms">Total No. of Classrooms *</Label>
+              <Input
+                id="totalClassrooms"
+                type="number"
+                value={formData.totalClassrooms || ""}
+                onChange={e => onInputChange("totalClassrooms", e.target.value)}
+                className={invalidFields.includes("totalClassrooms") ? "border-red-500" : ""}
+              />
+              {invalidFields.includes("totalClassrooms") && (
+                <p className="text-sm text-red-600 mt-1">Total classrooms is required</p>
+              )}
+            </div>
 
-          <div>
-            <Label htmlFor="averageClassSize">Average Class Size *</Label>
-            <Input
-              id="averageClassSize"
-              type="number"
-              value={formData.averageClassSize || ""}
-              onChange={(e) => onInputChange("averageClassSize", e.target.value)}
-              className={invalidFields.includes("averageClassSize") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("averageClassSize") && (
-              <p className="text-sm text-red-600 mt-1">Average class size is required</p>
-            )}
-          </div>
+            <div>
+              <Label htmlFor="averageClassSize">Average Class Size *</Label>
+              <Input
+                id="averageClassSize"
+                type="number"
+                value={formData.averageClassSize || ""}
+                onChange={e => onInputChange("averageClassSize", e.target.value)}
+                className={invalidFields.includes("averageClassSize") ? "border-red-500" : ""}
+              />
+              {invalidFields.includes("averageClassSize") && (
+                <p className="text-sm text-red-600 mt-1">Average class size is required</p>
+              )}
+            </div>
 
-          <div>
-            <Label htmlFor="totalStudents">Total Students *</Label>
-            <Input
-              id="totalStudents"
-              type="number"
-              value={formData.totalStudents || ""}
-              onChange={(e) => onInputChange("totalStudents", e.target.value)}
-              className={invalidFields.includes("totalStudents") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("totalStudents") && (
-              <p className="text-sm text-red-600 mt-1">Total students is required</p>
-            )}
-          </div>
+            <div>
+              <Label htmlFor="averageCurrentClassCapacity">Average Current Class Capacity *</Label>
+              <Input
+                id="averageCurrentClassCapacity"
+                type="number"
+                value={formData.averageCurrentClassCapacity || ""}
+                onChange={e => onInputChange("averageCurrentClassCapacity", e.target.value)}
+                className={invalidFields.includes("averageCurrentClassCapacity") ? "border-red-500" : ""}
+              />
+               {invalidFields.includes("averageCurrentClassCapacity") && (
+                 <p className="text-sm text-red-600 mt-1">Average current class capacity is required</p>
+               )}
+            </div>
 
-          <div>
-            <Label htmlFor="totalTeachers">Total Teachers *</Label>
-            <Input
-              id="totalTeachers"
-              type="number"
-              value={formData.totalTeachers || ""}
-              onChange={(e) => onInputChange("totalTeachers", e.target.value)}
-              className={invalidFields.includes("totalTeachers") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("totalTeachers") && (
-              <p className="text-sm text-red-600 mt-1">Total teachers is required</p>
-            )}
-          </div>
+            <div>
+              <Label htmlFor="computerLabs">No. of Computer Labs *</Label>
+              <Input
+                id="computerLabs"
+                type="number"
+                value={formData.computerLabs || ""}
+                onChange={e => onInputChange("computerLabs", e.target.value)}
+                className={invalidFields.includes("computerLabs") ? "border-red-500" : ""}
+              />
+              {invalidFields.includes("computerLabs") && (
+                <p className="text-sm text-red-600 mt-1">Computer labs count is required</p>
+              )}
+            </div>
 
-          <div>
-            <Label htmlFor="totalRooms">Total Rooms *</Label>
-            <Input
-              id="totalRooms"
-              type="number"
-              value={formData.totalRooms || ""}
-              onChange={(e) => onInputChange("totalRooms", e.target.value)}
-              className={invalidFields.includes("totalRooms") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("totalRooms") && (
-              <p className="text-sm text-red-600 mt-1">Total rooms is required</p>
-            )}
-          </div>
+            <div>
+              <Label htmlFor="scienceLabs">No. of Science Labs *</Label>
+              <Input
+                id="scienceLabs"
+                type="number"
+                value={formData.scienceLabs || ""}
+                onChange={e => onInputChange("scienceLabs", e.target.value)}
+                className={invalidFields.includes("scienceLabs") ? "border-red-500" : ""}
+              />
+              {invalidFields.includes("scienceLabs") && (
+                <p className="text-sm text-red-600 mt-1">Science labs count is required</p>
+              )}
+            </div>
 
-          <div>
-            <Label htmlFor="totalClassrooms">Total Classrooms *</Label>
-            <Input
-              id="totalClassrooms"
-              type="number"
-              value={formData.totalClassrooms || ""}
-              onChange={(e) => onInputChange("totalClassrooms", e.target.value)}
-              className={invalidFields.includes("totalClassrooms") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("totalClassrooms") && (
-              <p className="text-sm text-red-600 mt-1">Total classrooms is required</p>
-            )}
-          </div>
+            <div>
+              <Label htmlFor="anyOtherRoom">Any Other Room (specify)</Label>
+              <Input
+                id="anyOtherRoom"
+                value={formData.anyOtherRoom || ""}
+                onChange={e => onInputChange("anyOtherRoom", e.target.value)}
+              />
+               {invalidFields.includes("anyOtherRoom") && (
+                 <p className="text-sm text-red-600 mt-1">Other room info is required</p>
+               )}
+            </div>
 
-          <div>
-            <Label htmlFor="computerLabs">Computer Labs *</Label>
-            <Input
-              id="computerLabs"
-              type="number"
-              value={formData.computerLabs || ""}
-              onChange={(e) => onInputChange("computerLabs", e.target.value)}
-              className={invalidFields.includes("computerLabs") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("computerLabs") && (
-              <p className="text-sm text-red-600 mt-1">Computer labs count is required</p>
-            )}
-          </div>
+            <div>
+              <Label htmlFor="sportsFacilities">Sports Facilities</Label>
+              <Textarea
+                id="sportsFacilities"
+                placeholder="Cricket, Archery, Football, Taekwondo, Swimming, Table Tennis, Volleyball, Tug of War, Other"
+                value={formData.sportsFacilities || ""}
+                onChange={e => onInputChange("sportsFacilities", e.target.value)}
+                className="min-h-[60px]"
+              />
+               {invalidFields.includes("sportsFacilities") && (
+                 <p className="text-sm text-red-600 mt-1">Sports facilities info is required</p>
+               )}
+               
+            </div>
 
-          <div>
-            <Label htmlFor="scienceLabs">Science Labs</Label>
-            <Input
-              id="scienceLabs"
-              type="number"
-              value={formData.scienceLabs || ""}
-              onChange={(e) => onInputChange("scienceLabs", e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="library">Library *</Label>
-            <Select value={formData.library || ""} onValueChange={(v) => onInputChange("library", v)}>
-              <SelectTrigger
-                className={`border-2 focus:border-primary ${invalidFields.includes("library") ? "border-red-500" : ""}`}
+            <div>
+              <Label htmlFor="teacherTransportFacility">Teacher Transport Facility *</Label>
+              <select
+                id="teacherTransportFacility"
+                value={formData.teacherTransportFacility || ""}
+                onChange={e => onInputChange("teacherTransportFacility", e.target.value)}
+                className={`w-full border rounded px-3 py-2 ${invalidFields.includes('teacherTransportFacility') ? 'border-red-500' : ''}`}
               >
-                <SelectValue placeholder="Select option" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="yes">Yes</SelectItem>
-                <SelectItem value="no">No</SelectItem>
-              </SelectContent>
-            </Select>
-            {invalidFields.includes("library") && (
-              <p className="text-sm text-red-600 mt-1">Library availability is required</p>
-            )}
-          </div>
+                <option value="">Select Option</option>
+                <option value="Available">Available</option>
+                <option value="Not Available">Not Available</option>
+              </select>
+              {invalidFields.includes("teacherTransportFacility") && (
+                <p className="text-sm text-red-600 mt-1">Teacher transport facility is required</p>
+              )}
+            </div>
 
-          <div>
-            <Label htmlFor="maleToilets">Male Toilets</Label>
-            <Input
-              id="maleToilets"
-              type="number"
-              value={formData.maleToilets || ""}
-              onChange={(e) => onInputChange("maleToilets", e.target.value)}
-            />
-          </div>
+            <div>
+              <Label htmlFor="canteenFacility">Canteen Facility *</Label>
+              <select
+                id="canteenFacility"
+                value={formData.canteenFacility || ""}
+                onChange={e => onInputChange("canteenFacility", e.target.value)}
+                className={`w-full border rounded px-3 py-2 ${invalidFields.includes('canteenFacility') ? 'border-red-500' : ''}`}
+              >
+                <option value="">Select Option</option>
+                <option value="Available">Available</option>
+                <option value="Not Available">Not Available</option>
+              </select>
+              {invalidFields.includes("canteenFacility") && (
+                <p className="text-sm text-red-600 mt-1">Canteen facility is required</p>
+              )}
+            </div>
 
-          <div>
-            <Label htmlFor="femaleToilets">Female Toilets</Label>
-            <Input
-              id="femaleToilets"
-              type="number"
-              value={formData.femaleToilets || ""}
-              onChange={(e) => onInputChange("femaleToilets", e.target.value)}
-            />
+            <div>
+              <Label htmlFor="mealPrograms">Meal Programs *</Label>
+              <select
+                id="mealPrograms"
+                value={formData.mealPrograms || ""}
+                onChange={e => onInputChange("mealPrograms", e.target.value)}
+                className={`w-full border rounded px-3 py-2 ${invalidFields.includes('mealPrograms') ? 'border-red-500' : ''}`}
+              >
+                <option value="">Select Option</option>
+                <option value="Available">Available</option>
+                <option value="Not Available">Not Available</option>
+              </select>
+              {invalidFields.includes("mealPrograms") && (
+                <p className="text-sm text-red-600 mt-1">Meal programs selection is required</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="otherFacilities">Other Facilities</Label>
+              <Textarea
+                id="otherFacilities"
+                placeholder="Power Backup, Internet/Wi-Fi, Other"
+                value={formData.otherFacilities || ""}
+                onChange={e => onInputChange("otherFacilities", e.target.value)}
+                className="min-h-[60px]"
+              />
+               {invalidFields.includes("otherFacilities") && (
+                 <p className="text-sm text-red-600 mt-1">Other facilities info is required</p>
+               )}
+               {invalidFields.includes("otherFacilities") && (
+                 <p className="text-sm text-red-600 mt-1">Other facilities info is required</p>
+               )}
+            </div>
+
+            <div>
+              <Label htmlFor="boysWashrooms">Boys Washrooms *</Label>
+              <Input
+                id="boysWashrooms"
+                type="number"
+                value={formData.boysWashrooms || ""}
+                onChange={e => onInputChange("boysWashrooms", e.target.value)}
+                className={invalidFields.includes("boysWashrooms") ? "border-red-500" : ""}
+              />
+              {invalidFields.includes("boysWashrooms") && (
+                <p className="text-sm text-red-600 mt-1">Boys washrooms count is required</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="girlsWashrooms">Girls Washrooms *</Label>
+              <Input
+                id="girlsWashrooms"
+                type="number"
+                value={formData.girlsWashrooms || ""}
+                onChange={e => onInputChange("girlsWashrooms", e.target.value)}
+                className={invalidFields.includes("girlsWashrooms") ? "border-red-500" : ""}
+              />
+              {invalidFields.includes("girlsWashrooms") && (
+                <p className="text-sm text-red-600 mt-1">Girls washrooms count is required</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="maleTeacherWashrooms">Male Teacher Washrooms *</Label>
+              <Input
+                id="maleTeacherWashrooms"
+                type="number"
+                value={formData.maleTeacherWashrooms || ""}
+                onChange={e => onInputChange("maleTeacherWashrooms", e.target.value)}
+                className={invalidFields.includes("maleTeacherWashrooms") ? "border-red-500" : ""}
+              />
+              {invalidFields.includes("maleTeacherWashrooms") && (
+                <p className="text-sm text-red-600 mt-1">Male teacher washrooms count is required</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="femaleTeacherWashrooms">Female Teacher Washrooms *</Label>
+              <Input
+                id="femaleTeacherWashrooms"
+                type="number"
+                value={formData.femaleTeacherWashrooms || ""}
+                onChange={e => onInputChange("femaleTeacherWashrooms", e.target.value)}
+                className={invalidFields.includes("femaleTeacherWashrooms") ? "border-red-500" : ""}
+              />
+              {invalidFields.includes("femaleTeacherWashrooms") && (
+                <p className="text-sm text-red-600 mt-1">Female teacher washrooms count is required</p>
+              )}
+            </div>
           </div>
-        </div>
 
         <div>
           <Label htmlFor="facilities">Additional Facilities *</Label>
