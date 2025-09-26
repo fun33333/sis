@@ -42,13 +42,11 @@ export interface Student {
     retention: number
   }
 
-// Campus create request types used by admin form
 export type CampusStatus = "active" | "inactive" | "temporary_closed";
 
 export type CampusCreateRequest = {
   name: string;
   code: string | null;
-  description: string | null;
   status: CampusStatus;
   governing_body: string | null;
   registration_no: string | null;
@@ -56,8 +54,8 @@ export type CampusCreateRequest = {
   grades_offered: string;
   languages_of_instruction: string;
   academic_year_start_month: number;
+  academic_year_end_month?: number | null;
   capacity: number;
-  classes_per_grade: number;
   avg_class_size: number;
   num_students: number;
   num_students_male: number;
@@ -75,7 +73,6 @@ export type CampusCreateRequest = {
   library: boolean;
   toilets_male: number;
   toilets_female: number;
-  toilets_accessible: number;
   toilets_teachers: number;
   facilities: string | null;
   power_backup: boolean;
@@ -85,9 +82,10 @@ export type CampusCreateRequest = {
   special_classes: string | null;
   total_teachers: number;
   total_non_teaching_staff: number;
-  teacher_student_ratio: string | null;
+  // teacher_student_ratio removed
   staff_contact_hr: string | null;
   admission_office_contact: string | null;
+  photo?: string | null;
   is_draft: boolean;
 };
   

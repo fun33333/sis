@@ -19,9 +19,7 @@ const steps = [
 
 export function CampusForm() {
   const [submitting, setSubmitting] = useState(false);
-  // this submit is kept for backwards compatibility but the preview handles the final save.
   const handleSubmit = async () => {
-    // noop: final save happens from preview save button to ensure payload normalization
   };
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
@@ -45,7 +43,8 @@ export function CampusForm() {
         "registrationNumber",
         "languagesOfInstruction",
         "gradesOffered",
-        "academicYearStartMonth",
+  "academicYearStartMonth",
+  "academicYearEndMonth",
         "address",
         "city",
         "district",
@@ -53,7 +52,6 @@ export function CampusForm() {
         "campusEstablishedYear",
         "shiftAvailable",
         "educationLevelAvailable",
-        "currentGradeClass",
         "totalStudentCapacity",
         "currentStudentEnrollment",
         "campusStatus",
@@ -154,7 +152,6 @@ export function CampusForm() {
             formData={formData}
             onBack={() => setShowPreview(false)}
             onSaved={() => {
-              // brief UX: show the progress card's submitting state for a short moment
               setSubmitting(true)
               setTimeout(() => {
                 setSubmitting(false)

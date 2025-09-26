@@ -45,16 +45,16 @@ export function CampusPreview({ formData, onBack, onSaved }: CampusPreviewProps)
     if (!formData.languagesOfInstruction) missing.push("languagesOfInstruction")
     if (!formData.address) missing.push("address")
     if (!formData.academicYearStartMonth) missing.push("academicYearStartMonth")
+    if (!formData.academicYearEndMonth) missing.push("academicYearEndMonth")
     if (missing.length) {
       throw new Error(`Missing/invalid required: ${missing.join(", ")}`)
     }
   }
 
-  const buildPayload = (): CampusCreateRequest => {
+  const buildPayload = (): Omit<CampusCreateRequest, 'description' | 'classes_per_grade' | 'toilets_accessible' | 'teacher_student_ratio'> => {
     return {
       name: formData.campusName,
       code: formData.campusCode || null,
-      description: formData.description || null,
       status: normalizeStatus(formData.campusStatus),
       governing_body: formData.governingBody || null,
       registration_no: formData.registrationNumber || null,
@@ -62,8 +62,8 @@ export function CampusPreview({ formData, onBack, onSaved }: CampusPreviewProps)
       grades_offered: formData.gradesOffered,
       languages_of_instruction: formData.languagesOfInstruction,
       academic_year_start_month: Number(formData.academicYearStartMonth),
+      academic_year_end_month: Number(formData.academicYearEndMonth || 0),
       capacity: Number(formData.campusCapacity || formData.totalStudentCapacity || 0),
-      classes_per_grade: Number(formData.classesPerGrade || 0),
       avg_class_size: Number(formData.averageClassSize || 0),
       num_students: Number(formData.totalStudents || formData.currentStudentEnrollment || 0),
       num_students_male: Number(formData.maleStudents || formData.num_students_male || 0),
@@ -81,7 +81,6 @@ export function CampusPreview({ formData, onBack, onSaved }: CampusPreviewProps)
       library: (String(formData.library) === "true") || Boolean(formData.library) || false,
       toilets_male: Number(formData.boysWashrooms || formData.toilets_male || 0),
       toilets_female: Number(formData.girlsWashrooms || formData.toilets_female || 0),
-      toilets_accessible: Number(formData.accessibleWashrooms || formData.toilets_accessible || 0),
       toilets_teachers: Number(
         Number(formData.toiletsTeachers || 0) ||
         Number((formData.maleTeacherWashrooms || 0) + (formData.femaleTeacherWashrooms || 0))
@@ -94,9 +93,9 @@ export function CampusPreview({ formData, onBack, onSaved }: CampusPreviewProps)
       special_classes: formData.specialClasses || null,
       total_teachers: Number(formData.totalTeachers || 0),
       total_non_teaching_staff: Number(formData.totalNonTeachingStaff || formData.totalStaffMembers || 0),
-      teacher_student_ratio: formData.teacherStudentRatio || null,
       staff_contact_hr: formData.staffContactHr || null,
       admission_office_contact: formData.admissionOfficeContact || null,
+      photo: formData.campusPhoto || null,
       is_draft: String(formData.isDraft || "false") === "true",
     }
   }
@@ -151,7 +150,7 @@ export function CampusPreview({ formData, onBack, onSaved }: CampusPreviewProps)
               <div><strong>Registration Number:</strong> {formData.registrationNumber || "N/A"}</div>
               <div><strong>Status:</strong> {formData.campusStatus || "N/A"}</div>
               <div><strong>Languages:</strong> {formData.languagesOfInstruction || "N/A"}</div>
-              <div><strong>Academic Year:</strong> {formData.academicYearStart && formData.academicYearEnd ? `${formData.academicYearStart} - ${formData.academicYearEnd}` : "N/A"}</div>
+              <div><strong>Academic Year:</strong> {formData.academicYearStartMonth && formData.academicYearEndMonth ? `${formData.academicYearStartMonth} - ${formData.academicYearEndMonth}` : "N/A"}</div>
               <div><strong>District:</strong> {formData.district || "N/A"}</div>
               <div><strong>City:</strong> {formData.city || "N/A"}</div>
               <div><strong>Postal Code:</strong> {formData.postalCode || "N/A"}</div>
