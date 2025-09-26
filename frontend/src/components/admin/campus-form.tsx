@@ -20,27 +20,6 @@ const steps = [
 export function CampusForm() {
   const [submitting, setSubmitting] = useState(false);
   const handleSubmit = async () => {
-    setSubmitting(true);
-    try {
-      const res = await fetch("http://localhost:8000/api/campus/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-      if (res.ok) {
-        toast({ title: "Campus added successfully!" });
-        setShowPreview(false);
-        setFormData({});
-        setCurrentStep(1);
-      } else {
-        toast({ title: "Failed to add campus", description: await res.text() });
-      }
-    } catch (err) {
-      toast({ title: "Error", description: String(err) });
-    }
-    setSubmitting(false);
   };
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
@@ -64,7 +43,8 @@ export function CampusForm() {
         "registrationNumber",
         "languagesOfInstruction",
         "gradesOffered",
-        "academicYearStartMonth",
+  "academicYearStartMonth",
+  "academicYearEndMonth",
         "address",
         "city",
         "district",
@@ -72,7 +52,6 @@ export function CampusForm() {
         "campusEstablishedYear",
         "shiftAvailable",
         "educationLevelAvailable",
-        "currentGradeClass",
         "totalStudentCapacity",
         "currentStudentEnrollment",
         "campusStatus",
@@ -169,12 +148,20 @@ export function CampusForm() {
     if (showPreview) {
       return (
         <div>
-          <CampusPreview formData={formData} onBack={() => setShowPreview(false)} />
-          <div className="flex justify-end mt-6">
-            <Button onClick={handleSubmit} disabled={submitting} className="bg-primary text-white">
-              {submitting ? "Submitting..." : "Submit Campus"}
-            </Button>
-          </div>
+          <CampusPreview
+            formData={formData}
+            onBack={() => setShowPreview(false)}
+            onSaved={() => {
+              setSubmitting(true)
+              setTimeout(() => {
+                setSubmitting(false)
+                setShowPreview(false)
+                setFormData({})
+                setCurrentStep(1)
+              }, 300)
+            }}
+          />
+
         </div>
       );
     }

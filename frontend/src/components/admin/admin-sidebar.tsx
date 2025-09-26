@@ -110,9 +110,8 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         icon: Building2,
         href: "/admin/campus",
         subItems: [
-          { title: "Campus List", href: "/admin/campus/list" },
           { title: "Add Campus", href: "/admin/campus/add" },
-          { title: "Campus Profile", href: "/admin/campus/profile" },
+          { title: "Campus List", href: "/admin/campus/list" },
         ],
       },
     ];

@@ -3,18 +3,21 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Eye, ArrowLeft, Save } from "lucide-react"
+import { Eye, ArrowLeft, Save, Loader2 } from "lucide-react"
 import { apiPost } from "@/lib/api"
 import type { CampusCreateRequest, CampusStatus } from "@/types/dashboard"
 import { useState } from "react"
+import { toast as sonnerToast } from "sonner"
 
 interface CampusPreviewProps {
   formData: any
   onBack: () => void
+  onSaved?: () => void
 }
 
-export function CampusPreview({ formData, onBack }: CampusPreviewProps) {
+export function CampusPreview({ formData, onBack, onSaved }: CampusPreviewProps) {
   const [saving, setSaving] = useState(false)
+
 
   const formatDate = (value: any) => {
     if (!value) return null
@@ -42,16 +45,16 @@ export function CampusPreview({ formData, onBack }: CampusPreviewProps) {
     if (!formData.languagesOfInstruction) missing.push("languagesOfInstruction")
     if (!formData.address) missing.push("address")
     if (!formData.academicYearStartMonth) missing.push("academicYearStartMonth")
+    if (!formData.academicYearEndMonth) missing.push("academicYearEndMonth")
     if (missing.length) {
       throw new Error(`Missing/invalid required: ${missing.join(", ")}`)
     }
   }
 
-  const buildPayload = (): CampusCreateRequest => {
+  const buildPayload = (): Omit<CampusCreateRequest, 'description' | 'classes_per_grade' | 'toilets_accessible' | 'teacher_student_ratio'> => {
     return {
       name: formData.campusName,
       code: formData.campusCode || null,
-      description: formData.description || null,
       status: normalizeStatus(formData.campusStatus),
       governing_body: formData.governingBody || null,
       registration_no: formData.registrationNumber || null,
@@ -59,53 +62,70 @@ export function CampusPreview({ formData, onBack }: CampusPreviewProps) {
       grades_offered: formData.gradesOffered,
       languages_of_instruction: formData.languagesOfInstruction,
       academic_year_start_month: Number(formData.academicYearStartMonth),
+      academic_year_end_month: Number(formData.academicYearEndMonth || 0),
       capacity: Number(formData.campusCapacity || formData.totalStudentCapacity || 0),
-      classes_per_grade: Number(formData.classesPerGrade || 0),
       avg_class_size: Number(formData.averageClassSize || 0),
       num_students: Number(formData.totalStudents || formData.currentStudentEnrollment || 0),
-      num_students_male: Number(formData.maleStudents || 0),
-      num_students_female: Number(formData.femaleStudents || 0),
+      num_students_male: Number(formData.maleStudents || formData.num_students_male || 0),
+      num_students_female: Number(formData.femaleStudents || formData.num_students_female || 0),
       num_teachers: Number(formData.totalTeachers || 0),
-      num_teachers_male: Number(formData.maleTeachers || 0),
-      num_teachers_female: Number(formData.femaleTeachers || 0),
+      num_teachers_male: Number(formData.maleTeachers || formData.num_teachers_male || 0),
+      num_teachers_female: Number(formData.femaleTeachers || formData.num_teachers_female || 0),
       num_rooms: Number(formData.totalRooms || 0),
       total_classrooms: Number(formData.totalClassrooms || 0),
       office_rooms: Number(formData.officeRooms || 0),
-      biology_labs: Number(formData.biologyLabs || formData.scienceLabs || 0),
+      biology_labs: Number(formData.biologyLabs || 0),
       chemistry_labs: Number(formData.chemistryLabs || 0),
       physics_labs: Number(formData.physicsLabs || 0),
       computer_labs: Number(formData.computerLabs || 0),
-      library: Boolean(formData.library) || false,
-      toilets_male: Number(formData.boysWashrooms || 0),
-      toilets_female: Number(formData.girlsWashrooms || 0),
-      toilets_accessible: Number(formData.accessibleWashrooms || 0),
+      library: (String(formData.library) === "true") || Boolean(formData.library) || false,
+      toilets_male: Number(formData.boysWashrooms || formData.toilets_male || 0),
+      toilets_female: Number(formData.girlsWashrooms || formData.toilets_female || 0),
       toilets_teachers: Number(
-        (formData.maleTeacherWashrooms || 0) + (formData.femaleTeacherWashrooms || 0)
+        Number(formData.toiletsTeachers || 0) ||
+        Number((formData.maleTeacherWashrooms || 0) + (formData.femaleTeacherWashrooms || 0))
       ),
       facilities: formData.facilities || null,
-      power_backup: Boolean(formData.powerBackup) || false,
-      internet_wifi: Boolean(formData.internetWifi) || false,
-      established_date: formatDate(formData.campusEstablishedYear),
-      campus_address: formData.address || null,
+      power_backup: (String(formData.powerBackup) === "true") || Boolean(formData.powerBackup) || false,
+      internet_wifi: (String(formData.internetWifi) === "true") || Boolean(formData.internetWifi) || false,
+      established_date: formatDate(formData.establishedDate || formData.campusEstablishedYear),
+      campus_address: formData.campusAddress || formData.address || null,
       special_classes: formData.specialClasses || null,
       total_teachers: Number(formData.totalTeachers || 0),
-      total_non_teaching_staff: Number(formData.totalStaffMembers || 0),
-      teacher_student_ratio: formData.teacherStudentRatio || null,
+      total_non_teaching_staff: Number(formData.totalNonTeachingStaff || formData.totalStaffMembers || 0),
       staff_contact_hr: formData.staffContactHr || null,
       admission_office_contact: formData.admissionOfficeContact || null,
-      is_draft: false,
+      photo: formData.campusPhoto || null,
+      is_draft: String(formData.isDraft || "false") === "true",
     }
   }
 
   const handleSave = async () => {
+    setSaving(true)
     try {
-      setSaving(true)
       ensureRequiredOrThrow()
       const payload = buildPayload()
-      await apiPost("/api/campus/", payload)
-      alert("Campus information saved successfully!")
+
+      // start API call and a 2s minimum delay in parallel so UI always shows loader for ~2s
+      const apiPromise = apiPost("/api/campus/", payload)
+      const delay = new Promise((res) => setTimeout(res, 2000))
+
+      // wait for both the api call and the minimum delay
+      await Promise.all([apiPromise, delay])
+
+      // show a polished Sonner toast (success)
+      sonnerToast.success("Campus saved", {
+        description: "Campus has been saved successfully.",
+        duration: 4000,
+      })
+
+      // notify parent to reset/redirect to step 1
+      onSaved?.()
     } catch (err: any) {
-      alert(err?.message || "Failed to save campus")
+      // show polished Sonner error toast
+      sonnerToast.error(err?.message || "An unexpected error occurred while saving.", {
+        duration: 6000,
+      })
     } finally {
       setSaving(false)
     }
@@ -130,7 +150,7 @@ export function CampusPreview({ formData, onBack }: CampusPreviewProps) {
               <div><strong>Registration Number:</strong> {formData.registrationNumber || "N/A"}</div>
               <div><strong>Status:</strong> {formData.campusStatus || "N/A"}</div>
               <div><strong>Languages:</strong> {formData.languagesOfInstruction || "N/A"}</div>
-              <div><strong>Academic Year:</strong> {formData.academicYearStart && formData.academicYearEnd ? `${formData.academicYearStart} - ${formData.academicYearEnd}` : "N/A"}</div>
+              <div><strong>Academic Year:</strong> {formData.academicYearStartMonth && formData.academicYearEndMonth ? `${formData.academicYearStartMonth} - ${formData.academicYearEndMonth}` : "N/A"}</div>
               <div><strong>District:</strong> {formData.district || "N/A"}</div>
               <div><strong>City:</strong> {formData.city || "N/A"}</div>
               <div><strong>Postal Code:</strong> {formData.postalCode || "N/A"}</div>
@@ -191,9 +211,13 @@ export function CampusPreview({ formData, onBack }: CampusPreviewProps) {
             <ArrowLeft className="h-4 w-4" />
             Back to Edit
           </Button>
-          <Button onClick={handleSave} className="flex items-center gap-2">
-            <Save className="h-4 w-4" />
-            Save Campus
+          <Button onClick={handleSave} className="flex items-center gap-2" disabled={saving}>
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {saving ? "Saving..." : "Save Campus"}
           </Button>
         </div>
       </CardContent>

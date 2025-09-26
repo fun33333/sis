@@ -15,7 +15,6 @@ class CampusViewSet(viewsets.ModelViewSet):
             "code": campus.code,
             "num_students": campus.num_students,
             "num_teachers": campus.num_teachers,
-            "teacher_student_ratio": campus.teacher_student_ratio,
             "capacity": campus.capacity,
         }
         return response.Response(data)
@@ -25,13 +24,12 @@ class CampusViewSet(viewsets.ModelViewSet):
     def facilities(self, request, pk=None):
         campus = self.get_object()
         data = {
-            "science_labs": campus.science_labs,
+            "science_labs": getattr(campus, 'science_labs', 0),
             "computer_labs": campus.computer_labs,
             "library": campus.library,
             "toilets": {
                 "male": campus.toilets_male,
                 "female": campus.toilets_female,
-                "accessible": campus.toilets_accessible,
             },
             "internet_wifi": campus.internet_wifi,
             "power_backup": campus.power_backup,

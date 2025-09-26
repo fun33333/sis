@@ -16,7 +16,6 @@ class Campus(models.Model):
         blank=True,     # form me optional
         null=True       # database me NULL allow
     )
-    # description = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
     governing_body = models.CharField(max_length=255, blank=True, null=True)
 
@@ -31,11 +30,13 @@ class Campus(models.Model):
     grades_offered = models.CharField(max_length=255, help_text="e.g. Grade 1 - Grade 12")
     languages_of_instruction = models.CharField(max_length=255, help_text="e.g. English, Urdu")
     # Academic year start month (1-12)
-    academic_year_start_month = models.PositiveSmallIntegerField(default=1)
+    academic_year_start_month = models.CharField(max_length=255, null=True, blank=True)
+    academic_year_end_month = models.CharField(max_length=255, null=True, blank=True)
+
+
     capacity = models.PositiveIntegerField(help_text="Maximum student capacity")
 
     # Academic Structure
-    classes_per_grade = models.PositiveIntegerField(default=0)
     avg_class_size = models.PositiveIntegerField(default=0)
 
     # Students
@@ -49,9 +50,16 @@ class Campus(models.Model):
     num_teachers_female = models.PositiveIntegerField(default=0, help_text="Number of female teachers")
 
     # Infrastructure
-    num_rooms = models.PositiveIntegerField(default=0)
     total_classrooms = models.PositiveIntegerField(default=0)
     office_rooms = models.PositiveIntegerField(default=0, help_text="Number of office rooms")
+    # total number of rooms (general)
+    num_rooms = models.PositiveIntegerField(default=0)
+
+    # Facilities & misc
+    facilities = models.TextField(blank=True, null=True, help_text="Comma-separated list of facilities or JSON")
+
+    # media
+    photo = models.TextField(blank=True, null=True, help_text="URL or data URI for campus photo")
 
     # Labs & Facilities
     biology_labs = models.PositiveIntegerField(default=0)
@@ -62,10 +70,9 @@ class Campus(models.Model):
     library = models.BooleanField(default=False)
     toilets_male = models.PositiveIntegerField(default=0)
     toilets_female = models.PositiveIntegerField(default=0)
-    toilets_accessible = models.PositiveIntegerField(default=0)
+    # (removed: toilets_accessible)
     toilets_teachers = models.PositiveIntegerField(default=0, help_text="Number of toilets reserved for teachers")
 
-    facilities = models.TextField(blank=True, null=True)
     power_backup = models.BooleanField(default=False)
     internet_wifi = models.BooleanField(default=False)
 
@@ -82,7 +89,6 @@ class Campus(models.Model):
     # Staff Summary
     total_teachers = models.PositiveIntegerField(default=0)
     total_non_teaching_staff = models.PositiveIntegerField(default=0)
-    teacher_student_ratio = models.CharField(max_length=20, blank=True, null=True)
     staff_contact_hr = models.CharField(max_length=100, blank=True, null=True)
     admission_office_contact = models.CharField(max_length=100, blank=True, null=True)
 

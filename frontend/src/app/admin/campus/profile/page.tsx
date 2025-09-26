@@ -1,329 +1,462 @@
-// "use client"
-// import { useQuery, gql } from "@apollo/client";
-// import { useParams } from "next/navigation";
-// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// import { CampusHeader } from "@/components/dashboard/campus-header";
-// import { StaffSummaryCards } from "@/components/dashboard/staff-summary-cards";
-// import { CampusCharts } from "@/components/dashboard/campus-charts";
-// // ...import other icons/components...
-
-// const CAMPUS_PROFILE_QUERY = gql`
-//   query GetCampusProfile($id: ID!) {
-//     campus(id: $id) {
-//       campusName
-//       campusCode
-//       campusDescription
-//       status
-//       governingBody
-//       registrationNumber
-//       address
-//       establishedDate
-//       totalStudents
-//       totalTeachers
-//       totalStaff
-//       capacity
-//       occupancyRate
-//       gradesOffered
-//       languages
-//       facilities
-//       accreditation
-//       rating
-//       staffSummary {
-//         totalTeachers
-//         totalNonTeachingStaff
-//         totalStudents
-//         hrContact
-//         admissionContact
-//       }
-//       quickStats {
-//         title
-//         value
-//         change
-//         trend
-//         icon
-//         color
-//       }
-//     }
-//   }
-// `;
-
-// export default function CampusProfilePage() {
-//   const params = useParams();
-//   const campusId = params.campusId as string;
-
-//   const { data, loading, error } = useQuery(CAMPUS_PROFILE_QUERY, {
-//     variables: { id: campusId },
-//   });
-
-//   if (loading) return <div className="text-center py-20">Loading...</div>;
-//   if (error) return <div className="text-center py-20 text-red-500">Error loading campus data.</div>;
-
-//   const campusData = data.campus;
-//   const staffSummaryData = campusData.staffSummary;
-//   const quickStats = campusData.quickStats;
-
-//   return (
-//     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-//       <div className="container mx-auto px-4 py-8 space-y-8">
-//         <CampusHeader
-//           campusName={campusData.campusName}
-//           campusStatus={campusData.status}
-//           tagline="Excellence in Education Since 1985"
-//           onImageEdit={() => {}}
-//         />
-//         {/* ...baqi code same, bas data campusData, staffSummaryData, quickStats se aayega... */}
-//       </div>
-//     </div>
-//   );
-// }
-
 "use client"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Users, GraduationCap, Building2, TrendingUp, Award, BookOpen, MapPin, Calendar, Phone, Mail, } from "lucide-react"
-import { CampusHeader } from "@/components/dashboard/campus-header"
-import { StaffSummaryCards } from "@/components/dashboard/staff-summary-cards"
-import { CampusCharts } from "@/components/dashboard/campus-charts"
-import { useEffect, useState } from "react"
 
-// Mock async fetch function (replace with real GraphQL query later)
-async function fetchCampusDashboardData() {
-  return {
-    campusData: {
-      campusName: "Idara Al-Khair Campus Four",
-      campusCode: "IAK-C04",
-      campusDescription: "A premier educational institution dedicated to fostering academic excellence and character development in a nurturing environment.",
-      status: "Active",
-      governingBody: "State Education Board",
-      registrationNumber: "EDU-2019-001234",
-      address: "123 Education Boulevard, Academic District, Springfield, ST 12345",
-      establishedDate: "August 15, 1995",
-      totalStudents: 256,
-      totalTeachers: 24,
-      totalStaff: 45,
-      capacity: 1500,
-      occupancyRate: 88,
-      gradesOffered: ["K-12"],
-      languages: ["English", "Urdu"],
-      facilities: ["Library", "Labs", "Sports Complex", "Auditorium", "Transport"],
-      accreditation: "State Board Certified",
-      rating: 4.8,
-    },
-    staffSummaryData: {
-      totalTeachers: 24,
-      totalNonTeachingStaff: 7,
-      totalStudents: 256,
-      hrContact: "hr@greenwoodacademy.edu",
-      admissionContact: "admissions@greenwoodacademy.edu",
-    },
-    quickStats: [
-      {
-        title: "Student Enrollment",
-        value: "256",
-        change: "+12%",
-        trend: "up",
-        icon: Users,
-        color: "text-blue-600",
-      },
-      {
-        title: "Faculty Members",
-        value: "24",
-        change: "+5%",
-        trend: "up",
-        icon: GraduationCap,
-        color: "text-green-600",
-      },
-      {
-        title: "Campus Capacity",
-        value: "88%",
-        change: "+3%",
-        trend: "up",
-        icon: Building2,
-        color: "text-purple-600",
-      },
-      {
-        title: "Academic Rating",
-        value: "4.8/5",
-        change: "+0.2",
-        trend: "up",
-        icon: Award,
-        color: "text-orange-600",
-      },
-    ]
-  };
-}
+import React, { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { apiGet, apiPatch } from "@/lib/api"
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Form, FormItem, FormLabel, FormControl, FormField } from "@/components/ui/form"
+import { useForm } from "react-hook-form"
 
-export default function CampusDashboard() {
-  const [dashboardData, setDashboardData] = useState<any>(null);
+export default function AdminCampusProfilePage() {
+  const params = useSearchParams()
+  const id = params?.get("id") || params?.get("pk") || ""
+
+  const [campus, setCampus] = useState<any | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'overview' | 'courses'>('overview')
 
   useEffect(() => {
-    document.title = "Campus Profile | IAK SMS";
-    fetchCampusDashboardData().then(setDashboardData);
-  }, []);
+    if (!id) return
+    let mounted = true
+    setLoading(true)
+    apiGet<any>(`/api/campus/${id}/`)
+      .then((data) => mounted && setCampus(data))
+      .catch((err) => {
+        console.error(err)
+        mounted && setError(err.message || "Failed to load campus")
+      })
+      .finally(() => mounted && setLoading(false))
+    return () => {
+      mounted = false
+    }
+  }, [id])
 
-  if (!dashboardData) {
-    return <div className="text-center py-20">Loading...</div>;
+  useEffect(() => {
+    if (campus?.name) document.title = `${campus.name} | Campus Profile`
+  }, [campus])
+
+  if (!id) {
+    return <div className="p-6">No campus selected</div>
   }
 
-  const { campusData, staffSummaryData, quickStats } = dashboardData;
+  if (loading) return <div className="p-6">Loading campus...</div>
+  if (error) return <div className="p-6 text-red-600">{error}</div>
+
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ]
+
+  const fmtMonth = (m: any) => {
+    const n = Number(m)
+    if (!n || n < 1 || n > 12) return '—'
+    return monthNames[n - 1]
+  }
+
+  const renderValue = (v: any) => {
+    if (v === null || v === undefined || String(v).trim() === "") return '—'
+    if (typeof v === 'boolean') return v ? 'Yes' : 'No'
+    if (Array.isArray(v)) return v.join(', ')
+    if (typeof v === 'object') return JSON.stringify(v)
+    return String(v)
+  }
+
+  const EditForm = ({ onSaved, onClose }: { onSaved: (updated: any) => void; onClose: () => void }) => {
+    const methods = useForm<any>({ defaultValues: campus || {} })
+
+    useEffect(() => {
+      methods.reset(campus || {})
+    }, [campus])
+
+    const onSubmit = methods.handleSubmit(async (values) => {
+      try {
+        // send values directly (API expects snake_case keys)
+        const updated = await apiPatch<any>(`/api/campus/${id}/`, values)
+        onSaved(updated)
+        onClose()
+      } catch (err: any) {
+        console.error(err)
+        alert(err?.message || "Failed to update campus")
+      }
+    })
+
+    return (
+      ///Edit Form Forntend Form Code
+
+      <Form {...methods}>
+        <form onSubmit={onSubmit} className="space-y-4 max-h-[70vh] overflow-auto pr-2">
+          <h3 className="text-lg font-semibold">General Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input {...methods.register("name")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Code</FormLabel>
+              <FormControl>
+                <Input {...methods.register("code")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Governing Body</FormLabel>
+              <FormControl>
+                <Input {...methods.register("governing_body")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Registration No</FormLabel>
+              <FormControl>
+                <Input {...methods.register("registration_no")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Address</FormLabel>
+              <FormControl>
+                <Input {...methods.register("address")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Campus Address</FormLabel>
+              <FormControl>
+                <Input {...methods.register("campus_address")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Grades Offered</FormLabel>
+              <FormControl>
+                <Input {...methods.register("grades_offered")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Languages of Instruction</FormLabel>
+              <FormControl>
+                <Input {...methods.register("languages_of_instruction")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Academic Year Start Month</FormLabel>
+              <FormControl>
+                <Input {...methods.register("academic_year_start_month")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Established Date</FormLabel>
+              <FormControl>
+                <Input {...methods.register("established_date")} placeholder="YYYY-MM-DD" />
+              </FormControl>
+            </FormItem>
+          </div>
+
+          <h3 className="text-lg font-semibold mt-4">Facilities & Capacity</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormItem>
+              <FormLabel>Capacity</FormLabel>
+              <FormControl>
+                <Input type="number" {...methods.register("capacity")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Total Classrooms</FormLabel>
+              <FormControl>
+                <Input type="number" {...methods.register("total_classrooms")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Office Rooms</FormLabel>
+              <FormControl>
+                <Input type="number" {...methods.register("office_rooms")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Computer Labs</FormLabel>
+              <FormControl>
+                <Input type="number" {...methods.register("computer_labs")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Biology Labs</FormLabel>
+              <FormControl>
+                <Input type="number" {...methods.register("biology_labs")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Chemistry Labs</FormLabel>
+              <FormControl>
+                <Input type="number" {...methods.register("chemistry_labs")} />
+              </FormControl>
+            </FormItem>
+          </div>
+
+          <h3 className="text-lg font-semibold mt-4">Staff & Counts</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormItem>
+              <FormLabel>Total Teachers</FormLabel>
+              <FormControl>
+                <Input type="number" {...methods.register("total_teachers")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Num Teachers</FormLabel>
+              <FormControl>
+                <Input type="number" {...methods.register("num_teachers")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Num Students</FormLabel>
+              <FormControl>
+                <Input type="number" {...methods.register("num_students")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Toilets (Male)</FormLabel>
+              <FormControl>
+                <Input type="number" {...methods.register("toilets_male")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Toilets (Female)</FormLabel>
+              <FormControl>
+                <Input type="number" {...methods.register("toilets_female")} />
+              </FormControl>
+            </FormItem>
+          </div>
+
+          <h3 className="text-lg font-semibold mt-4">Contact & Meta</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormItem>
+              <FormLabel>HR Contact</FormLabel>
+              <FormControl>
+                <Input {...methods.register("staff_contact_hr")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Admission Contact</FormLabel>
+              <FormControl>
+                <Input {...methods.register("admission_office_contact")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Official Email</FormLabel>
+              <FormControl>
+                <Input {...methods.register("official_email")} />
+              </FormControl>
+            </FormItem>
+
+            <FormItem>
+              <FormLabel>Photo (URL)</FormLabel>
+              <FormControl>
+                <Input {...methods.register("photo")} />
+              </FormControl>
+            </FormItem>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4">
+            <Button type="submit">Save</Button>
+          </div>
+        </form>
+      </Form>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 rounded-3xl">
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        <CampusHeader
-          campusName={campusData.campusName}
-          campusStatus={campusData.status as "Active" | "Inactive" | "Temporary Closed"}
-          tagline="Excellence in Education Since 1985"
-          onImageEdit={() => { }}
-        />
+    <div className="p-6 bg-[#e7ecef] min-h-screen">
+      <header className="mb-6">
+        <div className="relative rounded-lg overflow-hidden shadow-sm">
+          <div className="h-48 lg:h-72 w-full bg-gray-200">
+            {campus?.photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={campus.photo} alt="campus banner" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[#8b8c89]">No image</div>
+            )}
+          </div>
 
-        {/* Quick Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {quickStats.map((stat: any, index: number) => (
-            <Card key={index} className="relative overflow-hidden border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                    <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-                    <div className="flex items-center mt-2">
-                      <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                      <span className="text-sm font-medium text-green-600">{stat.change}</span>
-                      <span className="text-sm text-muted-foreground ml-1">vs last year</span>
-                    </div>
-                  </div>
-                  <div className={`p-3 rounded-full bg-slate-100 ${stat.color}`}>
-                    <stat.icon className="h-6 w-6" />
-                  </div>
+          {/* bottom colored band */}
+          <div className="absolute left-0 right-0 bottom-0">
+            <div className="bg-[#6b46c1] text-white py-6 lg:py-8 px-6 rounded-b-lg flex items-center gap-6">
+              {/* circular logo overlapping */}
+              <div className="-mt-12 lg:-mt-16">
+                <div className="h-24 w-24 lg:h-28 lg:w-28 bg-white rounded-full flex items-center justify-center overflow-hidden" style={{ boxShadow: '0 6px 18px rgba(0,0,0,0.12)' }}>
+                  {campus?.photo ? (
+                    // small circular crop
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={campus.photo} alt="logo" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="text-[#6b46c1] font-bold">{(campus?.name || 'C').split(' ').map((s: string) => s[0]).slice(0, 2).join('')}</div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
 
-        {/* Staff Summary Cards */}
-        <StaffSummaryCards data={staffSummaryData} />
-        {/* Charts Section */}
-        <div className="lg:col-span-3">
-          <CampusCharts />
-        </div>
-
-        {/* Main Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Campus Information Cards */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Campus Overview */}
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-blue-600" />
-                  Campus Overview
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Campus Code</p>
-                        <p className="text-sm text-muted-foreground">{campusData.campusCode}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Established</p>
-                        <p className="text-sm text-muted-foreground">{campusData.establishedDate}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Award className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Accreditation</p>
-                        <Badge variant="secondary">{campusData.accreditation}</Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <BookOpen className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Grades Offered</p>
-                        <p className="text-sm text-muted-foreground">Kindergarten - Grade 12</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Languages</p>
-                        <p className="text-sm text-muted-foreground">{campusData.languages.join(", ")}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Building2 className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Governing Body</p>
-                        <p className="text-sm text-muted-foreground">{campusData.governingBody}</p>
-                      </div>
-                    </div>
-                  </div>
+              <div className="flex-1">
+                <div>
+                  <h2 className="text-2xl lg:text-3xl font-bold">{campus?.name || 'Campus'}</h2>
+                  <div className="text-sm opacity-90 mt-1 text-white/90">{campus?.campus_address || campus?.address || ''}</div>
                 </div>
-                <div className="pt-4 border-t">
-                  <p className="text-sm font-medium mb-2">Campus Description</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{campusData.campusDescription}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Facilities & Contact */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-green-600" />
-                    Facilities
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {campusData.facilities.map((facility: string, index: number) => (
-                      <Badge key={index} variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        {facility}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2">
-                    <Phone className="h-5 w-5 text-purple-600" />
-                    Contact Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">HR Department</p>
-                      <p className="text-sm text-muted-foreground">{staffSummaryData.hrContact}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">Admissions</p>
-                      <p className="text-sm text-muted-foreground">{staffSummaryData.admissionContact}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                <div className="mt-2 text-sm text-white/80">{campus?.governing_body}</div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </header>
+
+      <main className="mt-6 grid grid-cols-4 lg:grid-cols-3 gap-8">
+        <section className="lg:col-span-2 space-y-6">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100">
+            <h2 className="text-lg font-semibold text-[#274c77]">Overview</h2>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <div className="text-xs text-[#8b8c89]">Address</div>
+                <div className="font-medium text-[#274c77]">{campus?.campus_address || campus?.address || '—'}</div>
+                <div className="text-xs text-[#8b8c89]">Grades Offered</div>
+                <div className="font-medium text-[#274c77]">{campus?.grades_offered || '—'}</div>
+                  <div className="text-xs text-[#8b8c89]">Academic Year</div>
+                <div className="font-medium text-[#274c77]">{campus?.academic_year_start_month ? fmtMonth(campus.academic_year_start_month) : '—'} {campus?.academic_year_end_month ? ` - ${fmtMonth(campus.academic_year_end_month)}` : ''}</div>
+              </div>
+
+              <div>
+                <div className="text-xs text-[#8b8c89] mt-3">Code</div>
+                <div className="font-medium text-[#274c77]">{campus?.code || '—'}</div>
+                <div className="text-xs text-[#8b8c89] mt-3">Languages</div>
+                <div className="font-medium text-[#274c77]">{campus?.languages_of_instruction || '—'}</div>
+                <div className="text-xs text-[#8b8c89] mt-3">Special Classes</div>
+                <div className="font-medium text-[#274c77]">{campus?.special_classes || '—'}</div>
+              </div>
+
+              <div>
+                
+                <div className="text-xs text-[#8b8c89] mt-3">Established</div>
+                <div className="font-medium text-[#274c77]">{campus?.established_date || campus?.established_date === null ? (campus?.established_date || '—') : '—'}</div>
+
+                <div className="text-xs text-[#8b8c89]">Capacity</div>
+                <div className="font-medium text-[#274c77]">{campus?.capacity ?? campus?.total_students ?? '—'}</div>
+                <div className="text-xs text-[#8b8c89]">Current Enrollment</div>
+                <div className="font-medium text-[#274c77]">{campus?.num_students ?? campus?.current_student_enrollment ?? '—'}</div>
+                <div className="text-xs text-[#8b8c89]">Shift</div>
+                <div className="font-medium text-[#274c77]">{campus?.shift_available || campus?.shiftAvailable || '—'}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100">
+            <h2 className="text-lg font-semibold text-[#274c77]">Infrastructure</h2>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <div className="text-xs text-[#8b8c89]">Total Rooms</div>
+                <div className="font-medium text-[#274c77]">{campus?.num_rooms ?? '—'}</div>
+                <div className="text-xs text-[#8b8c89] mt-3">Total Classrooms</div>
+                <div className="font-medium text-[#274c77]">{campus?.total_classrooms ?? '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-[#8b8c89]">Office Rooms</div>
+                <div className="font-medium text-[#274c77]">{campus?.office_rooms ?? '—'}</div>
+                <div className="text-xs text-[#8b8c89] mt-3">Avg Class Size</div>
+                <div className="font-medium text-[#274c77]">{campus?.avg_class_size ?? '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-[#8b8c89]">Computer Labs</div>
+                <div className="font-medium text-[#274c77]">{campus?.computer_labs ?? '—'}</div>
+                <div className="text-xs text-[#8b8c89] mt-3">Libraries</div>
+                <div className="font-medium text-[#274c77]">{(String(campus?.library) === 'true') || campus?.library ? 'Yes' : 'No'}</div>
+              </div>
+            </div>
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <div className="text-xs text-[#8b8c89]">Bio Labs</div>
+                <div className="font-medium text-[#274c77]">{campus?.biology_labs ?? '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-[#8b8c89]">Chem Labs</div>
+                <div className="font-medium text-[#274c77]">{campus?.chemistry_labs ?? '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-[#8b8c89]">Physics Labs</div>
+                <div className="font-medium text-[#274c77]">{campus?.physics_labs ?? '—'}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100">
+            <h2 className="text-lg font-semibold text-[#274c77]">Staff Summary</h2>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <div className="text-xs text-[#8b8c89]">Total Teachers</div>
+                <div className="font-medium text-[#274c77]">{campus?.total_teachers ?? campus?.num_teachers ?? '—'}</div>
+                <div className="text-xs text-[#8b8c89] mt-3">Male Teachers</div>
+                <div className="font-medium text-[#274c77]">{campus?.num_teachers_male ?? campus?.maleTeachers ?? '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-[#8b8c89]">Non-teaching Staff</div>
+                <div className="font-medium text-[#274c77]">{campus?.total_non_teaching_staff ?? '—'}</div>
+                <div className="text-xs text-[#8b8c89] mt-3">Female Teachers</div>
+                <div className="font-medium text-[#274c77]">{campus?.num_teachers_female ?? campus?.femaleTeachers ?? '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-[#8b8c89]">Students (M/F)</div>
+                <div className="font-medium text-[#274c77]">{(campus?.num_students_male ?? campus?.maleStudents ?? 0)}/{(campus?.num_students_female ?? campus?.femaleStudents ?? 0)}</div>
+              </div>
+            </div>
+          </div>
+         
+        </section>
+
+        <aside className="space-y-6">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100">
+            <h3 className="text-sm text-slate-600">Facilities</h3>
+            <ul className="mt-4 space-y-3 text-sm text-slate-800">
+              <li>Library: <strong className="text-slate-900">{campus?.library ? 'Yes' : 'No'}</strong></li>
+              <li>Power Backup: <strong className="text-slate-900">{campus?.power_backup ? 'Yes' : 'No'}</strong></li>
+              <li>Internet/WiFi: <strong className="text-slate-900">{campus?.internet_wifi ? 'Yes' : 'No'}</strong></li>
+              <li>Toilets (M/F): <strong className="text-slate-900">{(campus?.toilets_male ?? 0)}/{(campus?.toilets_female ?? 0)}</strong></li>
+            </ul>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100">
+            <h3 className="text-sm text-slate-600">Contact & Meta</h3>
+            <div className="mt-4 text-sm text-slate-800">
+              <div className="text-slate-500 text-xs">HR Contact</div>
+              <div className="font-medium text-slate-900">{campus?.staff_contact_hr || '—'}</div>
+              <div className="text-xs text-[#8b8c89] mt-3">Admission Office Contact</div>
+              <div className="font-medium text-[#274c77]">{campus?.admission_office_contact || '—'}</div>
+            </div>
+          </div>
+        </aside>
+      </main>
     </div>
-  );
+  )
 }
