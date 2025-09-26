@@ -78,6 +78,17 @@ export function TeacherForm() {
   }
 
   const handleStepChange = (step: number) => {
+    if (step > currentStep) {
+      // Agar forward jump kar raha hai to pehle validate karo
+      const invalid = validateCurrentStep()
+      if (invalid.length > 0) {
+        toast({
+          title: "Please fill required fields",
+          description: invalid.join(", "),
+        })
+        return
+      }
+    }
     setInvalidFields([])
     setCurrentStep(step)
   }

@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef } from "react"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -107,6 +106,17 @@ export function StudentForm() {
   }
 
   const handleStepChange = (step: number) => {
+    if (step > currentStep) {
+      // agar forward jump kar raha hai to validate karo
+      const invalid = validateCurrentStep()
+      if (invalid.length > 0) {
+        toast({
+          title: "Please fill required fields",
+          description: invalid.join(", "),
+        })
+        return
+      }
+    }
     setInvalidFields([])
     setCurrentStep(step)
   }
