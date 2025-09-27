@@ -80,8 +80,9 @@ export function PersonalDetailsStep({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
           <div>
-            <Label htmlFor="name">Full Name *</Label>
+            <Label htmlFor="name">Student Name *</Label>
             <Input
               id="name"
               value={formData.name || ""}
@@ -92,7 +93,7 @@ export function PersonalDetailsStep({
           </div>
 
           <div>
-            <Label htmlFor="gender">Gender *</Label>
+            <Label htmlFor="gender">Gender</Label>
             <Select value={formData.gender || ""} onValueChange={(v) => onInputChange("gender", v)}>
               <SelectTrigger
                 className={`border-2 focus:border-primary ${invalidFields.includes("gender") ? "border-red-500" : ""}`}
@@ -108,7 +109,7 @@ export function PersonalDetailsStep({
           </div>
 
           <div>
-            <Label htmlFor="dob">Date of Birth *</Label>
+            <Label htmlFor="dob">Date of Birth</Label>
             <Input
               id="dob"
               type="date"
@@ -120,7 +121,7 @@ export function PersonalDetailsStep({
           </div>
 
           <div>
-            <Label htmlFor="placeOfBirth">Place of Birth *</Label>
+            <Label htmlFor="placeOfBirth">Place of Birth</Label>
             <Input
               id="placeOfBirth"
               value={formData.placeOfBirth || ""}
@@ -133,7 +134,7 @@ export function PersonalDetailsStep({
           </div>
 
           <div>
-            <Label htmlFor="religion">Religion *</Label>
+            <Label htmlFor="religion">Religion</Label>
             <Select value={formData.religion || ""} onValueChange={(v) => onInputChange("religion", v)}>
               <SelectTrigger
                 className={`border-2 focus:border-primary ${invalidFields.includes("religion") ? "border-red-500" : ""}`}
@@ -142,8 +143,8 @@ export function PersonalDetailsStep({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="islam">Islam</SelectItem>
-                <SelectItem value="christianity">Christianity</SelectItem>
                 <SelectItem value="hinduism">Hinduism</SelectItem>
+                <SelectItem value="christianity">Christianity</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
@@ -151,13 +152,26 @@ export function PersonalDetailsStep({
           </div>
 
           <div>
-            <Label htmlFor="motherTongue">Mother Tongue *</Label>
-            <Input
-              id="motherTongue"
-              value={formData.motherTongue || ""}
-              onChange={(e) => onInputChange("motherTongue", e.target.value)}
-              className={invalidFields.includes("motherTongue") ? "border-red-500" : ""}
-            />
+            <Label htmlFor="motherTongue">Mother Tongue</Label>
+            <Select value={formData.motherTongue || ""} onValueChange={(v) => onInputChange("motherTongue", v)}>
+              <SelectTrigger
+                className={`border-2 focus:border-primary ${invalidFields.includes("motherTongue") ? "border-red-500" : ""}`}
+              >
+                <SelectValue placeholder="Select mother tongue" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="brohi">Brohi</SelectItem>
+                <SelectItem value="urdu">Urdu</SelectItem>
+                <SelectItem value="sindhi">Sindhi</SelectItem>
+                <SelectItem value="balochi">Balochi</SelectItem>
+                <SelectItem value="saraiki">Saraiki</SelectItem>
+                <SelectItem value="punjabi">Punjabi</SelectItem>
+                <SelectItem value="pashhto">Pashhto</SelectItem>
+                <SelectItem value="kashmiri">Kashmiri</SelectItem>
+                <SelectItem value="bangali">Bangali</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
             {invalidFields.includes("motherTongue") && (
               <p className="text-sm text-red-600 mt-1">Mother tongue is required</p>
             )}

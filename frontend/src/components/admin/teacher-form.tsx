@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { ArrowLeft, ArrowRight, Eye } from "lucide-react"
 import { PersonalInfoStep } from "./teacher-form/personal-info-step"
 import { EducationStep } from "./teacher-form/education-step"
+import CurrentRoleStep from "./teacher-form/current-role-step"
 import { ExperienceStep } from "./teacher-form/experience-step"
 import { TeacherPreview } from "./teacher-form/teacher-preview"
 import { useToast } from "@/hooks/use-toast"
@@ -15,6 +16,7 @@ const steps = [
   { id: 1, title: "Personal Information" },
   { id: 2, title: "Educational Qualifications" },
   { id: 3, title: "Work Experience" },
+  { id: 4, title: "Current Role" },
 ]
 
 export function TeacherForm() {
@@ -35,9 +37,47 @@ export function TeacherForm() {
 
   const validateCurrentStep = () => {
     const requiredFields: { [step: number]: string[] } = {
-      1: ["fullName", "dob", "gender", "contactNumber", "email"],
-      2: ["education"],
-      3: ["experience", "currentRole", "subjects"],
+      1: [
+        "imageFile",
+        "campus",
+        "fullName",
+        "dob",
+        "gender",
+        "contactNumber",
+        "emergencyContactNumber",
+        "email",
+        "permanentAddress",
+        "temporaryAddress",
+        "maritalStatus",
+        "cnic",
+        "cnicIssueDate",
+        "cnicExpiryDate",
+        "bFormNumber",
+      ],
+      2: [
+        "education",
+        "instituteName",
+        "educationQualification",
+        "fieldSpecialization",
+        "passingYear",
+        "passingYearGrade",
+      ],
+      3: [
+        "lastWorkExperience",
+        "lastOrganizationName",
+        "position",
+        "teacherRoleType",
+        "fromDate",
+        "toDate",
+        "teacherSubjects",
+      ],
+      4: [
+        "currentRoleDetails",
+        "shift",
+        "classAssigned",
+        "subjectsAssigned",
+        "isClassTeacher",
+      ],
     }
 
     const required = requiredFields[currentStep] || []
@@ -45,7 +85,21 @@ export function TeacherForm() {
 
     for (const field of required) {
       const value = formData[field]
-      if (!value || (typeof value === "string" && value.trim() === "")) {
+
+      // If the field is a boolean (like isClassTeacher), both true and false are valid selections
+      if (typeof value === "boolean") {
+        continue
+      }
+
+      // If the field is an array (checkbox groups), require at least one selected item
+      if (Array.isArray(value)) {
+        if (value.length === 0) {
+          invalid.push(field)
+        }
+        continue
+      }
+
+      if (value == null || (typeof value === "string" && value.trim() === "")) {
         invalid.push(field)
       }
     }
@@ -105,6 +159,8 @@ export function TeacherForm() {
         return <EducationStep formData={formData} invalidFields={invalidFields} onInputChange={handleInputChange} />
       case 3:
         return <ExperienceStep formData={formData} invalidFields={invalidFields} onInputChange={handleInputChange} />
+      case 4:
+        return <CurrentRoleStep formData={formData} invalidFields={invalidFields} onInputChange={handleInputChange} />
       default:
         return null
     }

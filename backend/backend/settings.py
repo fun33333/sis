@@ -165,6 +165,12 @@ SUPERUSER_USERNAME = 'Ubaid'
 SUPERUSER_PASSWORD = '1234'
 SUPERUSER_EMAIL = 'internfun3@gmail.com'
 
+SUPERUSER_USERNAME = 'Rahat'
+SUPERUSER_PASSWORD = '1234'
+SUPERUSER_EMAIL = 'rahatalisheikh45@gmail.com'
+
+
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]

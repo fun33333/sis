@@ -16,77 +16,126 @@ export function ExperienceStep({ formData, invalidFields, onInputChange }: Exper
   return (
     <Card className="border-2">
       <CardHeader>
-        <CardTitle>Work Experience</CardTitle>
+        <CardTitle>Last Work Experience</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label htmlFor="experience">Work Experience *</Label>
+          <Label htmlFor="lastWorkExperience">Last Work Experience (details) *</Label>
           <Textarea
-            id="experience"
-            placeholder="Describe your work experience including previous positions, institutions, and duration"
-            value={formData.experience || ""}
-            onChange={(e) => onInputChange("experience", e.target.value)}
-            className={`min-h-[120px] ${invalidFields.includes("experience") ? "border-red-500" : ""}`}
+            id="lastWorkExperience"
+            placeholder="Section heading and some details about the last work experience"
+            value={formData.lastWorkExperience || ""}
+            onChange={(e) => onInputChange("lastWorkExperience", e.target.value)}
+            className={`min-h-[120px] ${invalidFields.includes("lastWorkExperience") ? "border-red-500" : ""}`}
           />
-          {invalidFields.includes("experience") && (
-            <p className="text-sm text-red-600 mt-1">Work experience is required</p>
+          {invalidFields.includes("lastWorkExperience") && (
+            <p className="text-sm text-red-600 mt-1">This field is required</p>
           )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="currentRole">Current Role *</Label>
+            <Label htmlFor="lastOrganizationName">Last working Organization Name *</Label>
             <Input
-              id="currentRole"
-              value={formData.currentRole || ""}
-              onChange={(e) => onInputChange("currentRole", e.target.value)}
-              className={invalidFields.includes("currentRole") ? "border-red-500" : ""}
+              id="lastOrganizationName"
+              value={formData.lastOrganizationName || ""}
+              onChange={(e) => onInputChange("lastOrganizationName", e.target.value)}
+              className={invalidFields.includes("lastOrganizationName") ? "border-red-500" : ""}
             />
-            {invalidFields.includes("currentRole") && (
-              <p className="text-sm text-red-600 mt-1">Current role is required</p>
+            {invalidFields.includes("lastOrganizationName") && (
+              <p className="text-sm text-red-600 mt-1">Organization name is required</p>
             )}
           </div>
 
           <div>
-            <Label htmlFor="subjects">Subjects Taught *</Label>
+            <Label htmlFor="position">Position / Designation *</Label>
             <Input
-              id="subjects"
-              placeholder="e.g., Mathematics, English, Science"
-              value={formData.subjects || ""}
-              onChange={(e) => onInputChange("subjects", e.target.value)}
-              className={invalidFields.includes("subjects") ? "border-red-500" : ""}
+              id="position"
+              value={formData.position || ""}
+              onChange={(e) => onInputChange("position", e.target.value)}
+              className={invalidFields.includes("position") ? "border-red-500" : ""}
             />
-            {invalidFields.includes("subjects") && (
-              <p className="text-sm text-red-600 mt-1">Subjects taught are required</p>
+            {invalidFields.includes("position") && (
+              <p className="text-sm text-red-600 mt-1">Position / Designation is required</p>
             )}
           </div>
-        </div>
 
-        <div>
-          <Label htmlFor="classesSections">Classes & Sections Taught</Label>
-          <Select value={formData.classesSections || ""} onValueChange={(v) => onInputChange("classesSections", v)}>
-            <SelectTrigger className="border-2 focus:border-primary">
-              <SelectValue placeholder="Select classes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="nursery">Nursery</SelectItem>
-              <SelectItem value="primary">Primary (1-5)</SelectItem>
-              <SelectItem value="middle">Middle (6-8)</SelectItem>
-              <SelectItem value="secondary">Secondary (9-10)</SelectItem>
-              <SelectItem value="all">All Levels</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+          <div className="md:col-span-2">
+            <Label htmlFor="teacherRoleType">Role Type *</Label>
+            <Select value={formData.teacherRoleType || ""} onValueChange={(v) => onInputChange("teacherRoleType", v)}>
+              <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("teacherRoleType") ? "border-red-500" : ""}`}>
+                <SelectValue placeholder="Select role type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="teacher">Teacher</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            {invalidFields.includes("teacherRoleType") && (
+              <p className="text-sm text-red-600 mt-1">Please select role type</p>
+            )}
 
-        <div>
-          <Label htmlFor="additionalResponsibilities">Additional Responsibilities</Label>
-          <Textarea
-            id="additionalResponsibilities"
-            placeholder="Any additional duties, administrative roles, or special responsibilities"
-            value={formData.additionalResponsibilities || ""}
-            onChange={(e) => onInputChange("additionalResponsibilities", e.target.value)}
-            className="min-h-[100px]"
-          />
+            {/* conditional input shown based on role type; value stored in teacherSubjects */}
+            {formData.teacherRoleType === "teacher" ? (
+              <div className="mt-4">
+                <Label htmlFor="teacherSubjects">Subjects taught in organization *</Label>
+                <Input
+                  id="teacherSubjects"
+                  placeholder="e.g., Mathematics, Grade 6-8"
+                  value={formData.teacherSubjects || ""}
+                  onChange={(e) => onInputChange("teacherSubjects", e.target.value)}
+                  className={invalidFields.includes("teacherSubjects") ? "border-red-500" : ""}
+                />
+                {invalidFields.includes("teacherSubjects") && (
+                  <p className="text-sm text-red-600 mt-1">Please provide subjects or classes taught</p>
+                )}
+              </div>
+            ) : (
+              <div className="mt-4">
+                <Label htmlFor="teacherSubjects">Other role details *</Label>
+                <Input
+                  id="teacherSubjects"
+                  placeholder="Describe the role / designation"
+                  value={formData.teacherSubjects || ""}
+                  onChange={(e) => onInputChange("teacherSubjects", e.target.value)}
+                  className={invalidFields.includes("teacherSubjects") ? "border-red-500" : ""}
+                />
+                {invalidFields.includes("teacherSubjects") && (
+                  <p className="text-sm text-red-600 mt-1">Please provide role details</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="fromDate">From Date *</Label>
+            <Input
+              id="fromDate"
+              type="date"
+              value={formData.fromDate || ""}
+              onChange={(e) => onInputChange("fromDate", e.target.value)}
+              className={invalidFields.includes("fromDate") ? "border-red-500" : ""}
+            />
+            {invalidFields.includes("fromDate") && (
+              <p className="text-sm text-red-600 mt-1">From date is required</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="toDate">To Date *</Label>
+            <Input
+              id="toDate"
+              type="date"
+              value={formData.toDate || ""}
+              onChange={(e) => onInputChange("toDate", e.target.value)}
+              className={invalidFields.includes("toDate") ? "border-red-500" : ""}
+            />
+            {invalidFields.includes("toDate") && (
+              <p className="text-sm text-red-600 mt-1">To date is required</p>
+            )}
+          </div>
+
+          
         </div>
       </CardContent>
     </Card>

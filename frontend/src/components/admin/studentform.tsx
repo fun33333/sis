@@ -60,7 +60,17 @@ export function StudentForm() {
     const requiredFields: { [step: number]: string[] } = {
       1: ["studentPhoto", "name", "gender", "dob", "placeOfBirth", "religion", "motherTongue"],
       2: ["emergencyContact", "zakatStatus", "familyIncome", "houseOwned", "address"],
-      3: ["currentState", "campus", "currentGrade", "section"],
+      // Step 3 (Academic) - require the fields that actually exist in AcademicDetailsStep
+      3: [
+        "campus",
+        "currentGrade",
+        "section",
+        "shift",
+        "admissionYear",
+        "lastClassPassed",
+        "lastSchoolName",
+        "lastClassResult",
+      ],
     }
 
     const required = requiredFields[currentStep] || []

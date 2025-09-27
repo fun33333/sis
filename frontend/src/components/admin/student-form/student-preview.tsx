@@ -16,6 +16,16 @@ export function StudentPreview({ formData, uploadedImages, onBack }: StudentPrev
     // Handle save logic here
     alert("Student information saved successfully!")
   }
+  const hasValue = (v: any) => v !== undefined && v !== null && String(v).trim() !== ""
+
+  const renderField = (label: string, value: any) => {
+    if (!hasValue(value)) return null
+    return (
+      <div>
+        <strong>{label}:</strong> {value}
+      </div>
+    )
+  }
 
   return (
     <Card className="border-2">
@@ -27,113 +37,135 @@ export function StudentPreview({ formData, uploadedImages, onBack }: StudentPrev
         <CardDescription>Review all information before submitting</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {uploadedImages.studentPhoto && (
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <img
-                src={uploadedImages.studentPhoto || "/placeholder.svg"}
-                alt="Student"
-                className="w-32 h-32 object-cover rounded-full border-4 border-primary"
-              />
-            </div>
-          </div>
-        )}
+        {/* Image preview intentionally removed per request */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-lg font-semibold mb-3 text-primary">Personal Information</h3>
-            <div className="space-y-2">
-              <div>
-                <strong>Name:</strong> {formData.name || "N/A"}
-              </div>
-              <div>
-                <strong>Gender:</strong> {formData.gender || "N/A"}
-              </div>
-              <div>
-                <strong>Date of Birth:</strong> {formData.dob || "N/A"}
-              </div>
-              <div>
-                <strong>Place of Birth:</strong> {formData.placeOfBirth || "N/A"}
-              </div>
-              <div>
-                <strong>Religion:</strong> {formData.religion || "N/A"}
-              </div>
-              <div>
-                <strong>Mother Tongue:</strong> {formData.motherTongue || "N/A"}
-              </div>
-            </div>
-          </div>
+          {/* Personal Information */}
+          {(() => {
+            const personal = [
+              { label: "Name", value: formData.name },
+              { label: "Gender", value: formData.gender },
+              { label: "Date of Birth", value: formData.dob },
+              { label: "Place of Birth", value: formData.placeOfBirth },
+              { label: "Religion", value: formData.religion },
+              { label: "Mother Tongue", value: formData.motherTongue },
+            ].filter((f) => hasValue(f.value))
 
-          <div>
-            <h3 className="text-lg font-semibold mb-3 text-primary">Contact Information</h3>
-            <div className="space-y-2">
+            if (personal.length === 0) return null
+
+            return (
               <div>
-                <strong>Emergency Contact:</strong> {formData.emergencyContact || "N/A"}
-              </div>
-              <div>
-                <strong>Address:</strong> {formData.address || "N/A"}
-              </div>
-              <div>
-                <strong>Family Income:</strong> {formData.familyIncome || "N/A"}
-              </div>
-              <div>
-                <strong>House Owned:</strong> {formData.houseOwned || "N/A"}
-              </div>
-              {formData.houseOwned === "no" && (
-                <div>
-                  <strong>Monthly Rent:</strong> {formData.rent || "N/A"}
+                <h3 className="text-lg font-semibold mb-3 text-primary">Personal Information</h3>
+                <div className="space-y-2">
+                  {personal.map((f) => (
+                    <div key={f.label}>
+                      <strong>{f.label}:</strong> {f.value}
+                    </div>
+                  ))}
                 </div>
-              )}
-              <div>
-                <strong>Zakat Status:</strong> {formData.zakatStatus || "N/A"}
               </div>
-            </div>
-          </div>
+            )
+          })()}
 
-          <div>
-            <h3 className="text-lg font-semibold mb-3 text-primary">Academic Information</h3>
-            <div className="space-y-2">
-              <div>
-                <strong>Current State:</strong> {formData.currentState || "N/A"}
-              </div>
-              <div>
-                <strong>Campus:</strong> {formData.campus || "N/A"}
-              </div>
-              <div>
-                <strong>Current Grade:</strong> {formData.currentGrade || "N/A"}
-              </div>
-              <div>
-                <strong>Section:</strong> {formData.section || "N/A"}
-              </div>
-              <div>
-                <strong>GR Number:</strong> {formData.grNumber || "N/A"}
-              </div>
-            </div>
-          </div>
+          {/* Contact Information */}
+          {(() => {
 
-          <div>
-            <h3 className="text-lg font-semibold mb-3 text-primary">Family Information</h3>
-            <div className="space-y-2">
+            const contact = [
+              { label: "Emergency Contact", value: formData.emergencyContact },
+              { label: "Address", value: formData.address },
+              { label: "Family Income", value: formData.familyIncome },
+              { label: "House Owned", value: formData.houseOwned },
+              { label: "Zakat Status", value: formData.zakatStatus },
+            ].filter((f) => hasValue(f.value))
+
+            // include rent only if houseOwned === 'no' and rent has value
+            if (formData.houseOwned === "no" && hasValue(formData.rent)) {
+              contact.push({ label: "Monthly Rent", value: formData.rent })
+            }
+
+            if (contact.length === 0) return null
+
+            return (
               <div>
-                <strong>Father Name:</strong> {formData.fatherName || "N/A"}
+                <h3 className="text-lg font-semibold mb-3 text-primary">Contact Information</h3>
+                <div className="space-y-2">
+                  {contact.map((f) => (
+                    <div key={f.label}>
+                      <strong>{f.label}:</strong> {f.value}
+                    </div>
+                  ))}
+                </div>
               </div>
+            )
+          })()}
+
+          {/* Academic Information */}
+          {(() => {
+            const academic = [
+              { label: "Campus", value: formData.campus },
+              { label: "Current Grade", value: formData.currentGrade },
+              { label: "Section", value: formData.section },
+              { label: "Shift", value: formData.shift },
+              { label: "Year of Admission", value: formData.admissionYear },
+              { label: "Last Class Passed", value: formData.lastClassPassed },
+              { label: "Last School Name", value: formData.lastSchoolName },
+              { label: "Last Class Result", value: formData.lastClassResult },
+              { label: "GR Number", value: formData.grNumber },
+            ].filter((f) => hasValue(f.value))
+
+            if (academic.length === 0) return null
+
+            return (
               <div>
-                <strong>Father Contact:</strong> {formData.fatherContact || "N/A"}
+                <h3 className="text-lg font-semibold mb-3 text-primary">Academic Information</h3>
+                <div className="space-y-2">
+                  {academic.map((f) => (
+                    <div key={f.label}>
+                      <strong>{f.label}:</strong> {f.value}
+                    </div>
+                  ))}
+                </div>
               </div>
+            )
+          })()}
+
+          {/* Family Information */}
+          {(() => {
+            const family = [
+              { label: "Father Name", value: formData.fatherName },
+              { label: "Father Contact", value: formData.fatherContact },
+              { label: "Father CNIC", value: formData.fatherCNIC },
+              { label: "Father Status", value: formData.fatherStatus },
+              { label: "Father Occupation", value: formData.fatherOccupation },
+              { label: "Mother Name", value: formData.motherName },
+              { label: "Mother Contact", value: formData.motherContact },
+              { label: "Mother CNIC", value: formData.motherCNIC },
+              { label: "Mother Status", value: formData.motherStatus },
+              { label: "Mother Occupation", value: formData.motherOccupation },
+              { label: "Guardian Name", value: formData.guardianName },
+              { label: "Guardian Relation", value: formData.guardianRelation },
+              { label: "Guardian Phone", value: formData.guardianPhone },
+              { label: "Guardian CNIC", value: formData.guardianCNIC },
+              { label: "Guardian Occupation", value: formData.guardianOccupation },
+              { label: "Siblings in Alkhair", value: formData.siblingsInAlkhair },
+              { label: "Siblings Names", value: formData.siblingsNames },
+            ].filter((f) => hasValue(f.value))
+
+            if (family.length === 0) return null
+
+            return (
               <div>
-                <strong>Mother Name:</strong> {formData.motherName || "N/A"}
+                <h3 className="text-lg font-semibold mb-3 text-primary">Family Information</h3>
+                <div className="space-y-2">
+                  {family.map((f) => (
+                    <div key={f.label}>
+                      <strong>{f.label}:</strong> {f.value}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div>
-                <strong>Mother Contact:</strong> {formData.motherContact || "N/A"}
-              </div>
-              <div>
-                <strong>Guardian Name:</strong> {formData.guardianName || "N/A"}
-              </div>
-              <div>
-                <strong>Guardian CNIC:</strong> {formData.guardianCNIC || "N/A"}
-              </div>
-            </div>
-          </div>
+            )
+          })()}
         </div>
 
         <Separator />

@@ -21,56 +21,126 @@ export function ContactDetailsStep({ formData, invalidFields, onInputChange }: C
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="emergencyContact">Emergency Contact *</Label>
+            <Label htmlFor="emergencyContact">Emergency Contact Number *</Label>
             <Input
               id="emergencyContact"
               value={formData.emergencyContact || ""}
               onChange={(e) => onInputChange("emergencyContact", e.target.value)}
               className={invalidFields.includes("emergencyContact") ? "border-red-500" : ""}
             />
+            <p className="text-xs text-gray-500 mt-1">Contact must be of father, mother or guardian.</p>
             {invalidFields.includes("emergencyContact") && (
               <p className="text-sm text-red-600 mt-1">Emergency contact is required</p>
             )}
           </div>
 
           <div>
-            <Label htmlFor="zakatStatus">Zakat Status *</Label>
-            <Select value={formData.zakatStatus || ""} onValueChange={(v) => onInputChange("zakatStatus", v)}>
-              <SelectTrigger
-                className={`border-2 focus:border-primary ${invalidFields.includes("zakatStatus") ? "border-red-500" : ""}`}
-              >
+            <Label htmlFor="fatherStatus">Father Status</Label>
+            <Select value={formData.fatherStatus || ""} onValueChange={(v) => onInputChange("fatherStatus", v)}>
+              <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("fatherStatus") ? "border-red-500" : ""}`}>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="eligible">Eligible</SelectItem>
-                <SelectItem value="not-eligible">Not Eligible</SelectItem>
+                <SelectItem value="alive">Alive</SelectItem>
+                <SelectItem value="dead">Dead</SelectItem>
               </SelectContent>
             </Select>
-            {invalidFields.includes("zakatStatus") && (
-              <p className="text-sm text-red-600 mt-1">Zakat status is required</p>
-            )}
           </div>
 
           <div>
-            <Label htmlFor="familyIncome">Family Income *</Label>
+            <Label htmlFor="fatherName">Father Name</Label>
             <Input
-              id="familyIncome"
-              type="number"
-              value={formData.familyIncome || ""}
-              onChange={(e) => onInputChange("familyIncome", e.target.value)}
-              className={invalidFields.includes("familyIncome") ? "border-red-500" : ""}
+              id="fatherName"
+              value={formData.fatherName || ""}
+              onChange={(e) => onInputChange("fatherName", e.target.value)}
             />
-            {invalidFields.includes("familyIncome") && (
-              <p className="text-sm text-red-600 mt-1">Family income is required</p>
-            )}
           </div>
 
           <div>
-            <Label htmlFor="houseOwned">House Owned *</Label>
-            <Select value={formData.houseOwned || ""} onValueChange={(v) => onInputChange("houseOwned", v)}>
-              <SelectTrigger
-                className={`border-2 focus:border-primary ${invalidFields.includes("houseOwned") ? "border-red-500" : ""}`}
-              >
+            <Label htmlFor="fatherCNIC">Father CNIC</Label>
+            <Input
+              id="fatherCNIC"
+              value={formData.fatherCNIC || ""}
+              onChange={(e) => onInputChange("fatherCNIC", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="fatherContact">Father Contact Number</Label>
+            <Input
+              id="fatherContact"
+              value={formData.fatherContact || ""}
+              onChange={(e) => onInputChange("fatherContact", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="fatherOccupation">Father Occupation</Label>
+            <Input
+              id="fatherOccupation"
+              value={formData.fatherOccupation || ""}
+              onChange={(e) => onInputChange("fatherOccupation", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="guardianName">Guardian Name</Label>
+            <Input
+              id="guardianName"
+              value={formData.guardianName || ""}
+              onChange={(e) => onInputChange("guardianName", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="guardianRelation">Guardian's Relation with Student</Label>
+            <Input
+              id="guardianRelation"
+              value={formData.guardianRelation || ""}
+              onChange={(e) => onInputChange("guardianRelation", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="guardianCNIC">Guardian CNIC</Label>
+            <Input
+              id="guardianCNIC"
+              value={formData.guardianCNIC || ""}
+              onChange={(e) => onInputChange("guardianCNIC", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="guardianPhone">Guardian Phone Number</Label>
+            <Input
+              id="guardianPhone"
+              value={formData.guardianPhone || ""}
+              onChange={(e) => onInputChange("guardianPhone", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="guardianOccupation">Guardian Occupation</Label>
+            <Input
+              id="guardianOccupation"
+              value={formData.guardianOccupation || ""}
+              onChange={(e) => onInputChange("guardianOccupation", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="motherName">Mother Name</Label>
+            <Input
+              id="motherName"
+              value={formData.motherName || ""}
+              onChange={(e) => onInputChange("motherName", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="siblingsInAlkhair">Siblings in Al-Khair</Label>
+            <Select value={formData.siblingsInAlkhair || ""} onValueChange={(v) => onInputChange("siblingsInAlkhair", v)}>
+              <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("siblingsInAlkhair") ? "border-red-500" : ""}`}>
                 <SelectValue placeholder="Select option" />
               </SelectTrigger>
               <SelectContent>
@@ -78,106 +148,117 @@ export function ContactDetailsStep({ formData, invalidFields, onInputChange }: C
                 <SelectItem value="no">No</SelectItem>
               </SelectContent>
             </Select>
-            {invalidFields.includes("houseOwned") && (
-              <p className="text-sm text-red-600 mt-1">House owned status is required</p>
-            )}
+          </div>
+
+          {formData.siblingsInAlkhair === "yes" && (
+            <div className="md:col-span-2">
+              <Label htmlFor="siblingsNames">Names of siblings in Alkhair</Label>
+              <Input
+                id="siblingsNames"
+                value={formData.siblingsNames || ""}
+                onChange={(e) => onInputChange("siblingsNames", e.target.value)}
+              />
+            </div>
+          )}
+
+          <div>
+            <Label htmlFor="motherCNIC">Mother CNIC</Label>
+            <Input
+              id="motherCNIC"
+              value={formData.motherCNIC || ""}
+              onChange={(e) => onInputChange("motherCNIC", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="motherStatus">Mother Status</Label>
+            <Select value={formData.motherStatus || ""} onValueChange={(v) => onInputChange("motherStatus", v)}>
+              <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("motherStatus") ? "border-red-500" : ""}`}>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="widowed">Widowed</SelectItem>
+                <SelectItem value="divorced">Divorced</SelectItem>
+                <SelectItem value="married">Married</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="motherContact">Mother Contact Number</Label>
+            <Input
+              id="motherContact"
+              value={formData.motherContact || ""}
+              onChange={(e) => onInputChange("motherContact", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="motherOccupation">Mother Occupation</Label>
+            <Input
+              id="motherOccupation"
+              value={formData.motherOccupation || ""}
+              onChange={(e) => onInputChange("motherOccupation", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="zakatStatus">Zakat Status</Label>
+            <Select value={formData.zakatStatus || ""} onValueChange={(v) => onInputChange("zakatStatus", v)}>
+              <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("zakatStatus") ? "border-red-500" : ""}`}>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="applicable">Applicable</SelectItem>
+                <SelectItem value="not-applicable">Not Applicable</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="familyIncome">Family Income</Label>
+            <Input
+              id="familyIncome"
+              type="number"
+              value={formData.familyIncome || ""}
+              onChange={(e) => onInputChange("familyIncome", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="houseOwned">House Owned</Label>
+            <Select value={formData.houseOwned || ""} onValueChange={(v) => onInputChange("houseOwned", v)}>
+              <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("houseOwned") ? "border-red-500" : ""}`}>
+                <SelectValue placeholder="Select option" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="yes">Yes</SelectItem>
+                <SelectItem value="no">No</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {formData.houseOwned === "no" && (
             <div>
-              <Label htmlFor="rent">Monthly Rent *</Label>
+              <Label htmlFor="rent">House Rent</Label>
               <Input
                 id="rent"
                 type="number"
                 value={formData.rent || ""}
                 onChange={(e) => onInputChange("rent", e.target.value)}
-                className={invalidFields.includes("rent") ? "border-red-500" : ""}
               />
-              {invalidFields.includes("rent") && (
-                <p className="text-sm text-red-600 mt-1">Rent is required when house is not owned</p>
-              )}
             </div>
           )}
         </div>
 
         <div>
-          <Label htmlFor="address">Address *</Label>
+          <Label htmlFor="address">Address</Label>
           <Textarea
             id="address"
             value={formData.address || ""}
             onChange={(e) => onInputChange("address", e.target.value)}
             className={invalidFields.includes("address") ? "border-red-500" : ""}
           />
-          {invalidFields.includes("address") && <p className="text-sm text-red-600 mt-1">Address is required</p>}
-        </div>
-
-        {/* Parent/Guardian Information */}
-        <div className="space-y-4 border-t pt-4">
-          <h3 className="text-lg font-semibold">Parent/Guardian Information</h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="fatherName">Father Name</Label>
-              <Input
-                id="fatherName"
-                value={formData.fatherName || ""}
-                onChange={(e) => onInputChange("fatherName", e.target.value)}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="fatherContact">Father Contact</Label>
-              <Input
-                id="fatherContact"
-                value={formData.fatherContact || ""}
-                onChange={(e) => onInputChange("fatherContact", e.target.value)}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="motherName">Mother Name</Label>
-              <Input
-                id="motherName"
-                value={formData.motherName || ""}
-                onChange={(e) => onInputChange("motherName", e.target.value)}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="motherContact">Mother Contact</Label>
-              <Input
-                id="motherContact"
-                value={formData.motherContact || ""}
-                onChange={(e) => onInputChange("motherContact", e.target.value)}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="guardianName">Guardian Name</Label>
-              <Input
-                id="guardianName"
-                value={formData.guardianName || ""}
-                onChange={(e) => onInputChange("guardianName", e.target.value)}
-                className={invalidFields.includes("guardianName") ? "border-red-500" : ""}
-              />
-              {invalidFields.includes("guardianName") && (
-                <p className="text-sm text-red-600 mt-1">Guardian name is required when parents info is missing</p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="guardianCNIC">Guardian CNIC</Label>
-              <Input
-                id="guardianCNIC"
-                value={formData.guardianCNIC || ""}
-                onChange={(e) => onInputChange("guardianCNIC", e.target.value)}
-                className={invalidFields.includes("guardianCNIC") ? "border-red-500" : ""}
-              />
-              {invalidFields.includes("guardianCNIC") && (
-                <p className="text-sm text-red-600 mt-1">Guardian CNIC is required when parents info is missing</p>
-              )}
-            </div>
-          </div>
         </div>
       </CardContent>
     </Card>

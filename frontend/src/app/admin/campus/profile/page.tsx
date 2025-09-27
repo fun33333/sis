@@ -432,7 +432,6 @@ export default function AdminCampusProfilePage() {
               </div>
             </div>
           </div>
-         
         </section>
 
         <aside className="space-y-6">
