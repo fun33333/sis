@@ -1,4 +1,6 @@
-export interface Student {
+// Legacy Student interface - keeping for backward compatibility
+export interface LegacyStudent {
+  current_grade: string
   rawData: any
   studentId: string
   name: string
@@ -87,5 +89,99 @@ export type CampusCreateRequest = {
   admission_office_contact: string | null;
   photo?: string | null;
   is_draft: boolean;
+};
+
+// Student Types
+export type Student = {
+  id: number;
+  name: string;
+  gender?: string;
+  dob?: string;
+  place_of_birth?: string;
+  religion?: string;
+  mother_tongue?: string;
+  emergency_contact?: string;
+  address?: string;
+  family_income?: number;
+  house_owned: boolean;
+  rent_amount?: number;
+  zakat_status?: string;
+  campus?: {
+    id: number;
+    name: string;
+  } | null;
+  current_grade?: string;
+  section?: string;
+  last_class_passed?: string;
+  last_school_name?: string;
+  gr_no?: string;
+  father_name?: string;
+  father_contact?: string;
+  father_cnic?: string;
+  father_occupation?: string;
+  mother_name?: string;
+  mother_contact?: string;
+  mother_cnic?: string;
+  mother_status?: string;
+  mother_occupation?: string;
+  guardian_name?: string;
+  guardian_cnic?: string;
+  guardian_occupation?: string;
+  photo?: string;
+  current_state: string;
+  is_draft: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type StudentCreateRequest = {
+  // Personal Information
+  name: string;
+  gender: string;
+  date_of_birth: string;
+  place_of_birth: string;
+  religion: string;
+  mother_tongue: string;
+  
+  // Contact Information
+  emergency_contact: string;
+  address: string;
+  family_income: string;
+  house_owned: boolean;
+  monthly_rent?: string | null;
+  zakat_status: string;
+  
+  // Academic Information
+  campus: string;
+  current_grade: string;
+  section: string;
+  shift: string;
+  admission_year: string;
+  last_class_passed: string;
+  last_school_name: string;
+  last_class_result: string;
+  gr_number?: string;
+  
+  // Family Information
+  father_name?: string;
+  father_contact?: string;
+  father_cnic?: string;
+  father_status?: string;
+  father_occupation?: string;
+  mother_name?: string;
+  mother_contact?: string;
+  mother_cnic?: string;
+  mother_status?: string;
+  mother_occupation?: string;
+  guardian_name?: string;
+  guardian_relation?: string;
+  guardian_phone?: string;
+  guardian_cnic?: string;
+  guardian_occupation?: string;
+  siblings_in_alkhair?: string;
+  siblings_names?: string;
+  
+  // Photo
+  photo?: string | null;
 };
   

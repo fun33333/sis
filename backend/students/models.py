@@ -19,14 +19,12 @@ class Student(models.Model):
 
     # --- Contact Details ---
     emergency_contact = models.CharField(max_length=20, null=True, blank=True)
-    primary_phone = models.CharField(max_length=20, null=True, blank=True)
 
     father_name = models.CharField(max_length=200, null=True, blank=True)
     father_cnic = models.CharField(max_length=20, null=True, blank=True)
     father_contact = models.CharField(max_length=20, null=True, blank=True)
     father_occupation = models.CharField(max_length=200, null=True, blank=True)
 
-    secondary_phone = models.CharField(max_length=20, null=True, blank=True)
     guardian_name = models.CharField(max_length=200, null=True, blank=True)
     guardian_cnic = models.CharField(max_length=20, null=True, blank=True)
     guardian_occupation = models.CharField(max_length=200, null=True, blank=True)
@@ -63,12 +61,8 @@ class Student(models.Model):
     campus = models.ForeignKey("campus.Campus", on_delete=models.SET_NULL, null=True, blank=True)
     current_grade = models.CharField(max_length=50, null=True, blank=True)
     section = models.CharField(max_length=10, null=True, blank=True)
-    reason_for_transfer = models.TextField(null=True, blank=True)
-    to_year = models.CharField(max_length=20, null=True, blank=True)
-    from_year = models.CharField(max_length=20, null=True, blank=True)
     last_class_passed = models.CharField(max_length=50, null=True, blank=True)
     last_school_name = models.CharField(max_length=200, null=True, blank=True)
-    old_gr_no = models.CharField(max_length=50, null=True, blank=True)
 
     # ⚠️ GR No is optional now
     gr_no = models.CharField(max_length=50, null=True, blank=True, unique=False)

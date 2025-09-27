@@ -53,11 +53,11 @@ export default function StudentListPage() {
 
   const filtered = useMemo(() => {
     return students.filter((s) => {
-      if (teacherClass && s.grade !== teacherClass) return false;
+      if (teacherClass && s.current_grade !== teacherClass) return false;
       if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false
-      if (yearFilter !== "all" && String(s.academicYear) !== yearFilter) return false
-      if (campusFilter !== "all" && s.campus !== campusFilter) return false
-      if (gradeFilter !== "all" && s.grade !== gradeFilter) return false
+      if (yearFilter !== "all" && String(s.created_at?.split('-')[0]) !== yearFilter) return false
+      if (campusFilter !== "all" && s.campus?.name !== campusFilter) return false
+      if (gradeFilter !== "all" && s.current_grade !== gradeFilter) return false
       return true
     })
   }, [search, yearFilter, campusFilter, gradeFilter, students, teacherClass])
@@ -169,15 +169,15 @@ export default function StudentListPage() {
                 const isActive = Math.random() > 0.2
                 return (
                   <TableRow
-                    key={s.studentId}
+                    key={s.id || idx}
                     className={`cursor-pointer hover:bg-[#a3cef1]  transition ${idx % 2 === 0 ? "bg-[#e7ecef]" : "bg-white"
                       }`}
-                    onClick={() => router.push(`/admin/students/profile?studentId=${s.studentId}`)}
+                    onClick={() => router.push(`/admin/students/profile?studentId=${s.id}`)}
                   >
                     <TableCell className="font-medium">{s.name}</TableCell>
-                    <TableCell>{s.studentId}</TableCell>
-                    <TableCell>{s.campus}</TableCell>
-                    <TableCell>{s.grade}</TableCell>
+                    <TableCell>{s.gr_no || 'N/A'}</TableCell>
+                    <TableCell>{s.campus?.name || 'N/A'}</TableCell>
+                    <TableCell>{s.current_grade || 'N/A'}</TableCell>
                     <TableCell>{Math.random() > 0.5 ? 'Morning' : 'Evening'}</TableCell>
                     <TableCell>
                       {isActive ? (

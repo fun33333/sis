@@ -2,7 +2,7 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, Building2, GraduationCap, TrendingUp, LogOut } from "lucide-react"
+import { Users, Building2, GraduationCap, TrendingUp, LogOut, Award } from "lucide-react"
 import { useState, useEffect } from "react"
 
 
@@ -28,23 +28,36 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
 
   const pathname = usePathname()
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
   useEffect(() => {
     if (typeof window !== "undefined") {
       const userStr = window.localStorage.getItem("sis_user");
       if (userStr) {
         try {
           const user = JSON.parse(userStr);
-          setUserRole(user.role);
-        } catch { }
+          let roleRaw = String(user.role || "");
+          const roleNorm = roleRaw.toLowerCase().trim();
+          // Normalize common variants just in case
+          const normalized = roleNorm.includes("coord")
+            ? "coordinator"
+            : roleNorm.includes("teach")
+            ? "teacher"
+            : roleNorm.includes("admin")
+            ? "superadmin"
+            : roleNorm; // fallback to whatever it is
+          setUserRole(normalized);
+        } catch {
+          setUserRole(null);
+        }
       } else {
         setUserRole(null);
       }
+      setIsReady(true);
     }
   }, []);
 
-  // Restrict teacher menu if teacher is logged in, superadmin gets all access
+  // Restrict menu based on user role
   const menuItems = userRole === "teacher"
-
     ? [
       {
         key: "students",
@@ -66,6 +79,25 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Attendance", href: "/admin/teachers/attendance" },
           { title: "Class Statistics", href: "/admin/teachers/stats" },
           { title: "Class Reasult", href: "/admin/teachers/reasult" },
+        ],
+      },
+    ]
+    : userRole === "coordinator"
+    ? [
+      {
+        key: "coordinator",
+        title: "Co-Ordinator",
+        icon: Award,
+        href: "/admin/coordinator",
+        subItems: [
+          { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
+          { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
+          { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
+          { title: "Result Approval", href: "/admin/coordinator/result-approval" },
+          { title: "Class Assign", href: "/admin/coordinator/class-assign" },
+          { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
+          { title: "Time Table", href: "/admin/coordinator/time-table" },
+          { title: "Sections Progress", href: "/admin/coordinator/sections-progress" },
         ],
       },
     ]
@@ -114,7 +146,32 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Campus List", href: "/admin/campus/list" },
         ],
       },
+      {
+        key: "coordinator",
+        title: "Co-Ordinator",
+        icon: Award,
+        href: "/admin/coordinator",
+        subItems: [
+          { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
+          { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
+          { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
+          { title: "Result Approval", href: "/admin/coordinator/result-approval" },
+          { title: "Class Assign", href: "/admin/coordinator/class-assign" },
+          { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
+          { title: "Time Table", href: "/admin/coordinator/time-table" },
+          { title: "Sections Progress", href: "/admin/coordinator/sections-progress" },
+        ],
+      },
     ];
+
+  if (!isReady) {
+    return (
+      <aside
+        className={`h-screen fixed left-0 top-0 flex flex-col justify-between rounded-r-3xl border-r z-20 ${sidebarOpen ? "w-72 px-4 py-8" : "w-18 px-2 py-4"}`}
+        style={{ background: "#e7ecef", borderRight: "3px solid #1c3f67ff" }}
+      />
+    );
+  }
 
   return (
     <aside
@@ -212,26 +269,31 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
               </div>
             )
           })}
+          {(userRole === "teacher" || userRole === "coordinator" || userRole === "superadmin") && (
+            <button
+              onClick={() => {
+                window.localStorage.removeItem("sis_user");
+                window.location.href = "/Universal_Login";
+              }}
+              className={`w-full flex ${sidebarOpen ? "items-center gap-3 px-4 py-3" : "justify-center items-center p-0"} rounded-xl font-semibold shadow-lg transition-all duration-500 text-red-700 hover:bg-red-50 mt-2`}
+              style={{
+                border: "1.5px solid #ef4444",
+              }}
+            >
+              <span className={`${sidebarOpen ? "flex items-center justify-center" : "flex items-center justify-center w-12 h-12"} transition-all duration-500`}>
+                <LogOut className="h-6 w-6" />
+              </span>
+              <span
+                className={`sidebar-label inline-block whitespace-nowrap overflow-hidden transition-all duration-500 ${sidebarOpen && showText ? 'opacity-100 max-w-xs ml-2' : 'opacity-0 max-w-0 ml-0'}`}
+                style={{
+                  transition: 'opacity 0.5s, max-width 0.5s, margin-left 0.5s',
+                }}
+              >
+                {showText ? "Logout" : ''}
+              </span>
+            </button>
+          )}
         </nav>
-        {/* Logout button for teacher and superadmin */}
-        {(userRole === "teacher" || userRole === "superadmin") && (
-          <button
-            className={`w-full mt-2 flex items-center justify-center ${sidebarOpen ? "py-2 px-4" : "py-2 px-0"} border-3 border-red-500 rounded-lg bg-red-100 text-red-600 font-bold hover:bg-red-200 transition-colors`}
-            title="Logout"
-            onClick={() => {
-              window.localStorage.removeItem("sis_user");
-              window.location.href = "/Universal_Login";
-            }}
-          >
-            {sidebarOpen ? (
-              <>
-                <LogOut className="mr-2" /> Logout
-              </>
-            ) : (
-              <LogOut className="text-2xl" />
-            )}
-          </button>
-        )}
       </div>
     </aside>
   )
