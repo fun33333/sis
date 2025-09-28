@@ -16,9 +16,9 @@ class StudentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def gender_stats(self, request):
-        male = Student.objects.filter(gender="Male").count()
-        female = Student.objects.filter(gender="Female").count()
-        other = Student.objects.filter(gender="Other").count()
+        male = Student.objects.filter(gender="male").count()
+        female = Student.objects.filter(gender="female").count()
+        other = Student.objects.filter(gender="other").count()
         return Response({
             "male": male,
             "female": female,

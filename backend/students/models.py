@@ -73,12 +73,40 @@ class Student(models.Model):
     # ⚠️ GR No is optional now
     gr_no = models.CharField(max_length=50, null=True, blank=True, unique=False)
 
+    # --- ID Generation Fields ---
+    student_id = models.CharField(max_length=20, unique=True, null=True, blank=True)  # C03-M-25-00456
+    enrollment_year = models.IntegerField(null=True, blank=True)  # Year when student joined
+    student_number = models.IntegerField(null=True, blank=True)  # Sequential number for the year
+    shift = models.CharField(max_length=10, null=True, blank=True)  # M=Morning, E=Evening
+
     # --- System Fields ---
     is_draft = models.BooleanField(default=True)  # True = Draft Save, False = Final Save
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.name} ({self.gr_no or 'No GR'})"
+        return f"{self.name} ({self.student_id or self.gr_no or 'No ID'})"
+    
+    def generate_student_id(self):
+        """
+        Generate student ID based on campus, shift, enrollment year, and student number
+        """
+        if not all([self.campus, self.shift, self.enrollment_year, self.student_number]):
+            return None
+        
+        from users.utils import generate_student_id, get_shift_code
+        
+        campus_code = self.campus.code or f"C{self.campus.id:02d}"
+        shift_code = get_shift_code(self.shift)
+        year = str(self.enrollment_year)[-2:]  # Last 2 digits of year
+        
+        return generate_student_id(campus_code, shift_code, year, self.student_number)
+    
+    def save(self, *args, **kwargs):
+        # Generate student_id if not exists
+        if not self.student_id and all([self.campus, self.shift, self.enrollment_year, self.student_number]):
+            self.student_id = self.generate_student_id()
+        
+        super().save(*args, **kwargs)
 
 #done

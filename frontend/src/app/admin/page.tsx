@@ -13,7 +13,8 @@ import { ArrowLeft, Calendar, GraduationCap, TrendingUp, Users, Download, Chevro
 import { CAMPUSES, GRADES, ACADEMIC_YEARS, MOTHER_TONGUES, RELIGIONS, getGradeDistribution, getGenderDistribution, getCampusPerformance, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution } from "@/data/mockData"
 import type { FilterState, DashboardMetrics, Student } from "@/types/dashboard"
 import { StudentTable } from "@/components/dashboard/student-table"
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation"
+import { getDashboardStats, getAllStudents, getAllCampuses } from "@/lib/api"
 
 if (typeof window !== 'undefined') {
   import('html2pdf.js').then(mod => { (window as any).html2pdf = mod.default; });
@@ -113,32 +114,71 @@ export default function MainDashboardPage() {
   useEffect(() => {
     document.title = "Dashboard | IAK SMS"
     let loaderTimeout: NodeJS.Timeout;
-    async function fetchStudents() {
+    
+    async function fetchData() {
       setLoading(true)
-      const res = await fetch("/csvjson.json")
-      const data = await res.json()
-      const mapped: Student[] = data.map((item: any, idx: number) => {
-        let academicYear = Number(item["Year of Admission"])
-        if (isNaN(academicYear)) academicYear = 2025
-        return {
-          studentId: `CSV${idx + 1}`,
-          name: item["Student Name"] || "Unknown",
-          academicYear,
-          campus: item["Campus"] || "Unknown",
-          grade: item["Current Grade/Class"] || "Unknown",
-          gender: item["Gender"] === "Male" || item["Gender"] === "Female" ? item["Gender"] : "Other",
-          motherTongue: item["Mother Tongue"] || "Other",
-          religion: item["Religion"] || "Other",
-          attendancePercentage: Math.floor(Math.random() * 31) + 70,
-          averageScore: Math.floor(Math.random() * 41) + 60,
-          retentionFlag: Math.random() > 0.2,
-          enrollmentDate: new Date(),
+      try {
+        // Try to fetch from API first
+        const [apiStudents, apiStats] = await Promise.all([
+          getAllStudents(),
+          getDashboardStats()
+        ])
+
+        // Urdu roman: Yahan pe hum ensure kar rahe hain ke apiStudents array hai aur us par length aur map dono kaam karen.
+        // English: Here we ensure that apiStudents is an array so that length and map work correctly.
+        const studentsArray = Array.isArray(apiStudents) ? apiStudents : [];
+        if (studentsArray.length > 0) {
+          // Use API data
+          const mapped: Student[] = studentsArray.map((item: any, idx: number) => ({
+            studentId: item.id?.toString() || `API${idx + 1}`,
+            name: item.name || "Unknown",
+            academicYear: 2024, // Default year, can be enhanced
+            campus: item.campus?.name || "Unknown",
+            grade: item.current_grade || "Unknown",
+            gender: item.gender === "male" ? "Male" : item.gender === "female" ? "Female" : "Other",
+            motherTongue: item.mother_tongue || "Other",
+            religion: item.religion || "Other",
+            attendancePercentage: Math.floor(Math.random() * 31) + 70, // Mock data for now
+            averageScore: Math.floor(Math.random() * 41) + 60, // Mock data for now
+            retentionFlag: item.current_state === "active",
+            enrollmentDate: new Date(item.created_at || new Date()),
+            rawData: item
+          }))
+          setStudents(mapped)
+        } else {
+          // Fallback to CSV data
+          const res = await fetch("/csvjson.json")
+          const data = await res.json()
+          const mapped: Student[] = data.map((item: any, idx: number) => {
+            let academicYear = Number(item["Year of Admission"])
+            if (isNaN(academicYear)) academicYear = 2025
+            return {
+              studentId: `CSV${idx + 1}`,
+              name: item["Student Name"] || "Unknown",
+              academicYear,
+              campus: item["Campus"] || "Unknown",
+              grade: item["Current Grade/Class"] || "Unknown",
+              gender: item["Gender"] === "Male" || item["Gender"] === "Female" ? item["Gender"] : "Other",
+              motherTongue: item["Mother Tongue"] || "Other",
+              religion: item["Religion"] || "Other",
+              attendancePercentage: Math.floor(Math.random() * 31) + 70,
+              averageScore: Math.floor(Math.random() * 41) + 60,
+              retentionFlag: Math.random() > 0.2,
+              enrollmentDate: new Date(),
+            }
+          })
+          setStudents(mapped)
         }
-      })
-      setStudents(mapped)
-      setLoading(false)
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        // Fallback to empty array
+        setStudents([])
+      } finally {
+        setLoading(false)
+      }
     }
-    fetchStudents()
+    
+    fetchData()
     loaderTimeout = setTimeout(() => {
       setShowLoader(false)
     }, 3000)

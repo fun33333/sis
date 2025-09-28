@@ -30,11 +30,45 @@ class Teacher(models.Model):
     current_address = models.TextField(blank=True, null=True)
     marital_status = models.CharField(max_length=20, choices=MARITAL_STATUS_CHOICES, blank=True, null=True)
     save_status = models.CharField(max_length=10, choices=SAVE_STATUS_CHOICES, default="draft")
+    
+    # --- ID Generation Fields ---
+    teacher_id = models.CharField(max_length=20, unique=True, null=True, blank=True)  # C01-M-25-T-0045
+    joining_year = models.IntegerField(null=True, blank=True)  # Year when teacher joined
+    teacher_number = models.IntegerField(null=True, blank=True)  # Sequential number for the year
+    shift = models.CharField(max_length=10, null=True, blank=True)  # M=Morning, E=Evening
+    campus = models.ForeignKey(Campus, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # --- System Fields ---
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.full_name
+        return f"{self.full_name} ({self.teacher_id or 'No ID'})"
+    
+    def generate_teacher_id(self, role='teacher'):
+        """
+        Generate teacher ID based on campus, shift, joining year, role, and teacher number
+        """
+        if not all([self.campus, self.shift, self.joining_year, self.teacher_number]):
+            return None
+        
+        from users.utils import generate_teacher_id, get_shift_code, get_role_code
+        
+        campus_code = self.campus.code or f"C{self.campus.id:02d}"
+        shift_code = get_shift_code(self.shift)
+        year = str(self.joining_year)[-2:]  # Last 2 digits of year
+        role_code = get_role_code(role)
+        
+        return generate_teacher_id(campus_code, shift_code, year, role_code, self.teacher_number)
+    
+    def save(self, *args, **kwargs):
+        # Generate teacher_id if not exists
+        if not self.teacher_id and all([self.campus, self.shift, self.joining_year, self.teacher_number]):
+            # Default role is 'teacher', can be overridden
+            role = getattr(self, 'role', 'teacher')
+            self.teacher_id = self.generate_teacher_id(role)
+        
+        super().save(*args, **kwargs)
 
 class TeacherEducation(models.Model):
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name="educations")
