@@ -210,7 +210,7 @@ export function ContactDetailsStep({ formData, invalidFields, onInputChange }: C
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="applicable">Applicable</SelectItem>
-                <SelectItem value="not-applicable">Not Applicable</SelectItem>
+                <SelectItem value="not_applicable">Not Applicable</SelectItem>
               </SelectContent>
             </Select>
           </div>

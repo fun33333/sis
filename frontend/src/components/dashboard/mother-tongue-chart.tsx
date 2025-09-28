@@ -24,27 +24,12 @@ function MotherTongueTooltip({ active, payload }: any) {
 }
 
 export function MotherTongueChart({ data }: MotherTongueChartProps) {
-  // Group languages with < 20 students into 'Others'
-  const threshold = 20;
-  const mainLanguages = data.filter((item) => item.value >= threshold);
-  const otherLanguages = data.filter((item) => item.value < threshold);
-
-  const othersCount = otherLanguages.reduce((sum, item) => sum + item.value, 0);
-
-  // Prepare chart data for recharts
-  let chartData = mainLanguages.map((item) => ({
-    motherTongue: item.name.slice(0, 3),
+  // Use exact DB labels and counts without grouping; trim already handled upstream
+  const chartData = data.map((item) => ({
+    motherTongue: item.name,
     fullName: item.name,
     students: item.value,
-  }));
-
-  if (othersCount > 0) {
-    chartData.push({
-      motherTongue: 'Oth',
-      fullName: 'Others',
-      students: othersCount,
-    });
-  }
+  }))
 
   const BAR_COLORS = [
     '#E7ECEF',
@@ -66,7 +51,7 @@ export function MotherTongueChart({ data }: MotherTongueChartProps) {
     <Card>
       <CardHeader>
         <CardTitle>Mother Tongue Distribution</CardTitle>
-        <CardDescription>Student distribution by mother tongue</CardDescription>
+        <CardDescription>Students by mother tongue (exact DB labels)</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
@@ -82,7 +67,7 @@ export function MotherTongueChart({ data }: MotherTongueChartProps) {
                 tickMargin={10}
                 axisLine={false}
                 interval={0}
-                tickFormatter={(value) => value.slice(0, 3)}
+                tick={{ fontSize: 12, angle: -20 }}
               />
               <YAxis
                 dataKey="students"

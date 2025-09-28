@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useMemo, useState } from "react"
-import { CAMPUSES } from "@/data/mockData"
+import { apiGet } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -38,8 +38,8 @@ type TransferRequest = {
 }
 
 // Helper: map campus name to code C01..C99
-function campusCodeFromName(name: string) {
-  const idx = CAMPUSES.indexOf(name)
+function campusCodeFromName(name: string, all: string[]) {
+  const idx = all.indexOf(name)
   if (idx === -1) return "C00"
   return `C${String(idx + 1).padStart(2, "0")}`
 }
@@ -63,8 +63,8 @@ type Student = {
   academicYear?: number;
 };
 
-function generateNewStudentId(campusName: string, shift: Shift, student: Student) {
-  const code = campusCodeFromName(campusName);
+function generateNewStudentId(campusName: string, shift: Shift, student: Student, campusOptions: string[]) {
+  const code = campusCodeFromName(campusName, campusOptions);
   const year = admissionYearShort(student.academicYear || new Date().getFullYear());
   const serial = serialFromStudentId(student.studentId);
   return `${code}-${shift}-${year}-${serial}`;
@@ -95,22 +95,32 @@ export default function TransferModulePage() {
     academicYear?: number;
   };
   const [students, setStudents] = useState<Student[]>([]);
+  const [campusOptions, setCampusOptions] = useState<string[]>([]);
 
-  // Fetch students from csvjson.json on mount
+  // Fetch real students and campuses
   React.useEffect(() => {
-    fetch("/csvjson.json")
-      .then((res) => res.json())
-      .then((data: CsvStudent[]) => {
-        const mapped = data.map((s) => ({
-          studentId: (s["Student ID"] || s["GR No"] || s["Composite key"] || s["Student Name"]+s["Father Name"]+s["Father Contact Number"] || "").toString(),
-          name: s["Student Name"] || "",
-          campus: s["Campus"] || "",
-          grade: s["Current Grade/Class"] || "",
-          academicYear: Number(s["Year of Admission"] || new Date().getFullYear()),
-        }));
-        setStudents(mapped);
-      });
-  }, []);
+    async function load() {
+      try {
+        const [studentsApi, campusesApi] = await Promise.all([
+          apiGet<any[]>("/api/students/"),
+          apiGet<any[]>("/api/campus/"),
+        ])
+        const mapped = (studentsApi || []).map((s: any) => ({
+          studentId: String(s.gr_no || s.id || ""),
+          name: s.name || "",
+          campus: (s.campus?.name || s.campus || "").toString(),
+          grade: (s.current_grade || "").toString(),
+          academicYear: Number((s.created_at || "").toString().split('-')[0]) || new Date().getFullYear(),
+        }))
+        setStudents(mapped)
+        setCampusOptions((campusesApi || []).map((c: any) => c.name).filter(Boolean))
+      } catch {
+        setStudents([])
+        setCampusOptions([])
+      }
+    }
+    void load()
+  }, [])
   const [search, setSearch] = useState("");
   const filteredStudents = useMemo(() => {
     if (!search) return students;
@@ -142,8 +152,8 @@ export default function TransferModulePage() {
     if (!selectedStudent) return "";
     const campus = newCampus ?? selectedStudent?.campus;
     const shift = newShift ?? ("M" as Shift);
-    return generateNewStudentId(campus, shift, selectedStudent);
-  }, [selectedStudent, newCampus, newShift]);
+    return generateNewStudentId(campus, shift, selectedStudent, campusOptions);
+  }, [selectedStudent, newCampus, newShift, campusOptions]);
 
   // Removed unused createRequest function to resolve ESLint error
 
@@ -443,7 +453,7 @@ export default function TransferModulePage() {
                           <SelectValue placeholder="Select new campus" />
                         </SelectTrigger>
                         <SelectContent className="bg-white text-black">
-                          {CAMPUSES.map((c) => (
+                          {campusOptions.map((c) => (
                             <SelectItem
                               key={c}
                               value={c}

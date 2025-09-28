@@ -49,6 +49,15 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
     return campusMap[campusName] || null
   }
 
+  const normalizeZakatStatus = (value: string | undefined): string | null => {
+    const v = (value || "").toString().trim().toLowerCase()
+    // Map UI options to backend choices
+    if (v === "applicable") return "applicable"
+    if (v === "not-applicable" || v === "not applicable" || v === "no") return "not_applicable"
+    if (!v) return null
+    return v
+  }
+
   const buildPayload = () => {
     const payload: any = {
       // Personal Information - Only name is required
@@ -67,7 +76,7 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
       family_income: formData.familyIncome ? parseFloat(formData.familyIncome) : null,
       house_owned: formData.houseOwned === "yes",
       rent_amount: formData.houseOwned === "no" && formData.rent ? parseFloat(formData.rent) : null,
-      zakat_status: formData.zakatStatus || null,
+      zakat_status: normalizeZakatStatus(formData.zakatStatus),
       
       // Academic Information
       campus: getCampusId(formData.campus),

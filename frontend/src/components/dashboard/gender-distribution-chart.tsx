@@ -8,10 +8,11 @@ interface GenderDistributionChartProps {
   data: ChartData[]
 }
 
-// Custom palette for gender chart (using provided palette)
-const GENDER_COLORS = {
-  Male: '#274C77', // blue
-  Female: '#de3492ff', // teal-pink
+// Custom palette for gender chart (case-insensitive keys)
+const GENDER_COLORS: Record<string, string> = {
+  female: '#274C77', // blue
+  male: '#de3492ff', // teal-pink
+  other: '#a3a3a3',
 }
 
 export function GenderDistributionChart({ data }: GenderDistributionChartProps) {
@@ -51,12 +52,12 @@ export function GenderDistributionChart({ data }: GenderDistributionChartProps) 
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={dataWithTotal} cx="50%" cy="50%" outerRadius={120} dataKey="value">
-                {dataWithTotal.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={GENDER_COLORS[entry.name as keyof typeof GENDER_COLORS] || "hsl(var(--chart-4))"}
-                  />
-                ))}
+                {dataWithTotal.map((entry: any, index: number) => {
+                  const key = (entry?.name ?? '').toString().trim().toLowerCase()
+                  const mapped = GENDER_COLORS[key]
+                  const fill = mapped || entry?.fill || '#3B82F6'
+                  return <Cell key={`cell-${index}`} fill={fill} />
+                })}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
               <Legend
