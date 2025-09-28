@@ -4,7 +4,7 @@ import React from "react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CAMPUSES, mockStudents, getCampusPerformance } from "@/data/mockData"
+// mock data removed; using real API data only
 import { apiGet } from "@/lib/api"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
@@ -27,15 +27,7 @@ export default function CampusListPage() {
 
   const filtered = campuses.filter((c) => c.name?.toLowerCase().includes(query.toLowerCase()))
 
-  // still keep this function for small perf UI until real metrics are added
-  const campusPerformance = React.useMemo(() => getCampusPerformance(mockStudents), [])
-
-  const getCampusMetric = (campusName: string) => {
-    const studentCount = mockStudents.filter((s) => s.campus === campusName).length
-    const perf = campusPerformance.find((p) => p.name === campusName)
-    const avgScore = perf ? perf.value : 0
-    return { studentCount, avgScore }
-  }
+  // metrics from API data only (fallbacks to 0 for avg score)
 
   React.useEffect(() => {
     let mounted = true
@@ -92,7 +84,8 @@ export default function CampusListPage() {
         ) : (
           <div>
             {filtered.map((c, i) => {
-              const { studentCount, avgScore } = getCampusMetric(c.name)
+              const studentCount = typeof c.num_students === 'number' ? c.num_students : 0
+              const avgScore = 0
               return (
                 <Link
                   key={c.id}

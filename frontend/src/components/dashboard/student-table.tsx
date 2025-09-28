@@ -8,13 +8,13 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
-import type { Student } from "@/types/dashboard"
+import type { LegacyStudent as DashboardStudent } from "@/types/dashboard"
 
 interface StudentTableProps {
-  students: Student[]
+  students: DashboardStudent[]
 }
 
-type SortField = keyof Student
+type SortField = keyof DashboardStudent
 type SortDirection = "asc" | "desc"
 
 export function StudentTable({ students }: StudentTableProps) {
@@ -32,8 +32,8 @@ export function StudentTable({ students }: StudentTableProps) {
       (student) =>
         student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.campus.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.grade.toLowerCase().includes(searchTerm.toLowerCase()),
+        (student.campus?.toString() || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.current_grade.toLowerCase().includes(searchTerm.toLowerCase()),
     )
   }, [students, searchTerm])
 
@@ -174,10 +174,10 @@ export function StudentTable({ students }: StudentTableProps) {
                     <SortIcon field="campus" />
                   </div>
                 </TableHead>
-                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("grade")}>
+                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("current_grade")}>
                   <div className="flex items-center gap-2">
                     Grade
-                    <SortIcon field="grade" />
+                    <SortIcon field="current_grade" />
                   </div>
                 </TableHead>
                 <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("gender")}>
@@ -210,9 +210,9 @@ export function StudentTable({ students }: StudentTableProps) {
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.academicYear}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{student.campus}</Badge>
+                    <Badge variant="outline">{student.campus?.toString() || 'N/A'}</Badge>
                   </TableCell>
-                  <TableCell>{student.grade}</TableCell>
+                  <TableCell>{student.current_grade}</TableCell>
                   <TableCell>{student.gender}</TableCell>
                   <TableCell>
                     <Badge className={getAttendanceColor(student.attendancePercentage)}>

@@ -69,8 +69,24 @@ export default function LoginPage() {
       } catch (err) {
         setError("Login failed. Please try again.");
       }
+    } else if (role === "coordinator") {
+      try {
+        const res = await fetch("/coordinators.json");
+        const coordinators = await res.json();
+        const found = coordinators.find((c: any) => (c.id === id || c.username === id) && c.password === password);
+        if (found) {
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("sis_user", JSON.stringify({ role: "coordinator", ...found }));
+          }
+          router.push("/admin");
+        } else {
+          setError("Invalid coordinator ID or password");
+        }
+      } catch (err) {
+        setError("Login failed. Please try again.");
+      }
     } else {
-      setError("Coordinator login not implemented in demo");
+      setError("Admin login not implemented in demo");
     }
     setLoading(false);
   };

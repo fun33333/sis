@@ -133,7 +133,23 @@ export function StudentForm() {
 
   const renderCurrentStep = () => {
     if (showPreview) {
-      return <StudentPreview formData={formData} uploadedImages={uploadedImages} onBack={() => setShowPreview(false)} />
+      return (
+        <StudentPreview 
+          formData={formData} 
+          uploadedImages={uploadedImages} 
+          onBack={() => setShowPreview(false)}
+          onSaved={() => {
+            setShowPreview(false)
+            setFormData({})
+            setUploadedImages({})
+            setCurrentStep(1)
+            toast({
+              title: "Success",
+              description: "Student has been saved successfully!",
+            })
+          }}
+        />
+      )
     }
 
     switch (currentStep) {

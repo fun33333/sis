@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import type { Student } from "@/types/dashboard"
-import { CAMPUSES, GRADES, ACADEMIC_YEARS } from "@/data/mockData"
+import { apiGet } from "@/lib/api"
 
 export default function StudentListPage() {
   useEffect(() => {
@@ -21,6 +21,7 @@ export default function StudentListPage() {
   const [campusFilter, setCampusFilter] = useState<string>("all")
   const [gradeFilter, setGradeFilter] = useState<string>("all")
   const [students, setStudents] = useState<Student[]>([])
+  const [campuses, setCampuses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [teacherClass, setTeacherClass] = useState<string | null>(null)
 
@@ -40,24 +41,61 @@ export default function StudentListPage() {
     async function fetchStudents() {
       setLoading(true);
       try {
-        const res = await fetch("http://localhost:8000/api/students/");
-        const data = await res.json();
+        const [data, campusList] = await Promise.all([
+          apiGet<any[]>("/api/students/"),
+          apiGet<any[]>("/api/campus/"),
+        ])
         setStudents(data);
+        setCampuses(campusList || [])
       } catch (err) {
         setStudents([]);
+        setCampuses([])
       }
       setLoading(false);
     }
     fetchStudents();
   }, [])
+  const academicYearOptions = useMemo(() => {
+    const yearsArray = Array.from(new Set(students.map((s) => Number(String(s.created_at ?? "").split('-')[0]))))
+      .filter((y): y is number => Number.isFinite(y))
+      .sort((a: number, b: number) => a - b)
+    return yearsArray
+  }, [students])
+
+  const getCampusName = (s: any): string => {
+    const c = s?.campus
+    if (!c) return ""
+    // Object with name
+    if (typeof c === 'object' && c !== null) return String(c.name || "").trim()
+    // Numeric id → map from campuses list
+    if (typeof c === 'number') {
+      const hit = campuses.find((x: any) => String(x.id) === String(c))
+      return String(hit?.name || c).trim()
+    }
+    // Fallback string
+    return String(c).trim()
+  }
+
+  const campusOptions = useMemo((): string[] => {
+    const arr = Array.from(new Set(students.map((s) => getCampusName(s))))
+      .filter(Boolean) as string[]
+    return arr.sort()
+  }, [students])
+
+  const gradeOptions = useMemo((): string[] => {
+    const arr = Array.from(new Set(students.map((s) => String(s.current_grade ?? "").trim())))
+      .filter(Boolean) as string[]
+    return arr.sort()
+  }, [students])
+
 
   const filtered = useMemo(() => {
     return students.filter((s) => {
-      if (teacherClass && s.grade !== teacherClass) return false;
+      if (teacherClass && s.current_grade !== teacherClass) return false;
       if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false
-      if (yearFilter !== "all" && String(s.academicYear) !== yearFilter) return false
-      if (campusFilter !== "all" && s.campus !== campusFilter) return false
-      if (gradeFilter !== "all" && s.grade !== gradeFilter) return false
+      if (yearFilter !== "all" && String(s.created_at?.split('-')[0]) !== yearFilter) return false
+      if (campusFilter !== "all" && getCampusName(s) !== campusFilter) return false
+      if (gradeFilter !== "all" && s.current_grade !== gradeFilter) return false
       return true
     })
   }, [search, yearFilter, campusFilter, gradeFilter, students, teacherClass])
@@ -108,7 +146,7 @@ export default function StudentListPage() {
                 </SelectTrigger>
                 <SelectContent className="bg-white text-[#274c77] shadow-lg">
                   <SelectItem value="all">All</SelectItem>
-                  {ACADEMIC_YEARS.map((y) => (
+                  {academicYearOptions.map((y) => (
                     <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                   ))}
                 </SelectContent>
@@ -122,7 +160,7 @@ export default function StudentListPage() {
                 </SelectTrigger>
                 <SelectContent className="bg-white text-[#274c77] shadow-lg">
                   <SelectItem value="all">All</SelectItem>
-                  {CAMPUSES.map((c) => (
+                  {campusOptions.map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>
@@ -136,7 +174,7 @@ export default function StudentListPage() {
                 </SelectTrigger>
                 <SelectContent className="bg-white text-[#274c77] shadow-lg">
                   <SelectItem value="all">All</SelectItem>
-                  {GRADES.map((g) => (
+                  {gradeOptions.map((g) => (
                     <SelectItem key={g} value={g}>{g}</SelectItem>
                   ))}
                 </SelectContent>
@@ -166,19 +204,28 @@ export default function StudentListPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((s, idx) => {
-                const isActive = Math.random() > 0.2
+                const statusRaw = (s as any).current_state || ""
+                const isActive = String(statusRaw).toLowerCase() === "active"
+                const contact =
+                  (s as any).emergency_contact ||
+                  (s as any).father_contact ||
+                  (s as any).guardian_phone ||
+                  (s as any).mother_contact ||
+                  ""
+                const classSection = [s.current_grade, (s as any).section].filter(Boolean).join("-")
+                const shift = (s as any).shift || ""
                 return (
                   <TableRow
-                    key={s.studentId}
+                    key={s.id || idx}
                     className={`cursor-pointer hover:bg-[#a3cef1]  transition ${idx % 2 === 0 ? "bg-[#e7ecef]" : "bg-white"
                       }`}
-                    onClick={() => router.push(`/admin/students/profile?studentId=${s.studentId}`)}
+                    onClick={() => router.push(`/admin/students/profile?studentId=${s.id}`)}
                   >
                     <TableCell className="font-medium">{s.name}</TableCell>
-                    <TableCell>{s.studentId}</TableCell>
-                    <TableCell>{s.campus}</TableCell>
-                    <TableCell>{s.grade}</TableCell>
-                    <TableCell>{Math.random() > 0.5 ? 'Morning' : 'Evening'}</TableCell>
+                    <TableCell>{s.gr_no || 'N/A'}</TableCell>
+                    <TableCell>{getCampusName(s) || 'N/A'}</TableCell>
+                    <TableCell>{classSection || 'N/A'}</TableCell>
+                    <TableCell>{shift || 'N/A'}</TableCell>
                     <TableCell>
                       {isActive ? (
                         <span className="px-2 py-1 text-xs font-semibold text-white bg-green-600/70 rounded-full shadow">
@@ -191,7 +238,7 @@ export default function StudentListPage() {
                       )}
 
                     </TableCell>
-                    <TableCell>0300-1234567</TableCell>
+                    <TableCell>{contact || 'N/A'}</TableCell>
                   </TableRow>
                 )
               })}

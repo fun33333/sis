@@ -6,16 +6,28 @@ import type { ChartData } from "@/types/dashboard"
 
 interface CampusPerformanceChartProps {
   data: ChartData[]
+  valueKind?: "average" | "count"
 }
 
-export function CampusPerformanceChart({ data }: CampusPerformanceChartProps) {
+export function CampusPerformanceChart({ data, valueKind = "average" }: CampusPerformanceChartProps) {
+  const maxValue = data.reduce((m, d) => Math.max(m, d.value), 0)
+  const yDomain = valueKind === "count" ? [0, Math.max(5, Math.ceil(maxValue * 1.2))] : [0, 100]
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
-          <p className="font-medium">{label} Campus</p>
+          <p className="font-medium">{label}</p>
           <p className="text-sm text-muted-foreground">
-            Average Score: <span className="font-medium text-foreground">{payload[0].value}</span>
+            {valueKind === "count" ? (
+              <>
+                Students: <span className="font-medium text-foreground">{payload[0].value}</span>
+              </>
+            ) : (
+              <>
+                Average Score: <span className="font-medium text-foreground">{payload[0].value}</span>
+              </>
+            )}
           </p>
         </div>
       )
@@ -27,7 +39,9 @@ export function CampusPerformanceChart({ data }: CampusPerformanceChartProps) {
     <Card>
       <CardHeader>
         <CardTitle>Campus Performance</CardTitle>
-        <CardDescription>Average academic scores by campus</CardDescription>
+        <CardDescription>
+          {valueKind === "count" ? "Students per campus" : "Average academic scores by campus"}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-80">
@@ -35,7 +49,7 @@ export function CampusPerformanceChart({ data }: CampusPerformanceChartProps) {
             <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="name" className="text-xs fill-muted-foreground" tick={{ fontSize: 12 }} />
-              <YAxis className="text-xs fill-muted-foreground" tick={{ fontSize: 12 }} domain={[60, 100]} />
+              <YAxis className="text-xs fill-muted-foreground" tick={{ fontSize: 12 }} domain={yDomain as any} allowDecimals={false} />
               <Tooltip content={<CustomTooltip />} />
               {/* Custom palette for campus bars */}
               <Bar dataKey="value" radius={[4, 4, 0, 0]}>

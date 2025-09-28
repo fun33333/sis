@@ -10,11 +10,11 @@ import { GenderDistributionChart } from "@/components/dashboard/gender-distribut
 import { MotherTongueChart } from "@/components/dashboard/mother-tongue-chart"
 import { ReligionChart } from "@/components/dashboard/religion-chart"
 import { ArrowLeft, Calendar, GraduationCap, TrendingUp, Users, Download, ChevronDown } from "lucide-react"
-import { CAMPUSES, GRADES, ACADEMIC_YEARS, MOTHER_TONGUES, RELIGIONS, getGradeDistribution, getGenderDistribution, getCampusPerformance, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution } from "@/data/mockData"
-import type { FilterState, DashboardMetrics, Student } from "@/types/dashboard"
+import { getGradeDistribution, getGenderDistribution, getCampusPerformance, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution } from "@/lib/chart-utils"
+import type { FilterState, DashboardMetrics, LegacyStudent as DashboardStudent } from "@/types/dashboard"
 import { StudentTable } from "@/components/dashboard/student-table"
 import { useRouter } from "next/navigation"
-import { getDashboardStats, getAllStudents, getAllCampuses } from "@/lib/api"
+import { getDashboardStats, getAllStudents, getAllCampuses, apiGet } from "@/lib/api"
 
 if (typeof window !== 'undefined') {
   import('html2pdf.js').then(mod => { (window as any).html2pdf = mod.default; });
@@ -22,14 +22,14 @@ if (typeof window !== 'undefined') {
 
 export default function MainDashboardPage() {
   // Utility to convert students to CSV
-  function studentsToCSV(students: Student[]) {
+  function studentsToCSV(students: DashboardStudent[]) {
     if (!students.length) return '';
-    const header = Object.keys(students[0]);
-    const rows = students.map(s => header.map(h => JSON.stringify(s[h as keyof Student] ?? "")).join(","));
+    const header = Object.keys(students[0] as any);
+    const rows = students.map((s) => header.map((h) => JSON.stringify((s as any)[h] ?? "")).join(","));
     return [header.join(","), ...rows].join("\r\n");
   }
 
-  function studentsToExcel(students: Student[]) {
+  function studentsToExcel(students: DashboardStudent[]) {
     return studentsToCSV(students); 
   }
 
@@ -107,7 +107,7 @@ export default function MainDashboardPage() {
     motherTongues: [],
     religions: [],
   })
-  const [students, setStudents] = useState<Student[]>([])
+  const [students, setStudents] = useState<DashboardStudent[]>([])
   const [loading, setLoading] = useState(true)
   const [showLoader, setShowLoader] = useState(true)
 
@@ -129,35 +129,47 @@ export default function MainDashboardPage() {
         const studentsArray = Array.isArray(apiStudents) ? apiStudents : [];
         if (studentsArray.length > 0) {
           // Use API data
-          const mapped: Student[] = studentsArray.map((item: any, idx: number) => ({
-            studentId: item.id?.toString() || `API${idx + 1}`,
-            name: item.name || "Unknown",
-            academicYear: 2024, // Default year, can be enhanced
-            campus: item.campus?.name || "Unknown",
-            grade: item.current_grade || "Unknown",
-            gender: item.gender === "male" ? "Male" : item.gender === "female" ? "Female" : "Other",
-            motherTongue: item.mother_tongue || "Other",
-            religion: item.religion || "Other",
-            attendancePercentage: Math.floor(Math.random() * 31) + 70, // Mock data for now
-            averageScore: Math.floor(Math.random() * 41) + 60, // Mock data for now
-            retentionFlag: item.current_state === "active",
-            enrollmentDate: new Date(item.created_at || new Date()),
-            rawData: item
-          }))
+          const mapped: DashboardStudent[] = studentsArray.map((item: any, idx: number) => {
+            const createdAt = typeof item?.created_at === "string" ? item.created_at : ""
+            const year = createdAt ? Number(createdAt.split("-")[0]) : new Date().getFullYear()
+            const genderRaw = (item?.gender ?? "").toString().trim()
+            const campusName = (item?.campus?.name ?? "Unknown").toString().trim()
+            const gradeName = (item?.current_grade ?? "Unknown").toString().trim()
+            const motherTongue = (item?.mother_tongue ?? "Other").toString().trim()
+            const religion = (item?.religion ?? "Other").toString().trim()
+            return {
+              rawData: item,
+              studentId: String(item?.gr_no || item?.id || idx + 1),
+              name: item?.name || "Unknown",
+              academicYear: isNaN(year) ? new Date().getFullYear() : year,
+              campus: campusName,
+              grade: gradeName,
+              current_grade: gradeName,
+              gender: genderRaw || "Unknown",
+              motherTongue: motherTongue,
+              religion: religion,
+              attendancePercentage: Math.floor(Math.random() * 31) + 70, // Mock data for now
+              averageScore: Math.floor(Math.random() * 41) + 60, // Mock data for now
+              retentionFlag: (item?.current_state || "").toLowerCase() === "active",
+              enrollmentDate: createdAt ? new Date(createdAt) : new Date(),
+            }
+          })
           setStudents(mapped)
         } else {
           // Fallback to CSV data
           const res = await fetch("/csvjson.json")
           const data = await res.json()
-          const mapped: Student[] = data.map((item: any, idx: number) => {
+          const mapped: DashboardStudent[] = data.map((item: any, idx: number) => {
             let academicYear = Number(item["Year of Admission"])
             if (isNaN(academicYear)) academicYear = 2025
             return {
+              rawData: item,
               studentId: `CSV${idx + 1}`,
               name: item["Student Name"] || "Unknown",
               academicYear,
               campus: item["Campus"] || "Unknown",
               grade: item["Current Grade/Class"] || "Unknown",
+              current_grade: item["Current Grade/Class"] || "Unknown",
               gender: item["Gender"] === "Male" || item["Gender"] === "Female" ? item["Gender"] : "Other",
               motherTongue: item["Mother Tongue"] || "Other",
               religion: item["Religion"] || "Other",
@@ -199,22 +211,44 @@ export default function MainDashboardPage() {
 
   const metrics = useMemo((): DashboardMetrics => {
     const totalStudents = filteredStudents.length
-    const averageAttendance = totalStudents > 0 ? Math.round(filteredStudents.reduce((sum, s) => sum + s.attendancePercentage, 0) / totalStudents) : 0
-    const averageScore = totalStudents > 0 ? Math.round(filteredStudents.reduce((sum, s) => sum + s.averageScore, 0) / totalStudents) : 0
+    const averageAttendance = totalStudents > 0 ? Math.round(filteredStudents.reduce((sum, s) => sum + (s.attendancePercentage || 0), 0) / totalStudents) : 0
+    const averageScore = totalStudents > 0 ? Math.round(filteredStudents.reduce((sum, s) => sum + (s.averageScore || 0), 0) / totalStudents) : 0
     const retentionRate = totalStudents > 0 ? Math.round((filteredStudents.filter((s) => s.retentionFlag).length / totalStudents) * 100) : 0
     return { totalStudents, averageAttendance, averageScore, retentionRate }
   }, [filteredStudents])
 
+  // Fallback: if scores are missing (all zeros), show campus counts instead of average score
+  const campusPerformanceData = useMemo(() => {
+    const hasScores = filteredStudents.some(s => (s.averageScore || 0) > 0)
+    if (hasScores) {
+      const filteredAnyStudents = filteredStudents as unknown as any[]
+      return getCampusPerformance(filteredAnyStudents)
+    }
+    const counts = filteredStudents.reduce((acc: Record<string, number>, s) => {
+      acc[s.campus] = (acc[s.campus] || 0) + 1
+      return acc
+    }, {})
+    return Object.entries(counts).map(([name, value]) => ({ name, value }))
+  }, [filteredStudents])
+
   const chartData = useMemo(() => {
     return {
-      gradeDistribution: getGradeDistribution(filteredStudents),
-      genderDistribution: getGenderDistribution(filteredStudents),
-      campusPerformance: getCampusPerformance(filteredStudents),
-      enrollmentTrend: getEnrollmentTrend(filteredStudents),
-      motherTongueDistribution: getMotherTongueDistribution(filteredStudents),
-      religionDistribution: getReligionDistribution(filteredStudents),
+      gradeDistribution: getGradeDistribution(filteredStudents as unknown as any[]),
+      genderDistribution: getGenderDistribution(filteredStudents as unknown as any[]),
+      campusPerformance: campusPerformanceData,
+      enrollmentTrend: getEnrollmentTrend(filteredStudents as unknown as any[]),
+      motherTongueDistribution: getMotherTongueDistribution(filteredStudents as unknown as any[]),
+      religionDistribution: getReligionDistribution(filteredStudents as unknown as any[]),
     }
-  }, [filteredStudents])
+  }, [filteredStudents, campusPerformanceData])
+
+  // Dynamic filter options based on real data
+  const dynamicAcademicYears = useMemo(() => Array.from(new Set(students.map(s => s.academicYear))).sort((a, b) => a - b), [students])
+  const dynamicCampuses = useMemo(() => Array.from(new Set(students.map(s => s.campus))).sort(), [students])
+  const dynamicGrades = useMemo(() => Array.from(new Set(students.map(s => s.grade))).sort(), [students])
+  const dynamicMotherTongues = useMemo(() => Array.from(new Set(students.map(s => (s.motherTongue || "").toString().trim()))).filter(Boolean).sort(), [students])
+  const dynamicReligions = useMemo(() => Array.from(new Set(students.map(s => (s.religion || "").toString().trim()))).filter(Boolean).sort(), [students])
+  const dynamicGenders = useMemo(() => Array.from(new Set(students.map(s => (s.gender || "").toString().trim()))).filter(Boolean).sort(), [students])
 
   const resetFilters = () => {
     setFilters({ academicYears: [], campuses: [], grades: [], genders: [], motherTongues: [], religions: [] })
@@ -283,12 +317,12 @@ export default function MainDashboardPage() {
           </CardHeader>
           <CardContent className="!bg-[#E7ECEF]">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-              <MultiSelectFilter title="Academic Year" options={ACADEMIC_YEARS} selectedValues={filters.academicYears} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, academicYears: val as number[] }))} placeholder="All years" />
-              <MultiSelectFilter title="Campus" options={CAMPUSES} selectedValues={filters.campuses} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, campuses: val as string[] }))} placeholder="All campuses" />
-              <MultiSelectFilter title="Grade" options={GRADES} selectedValues={filters.grades} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, grades: val as string[] }))} placeholder="All grades" />
-              <MultiSelectFilter title="Gender" options={["Male", "Female"]} selectedValues={filters.genders} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, genders: val as ("Male" | "Female" | "Other")[] }))} placeholder="All genders" />
-              <MultiSelectFilter title="Mother Tongue" options={MOTHER_TONGUES} selectedValues={filters.motherTongues} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, motherTongues: val as string[] }))} placeholder="All mother tongues" />
-              <MultiSelectFilter title="Religion" options={RELIGIONS} selectedValues={filters.religions} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, religions: val as string[] }))} placeholder="All religions" />
+              <MultiSelectFilter title="Academic Year" options={dynamicAcademicYears} selectedValues={filters.academicYears} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, academicYears: val as number[] }))} placeholder="All years" />
+              <MultiSelectFilter title="Campus" options={dynamicCampuses} selectedValues={filters.campuses} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, campuses: val as string[] }))} placeholder="All campuses" />
+              <MultiSelectFilter title="Grade" options={dynamicGrades} selectedValues={filters.grades} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, grades: val as string[] }))} placeholder="All grades" />
+              <MultiSelectFilter title="Gender" options={dynamicGenders} selectedValues={filters.genders} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, genders: val as ("Male" | "Female" | "Other")[] }))} placeholder="All genders" />
+              <MultiSelectFilter title="Mother Tongue" options={dynamicMotherTongues} selectedValues={filters.motherTongues} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, motherTongues: val as string[] }))} placeholder="All mother tongues" />
+              <MultiSelectFilter title="Religion" options={dynamicReligions} selectedValues={filters.religions} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, religions: val as string[] }))} placeholder="All religions" />
             </div>
           </CardContent>
         </Card>
@@ -301,7 +335,7 @@ export default function MainDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-          <CampusPerformanceChart data={chartData.campusPerformance} />
+          <CampusPerformanceChart data={chartData.campusPerformance} valueKind={filteredStudents.some(s => (s.averageScore || 0) > 0) ? "average" : "count"} />
           <GenderDistributionChart data={chartData.genderDistribution} />
           <ReligionChart data={chartData.religionDistribution} />
         </div>

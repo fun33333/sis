@@ -1,0 +1,35 @@
+[
+  {
+    "id": "COORD001",
+    "username": "coordinator1",
+    "name": "Ahmed Hassan",
+    "password": "coord123",
+    "email": "ahmed.coordinator@school.edu",
+    "campus": "Campus 1",
+    "role": "Academic Coordinator",
+    "phone": "+92-300-1234567",
+    "department": "Academic Affairs"
+  },
+  {
+    "id": "COORD002", 
+    "username": "coordinator2",
+    "name": "Fatima Khan",
+    "password": "coord456",
+    "email": "fatima.coordinator@school.edu",
+    "campus": "Campus 2",
+    "role": "Student Affairs Coordinator",
+    "phone": "+92-301-2345678",
+    "department": "Student Services"
+  },
+  {
+    "id": "COORD003",
+    "username": "coordinator3", 
+    "name": "Muhammad Ali",
+    "password": "coord789",
+    "email": "ali.coordinator@school.edu",
+    "campus": "Campus 3",
+    "role": "Administrative Coordinator",
+    "phone": "+92-302-3456789",
+    "department": "Administration"
+  }
+]

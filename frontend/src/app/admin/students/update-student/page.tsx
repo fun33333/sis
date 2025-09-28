@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { mockStudents, CAMPUSES, GRADES } from "@/data/mockData"
+import { apiGet } from "@/lib/api"
 
 import { useEffect } from "react";
 
@@ -19,7 +19,33 @@ export default function UpdateStudentPage() {
   const params = useSearchParams()
   const studentId = params?.get("studentId") || ""
 
-  const student = useMemo(() => mockStudents.find((s) => s.studentId === studentId), [studentId])
+  const [student, setStudent] = useState<any | null>(null)
+  const [campusOptions, setCampusOptions] = useState<string[]>([])
+  const [gradeOptions, setGradeOptions] = useState<string[]>([])
+  useEffect(() => {
+    async function load() {
+      try {
+        const [students, campuses] = await Promise.all([
+          apiGet<any[]>("/api/students/"),
+          apiGet<any[]>("/api/campus/"),
+        ])
+        const s = (students || []).find((x) => String(x.id) === studentId || String(x.gr_no) === studentId) || null
+        setStudent(s ? {
+          studentId: String(s.gr_no || s.id || ""),
+          name: s.name,
+          campus: s.campus?.name || "",
+          grade: s.current_grade || "",
+        } : null)
+        setCampusOptions((campuses || []).map((c: any) => c.name).filter(Boolean))
+        setGradeOptions(Array.from(new Set((students || []).map((x) => x.current_grade).filter(Boolean))))
+      } catch {
+        setStudent(null)
+        setCampusOptions([])
+        setGradeOptions([])
+      }
+    }
+    if (studentId) void load()
+  }, [studentId])
 
   const [category, setCategory] = useState<"Contact" | "Academic" | "Family" | "Address" | "">("")
 
@@ -29,8 +55,8 @@ export default function UpdateStudentPage() {
   const [emergencyContact, setEmergencyContact] = useState("")
 
   // Academic fields
-  const [selectedCampus, setSelectedCampus] = useState<string>(student?.campus || CAMPUSES[0])
-  const [selectedGrade, setSelectedGrade] = useState<string>(student?.grade || GRADES[0])
+  const [selectedCampus, setSelectedCampus] = useState<string>("")
+  const [selectedGrade, setSelectedGrade] = useState<string>("")
   const [shift, setShift] = useState<string>("Morning")
   const [status, setStatus] = useState<string>("Active")
 
@@ -80,19 +106,19 @@ export default function UpdateStudentPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Student ID / GR No</Label>
-                <Input value={student.studentId} readOnly />
+                <Input value={student?.studentId || ""} readOnly />
               </div>
               <div>
                 <Label>Student Name</Label>
-                <Input value={student.name} readOnly />
+                <Input value={student?.name || ""} readOnly />
               </div>
               <div>
                 <Label>Current Campus</Label>
-                <Input value={student.campus} readOnly />
+                <Input value={student?.campus || ""} readOnly />
               </div>
               <div>
                 <Label>Current Grade/Class & Section</Label>
-                <Input value={student.grade} readOnly />
+                <Input value={student?.grade || ""} readOnly />
               </div>
             </div>
           </CardContent>
@@ -148,7 +174,7 @@ export default function UpdateStudentPage() {
                   <Select value={selectedCampus} onValueChange={(v) => setSelectedCampus(v)}>
                     <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {CAMPUSES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {campusOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -157,7 +183,7 @@ export default function UpdateStudentPage() {
                   <Select value={selectedGrade} onValueChange={(v) => setSelectedGrade(v)}>
                     <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {GRADES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                      {gradeOptions.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

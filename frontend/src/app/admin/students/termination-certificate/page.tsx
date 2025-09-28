@@ -6,13 +6,22 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import type { Student } from "@/types/dashboard"
-import { CAMPUSES, GRADES } from "@/data/mockData"
+// Use a lightweight UI type for this page
+type UiStudent = {
+  studentId: string;
+  name: string;
+  campus: string;
+  grade: string;
+  enrollmentDate: Date;
+}
+import { apiGet } from "@/lib/api"
 
 export default function TransferPage() {
-  const [students, setStudents] = useState<Student[]>([]);
+  const [students, setStudents] = useState<UiStudent[]>([]);
+  const [campusOptions, setCampusOptions] = useState<string[]>([])
+  const [gradeOptions, setGradeOptions] = useState<string[]>([])
   const [search, setSearch] = useState("");
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<UiStudent | null>(null);
   const [admissionDate, setAdmissionDate] = useState("");
   const [newCampus, setNewCampus] = useState("");
   const [newShift, setNewShift] = useState("");
@@ -22,30 +31,32 @@ export default function TransferPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function fetchStudents() {
-      const res = await fetch("/csvjson.json");
-      const data = await res.json();
-      const mapped: Student[] = data.map((item: any, idx: number) => ({
-        studentId: item["GR No"] || `CSV${idx + 1}`,
-        name: item["Student Name"] || "Unknown",
-        academicYear: item["Year of Admission"] || "",
-        campus: item["Campus"] || "",
-        grade: item["Current Grade/Class"] || "",
-        gender: item["Gender"] || "",
-        motherTongue: item["Mother Tongue"] || "",
-        religion: item["Religion"] || "",
-        attendancePercentage: 0,
-        averageScore: 0,
-        retentionFlag: true,
-        enrollmentDate: item["Timestamp"] ? new Date(item["Timestamp"]) : new Date(),
-        rawData: item,
-      }));
-      setStudents(mapped);
+    async function load() {
+      try {
+        const [studentsApi, campusesApi] = await Promise.all([
+          apiGet<any[]>("/api/students/"),
+          apiGet<any[]>("/api/campus/"),
+        ])
+        const mapped: UiStudent[] = (studentsApi || []).map((s: any) => ({
+          studentId: String(s.gr_no || s.id || ""),
+          name: s.name || "Unknown",
+          campus: String((s.campus?.name ?? s.campus ?? "")).trim(),
+          grade: String(s.current_grade ?? "").trim(),
+          enrollmentDate: new Date(String(s.created_at ?? new Date()).split('T')[0] || new Date()),
+        }))
+        setStudents(mapped)
+        setCampusOptions((campusesApi || []).map((c: any) => c.name).filter(Boolean))
+        setGradeOptions(Array.from(new Set((studentsApi || []).map((x: any) => x.current_grade).filter(Boolean))))
+      } catch {
+        setStudents([])
+        setCampusOptions([])
+        setGradeOptions([])
+      }
     }
-    fetchStudents();
-  }, []);
+    void load()
+  }, [])
 
-  function handleStudentSelect(student: Student) {
+  function handleStudentSelect(student: UiStudent) {
     setSelectedStudent(student);
     setAdmissionDate(student.enrollmentDate instanceof Date ? student.enrollmentDate.toISOString().slice(0, 10) : "");
     setNewCampus("");
@@ -133,7 +144,7 @@ export default function TransferPage() {
                     <SelectValue placeholder="Select new campus" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CAMPUSES.map(c => (
+                    {campusOptions.map(c => (
                       <SelectItem key={c} value={c}>{c}</SelectItem>
                     ))}
                   </SelectContent>

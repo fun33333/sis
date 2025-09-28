@@ -4,10 +4,24 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { mockStudents } from "@/data/mockData"
+import { useEffect } from "react";
+import { apiGet } from "@/lib/api";
 
-// For demo: filter first 10 students only
-const students = mockStudents.slice(0, 10);
+// Load real students (first 10 for demo)
+let students: any[] = [];
+// Note: in a real page we'd use state, but keeping minimal changes to demo UI
+async function loadStudents() {
+  try {
+    const data = await apiGet<any[]>("/api/students/");
+    students = (data || []).slice(0, 10).map((s, idx) => ({
+      studentId: String(s.gr_no || s.id || idx + 1),
+      name: s.name || "Unknown",
+    }));
+  } catch {
+    students = [];
+  }
+}
+void loadStudents();
 
 type AttendanceStatus = "present" | "absent" | "leave" | null;
 
