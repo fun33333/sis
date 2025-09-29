@@ -20,101 +20,6 @@ export function ContactStep({ formData, invalidFields, onInputChange }: ContactS
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="address">Address *</Label>
-            <Input
-              id="address"
-              value={formData.address || ""}
-              onChange={e => onInputChange("address", e.target.value)}
-              className={invalidFields.includes("address") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("address") && (
-              <p className="text-sm text-red-600 mt-1">Address is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="city">City *</Label>
-            <Input
-              id="city"
-              value={formData.city || ""}
-              onChange={e => onInputChange("city", e.target.value)}
-              className={invalidFields.includes("city") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("city") && (
-              <p className="text-sm text-red-600 mt-1">City is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="district">District *</Label>
-            <Input
-              id="district"
-              value={formData.district || ""}
-              onChange={e => onInputChange("district", e.target.value)}
-              className={invalidFields.includes("district") ? "border-red-500" : ""}
-            />
-             {invalidFields.includes("district") && (
-               <p className="text-sm text-red-600 mt-1">District is required</p>
-             )}
-            {invalidFields.includes("district") && (
-              <p className="text-sm text-red-600 mt-1">District is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="postalCode">Postal Code *</Label>
-            <Input
-              id="postalCode"
-              value={formData.postalCode || ""}
-              onChange={e => onInputChange("postalCode", e.target.value)}
-              className={invalidFields.includes("postalCode") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("postalCode") && (
-              <p className="text-sm text-red-600 mt-1">Postal code is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="primaryPhone">School Primary Phone *</Label>
-            <Input
-              id="primaryPhone"
-              value={formData.primaryPhone || ""}
-              onChange={e => onInputChange("primaryPhone", e.target.value)}
-              className={invalidFields.includes("primaryPhone") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("primaryPhone") && (
-              <p className="text-sm text-red-600 mt-1">Primary phone is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="secondaryPhone">School Secondary Phone *</Label>
-            <Input
-              id="secondaryPhone"
-              value={formData.secondaryPhone || ""}
-              onChange={e => onInputChange("secondaryPhone", e.target.value)}
-              className={invalidFields.includes("secondaryPhone") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("secondaryPhone") && (
-              <p className="text-sm text-red-600 mt-1">Secondary phone is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="officialEmail">School Official Email *</Label>
-            <Input
-              id="officialEmail"
-              type="email"
-              value={formData.officialEmail || ""}
-              onChange={e => onInputChange("officialEmail", e.target.value)}
-              className={invalidFields.includes("officialEmail") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("officialEmail") && (
-              <p className="text-sm text-red-600 mt-1">Official email is required</p>
-            )}
-          </div>
-
-          <div>
             <Label htmlFor="campusHeadName">Campus Head Name *</Label>
             <Input
               id="campusHeadName"
@@ -126,8 +31,7 @@ export function ContactStep({ formData, invalidFields, onInputChange }: ContactS
               <p className="text-sm text-red-600 mt-1">Campus head name is required</p>
             )}
           </div>
-
-          <div>
+                    <div>
             <Label htmlFor="campusHeadPhone">Campus Head Phone Number *</Label>
             <Input
               id="campusHeadPhone"
@@ -193,15 +97,44 @@ export function ContactStep({ formData, invalidFields, onInputChange }: ContactS
               <p className="text-sm text-red-600 mt-1">Coordinator email is required</p>
             )}
           </div>
+          <div>
+            <Label htmlFor="primaryPhone">School Primary Phone *</Label>
+            <Input
+              id="primaryPhone"
+              value={formData.primaryPhone || ""}
+              onChange={e => onInputChange("primaryPhone", e.target.value)}
+              className={invalidFields.includes("primaryPhone") ? "border-red-500" : ""}
+            />
+            {invalidFields.includes("primaryPhone") && (
+              <p className="text-sm text-red-600 mt-1">Primary phone is required</p>
+            )}
+          </div>
 
           <div>
-            <Label htmlFor="totalNonTeachingStaff">Total Non-Teaching Staff</Label>
+            <Label htmlFor="secondaryPhone">School Secondary Phone *</Label>
             <Input
-              id="totalNonTeachingStaff"
-              type="number"
-              value={formData.totalNonTeachingStaff || ""}
-              onChange={e => onInputChange("totalNonTeachingStaff", e.target.value)}
+              id="secondaryPhone"
+              value={formData.secondaryPhone || ""}
+              onChange={e => onInputChange("secondaryPhone", e.target.value)}
+              className={invalidFields.includes("secondaryPhone") ? "border-red-500" : ""}
             />
+            {invalidFields.includes("secondaryPhone") && (
+              <p className="text-sm text-red-600 mt-1">Secondary phone is required</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="officialEmail">School Official Email *</Label>
+            <Input
+              id="officialEmail"
+              type="email"
+              value={formData.officialEmail || ""}
+              onChange={e => onInputChange("officialEmail", e.target.value)}
+              className={invalidFields.includes("officialEmail") ? "border-red-500" : ""}
+            />
+            {invalidFields.includes("officialEmail") && (
+              <p className="text-sm text-red-600 mt-1">Official email is required</p>
+            )}
           </div>
 
           <div>

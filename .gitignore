@@ -28,3 +28,7 @@ Thumbs.db
 
 # credentials.json
 backend/credentials.json
+
+pycache/
+__pycache__/
+*.pyc
