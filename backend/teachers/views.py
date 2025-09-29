@@ -5,4 +5,3 @@ from .serializers import TeacherSerializer
 class TeacherViewSet(viewsets.ModelViewSet):
     queryset = Teacher.objects.all()
     serializer_class = TeacherSerializer
-
