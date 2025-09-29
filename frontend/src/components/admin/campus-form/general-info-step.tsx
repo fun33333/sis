@@ -18,30 +18,28 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
         <CardTitle>General Information</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Campus photo upload - nicer drag/drop UI */}
+        <div className="md:col-span-2">
+          <Label htmlFor="campusPhoto">Campus Photo *</Label>
+
+          {/* hidden file input for accessibility */}
+          <input
+            id="campusPhoto"
+            name="campusPhoto"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            aria-hidden
+            onChange={() => { }}
+          />
+
+          {/* Styled drop area */}
+          <UploadArea
+            existing={formData.campusPhoto}
+            onFile={(dataUrl: string | null) => onInputChange("campusPhoto", dataUrl || "")}
+          />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Campus photo upload - nicer drag/drop UI */}
-          <div className="md:col-span-2">
-            <Label htmlFor="campusPhoto">Campus Photo</Label>
-
-            {/* hidden file input for accessibility */}
-            <input
-              id="campusPhoto"
-              name="campusPhoto"
-              type="file"
-              accept="image/*"
-              className="hidden"
-              ref={null}
-              aria-hidden
-              onChange={() => { }}
-            />
-
-            {/* Styled drop area */}
-            <UploadArea
-              existing={formData.campusPhoto}
-              onFile={(dataUrl: string | null) => onInputChange("campusPhoto", dataUrl || "")}
-            />
-          </div>
-
           <div>
             <Label htmlFor="campusName">Campus Name *</Label>
             <select
@@ -65,7 +63,7 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
           </div>
 
           <div>
-            <Label htmlFor="campusCode">Campus Code</Label>
+            <Label htmlFor="campusCode">Campus Code *</Label>
             <Input
               id="campusCode"
               value={formData.campusCode || ""}
@@ -74,7 +72,7 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
           </div>
 
           <div>
-            <Label htmlFor="governingBody">Governing Body</Label>
+            <Label htmlFor="governingBody">Governing Body *</Label>
             <Input
               id="governingBody"
               value={formData.governingBody || ""}
@@ -94,107 +92,6 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
               <p className="text-sm text-red-600 mt-1">Registration number is required</p>
             )}
           </div>
-
-          <div>
-            <Label htmlFor="languagesOfInstruction">Language of Instruction *</Label>
-            <select
-              id="languagesOfInstruction"
-              value={formData.languagesOfInstruction || ""}
-              onChange={e => onInputChange("languagesOfInstruction", e.target.value)}
-              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('languagesOfInstruction') ? 'border-red-500' : ''}`}
-            >
-              <option value="">Select Language</option>
-              <option value="English">English</option>
-              <option value="Urdu">Urdu</option>
-              <option value="Both">English and Urdu Both</option>
-            </select>
-            {invalidFields.includes("languagesOfInstruction") && (
-              <p className="text-sm text-red-600 mt-1">Language of instruction is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="gradesOffered">Grades Offered *</Label>
-            <Input
-              id="gradesOffered"
-              placeholder="e.g. Grade 1 - Grade 12"
-              value={formData.gradesOffered || ""}
-              onChange={(e) => onInputChange("gradesOffered", e.target.value)}
-              className={invalidFields.includes("gradesOffered") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("gradesOffered") && (
-              <p className="text-sm text-red-600 mt-1">Grades offered is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label>Academic Year Start Month *</Label>
-            <select
-              value={formData.academicYearStartMonth || ""}
-              onChange={e => onInputChange("academicYearStartMonth", e.target.value)}
-              className={`w-full border rounded px-3 py-2 ${invalidFields.includes("academicYearStartMonth") ? "border-red-500" : ""
-                }`}
-            >
-              <option value="">Month</option>
-              {[
-                "January",
-                "February",
-                "March",
-                "April",
-                "May",
-                "June",
-                "July",
-                "August",
-                "September",
-                "October",
-                "November",
-                "December",
-              ].map((month, index) => (
-                <option key={index + 1} value={index + 1}>
-                  {month}
-                </option>
-              ))}
-            </select>
-
-            {invalidFields.includes("academicYearStartMonth") && (
-              <p className="text-sm text-red-600 mt-1">Start month required</p>
-            )}
-          </div>
-
-          <div>
-            <Label>Academic Year End Month *</Label>
-            <select
-              value={formData.academicYearEndMonth || ""}
-              onChange={e => onInputChange("academicYearEndMonth", e.target.value)}
-              className={`w-full border rounded px-3 py-2 ${invalidFields.includes("academicYearEndMonth") ? "border-red-500" : ""}`}
-            >
-              <option value="">Month</option>
-              {[
-                "January",
-                "February",
-                "March",
-                "April",
-                "May",
-                "June",
-                "July",
-                "August",
-                "September",
-                "October",
-                "November",
-                "December",
-              ].map((month, index) => (
-                <option key={index + 1} value={index + 1}>
-                  {month}
-                </option>
-              ))}
-            </select>
-
-            {invalidFields.includes("academicYearEndMonth") && (
-              <p className="text-sm text-red-600 mt-1">End month required</p>
-            )}
-          </div>
-
-
 
           <div>
             <Label htmlFor="address">Address *</Label>
@@ -258,16 +155,138 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
           </div>
 
           <div>
-            <Label htmlFor="campusEstablishedYear">Campus Established Year *</Label>
-            <Input
+            <Label htmlFor="campusEstablishedYear">Campus Established Date *</Label>
+            <input
               id="campusEstablishedYear"
-              type="number"
+              type="date"
               value={formData.campusEstablishedYear || ""}
               onChange={e => onInputChange("campusEstablishedYear", e.target.value)}
-              className={invalidFields.includes("campusEstablishedYear") ? "border-red-500" : ""}
+              className={`w-full border rounded px-3 py-2 ${invalidFields.includes("campusEstablishedYear") ? "border-red-500" : ""
+                }`}
             />
             {invalidFields.includes("campusEstablishedYear") && (
-              <p className="text-sm text-red-600 mt-1">Established year is required</p>
+              <p className="text-sm text-red-600 mt-1">Established date is required</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="campusStatus">Campus Status *</Label>
+            <select
+              id="campusStatus"
+              value={formData.campusStatus || ""}
+              onChange={e => onInputChange("campusStatus", e.target.value)}
+              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('campusStatus') ? 'border-red-500' : ''}`}
+            >
+              <option value="">Select Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Closed">Closed</option>
+              <option value="Under Construction">Under Construction</option>
+            </select>
+            {invalidFields.includes("campusStatus") && (
+              <p className="text-sm text-red-600 mt-1">Campus status is required</p>
+            )}
+          </div>
+
+          <div className="md:col-span-2">
+            <Label htmlFor="gradesOffered">Grades Offered *</Label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 w-full">
+              {[
+                "Nursery",
+                "KG 1",
+                "KG 2",
+                "1 Class",
+                "2 Class",
+                "3 Class",
+                "4 Class",
+                "5 Class",
+                "6 Class",
+                "7 Class",
+                "8 Class",
+                "9 Class",
+                "10 Class",
+                "Special Class",
+              ].map((grade) => (
+                <label key={grade} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    value={grade}
+                    checked={formData.gradesOffered?.includes(grade) || false}
+                    onChange={(e) => {
+                      const currentGrades = Array.isArray(formData.gradesOffered) ? formData.gradesOffered : [];
+                      let updatedGrades;
+                      if (e.target.checked) {
+                        updatedGrades = [...currentGrades, grade];
+                      } else {
+                        updatedGrades = currentGrades.filter((g: string) => g !== grade);
+                      }
+                      onInputChange("gradesOffered", updatedGrades.join(","));
+                    }}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm">{grade}</span>
+                </label>
+              ))}
+            </div>
+            {invalidFields.includes("gradesOffered") && (
+              <p className="text-sm text-red-600 mt-1">Grades offered is required</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="languagesOfInstruction">Language of Instruction *</Label>
+            <select
+              id="languagesOfInstruction"
+              value={formData.languagesOfInstruction || ""}
+              onChange={e => onInputChange("languagesOfInstruction", e.target.value)}
+              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('languagesOfInstruction') ? 'border-red-500' : ''}`}
+            >
+              <option value="">Select Language</option>
+              <option value="English">English</option>
+              <option value="Urdu">Urdu</option>
+              <option value="Both">English and Urdu Both</option>
+            </select>
+            {invalidFields.includes("languagesOfInstruction") && (
+              <p className="text-sm text-red-600 mt-1">Language of instruction is required</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="specialClasses">Special Classes (e.g. Montessori, Prep)</Label>
+            <Input
+              id="specialClasses"
+              type="text"
+              value={formData.specialClasses || ""}
+              onChange={e => onInputChange("specialClasses", e.target.value)}
+              placeholder="Montessori, Prep Section, etc"
+            />
+          </div>
+
+          <div>
+            <Label>Academic Year Start Date *</Label>
+            <input
+              type="date"
+              value={formData.academicYearStartMonth || ""}
+              onChange={e => onInputChange("academicYearStartMonth", e.target.value)}
+              className={`w-full border rounded px-3 py-2 ${invalidFields.includes("academicYearStartMonth") ? "border-red-500" : ""
+                }`}
+            />
+            {invalidFields.includes("academicYearStartMonth") && (
+              <p className="text-sm text-red-600 mt-1">Start date required</p>
+            )}
+          </div>
+
+          <div>
+            <Label>Academic Year End Date *</Label>
+            <input
+              type="date"
+              value={formData.academicYearEndMonth || ""}
+              onChange={e => onInputChange("academicYearEndMonth", e.target.value)}
+              className={`w-full border rounded px-3 py-2 ${invalidFields.includes("academicYearEndMonth") ? "border-red-500" : ""
+                }`}
+            />
+            {invalidFields.includes("academicYearEndMonth") && (
+              <p className="text-sm text-red-600 mt-1">End date required</p>
             )}
           </div>
 
@@ -307,12 +326,32 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
               <p className="text-sm text-red-600 mt-1">Education level is required</p>
             )}
           </div>
+          
+          <div>
+            <Label htmlFor="maleStudents">Total Male Students</Label>
+            <Input
+              id="maleStudents"
+              type="text"
+              value={formData.maleStudents || ""}
+              onChange={e => onInputChange("maleStudents", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="femaleStudents">Total Female Students</Label>
+            <Input
+              id="femaleStudents"
+              type="text"
+              value={formData.femaleStudents || ""}
+              onChange={e => onInputChange("femaleStudents", e.target.value)}
+            />
+          </div>
 
           <div>
             <Label htmlFor="totalStudentCapacity">Total Student Capacity *</Label>
             <Input
               id="totalStudentCapacity"
-              type="number"
+              type="text"
               value={formData.totalStudentCapacity || ""}
               onChange={e => onInputChange("totalStudentCapacity", e.target.value)}
               className={invalidFields.includes("totalStudentCapacity") ? "border-red-500" : ""}
@@ -326,7 +365,7 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
             <Label htmlFor="currentStudentEnrollment">Current Student Enrollment *</Label>
             <Input
               id="currentStudentEnrollment"
-              type="number"
+              type="text"
               value={formData.currentStudentEnrollment || ""}
               onChange={e => onInputChange("currentStudentEnrollment", e.target.value)}
               className={invalidFields.includes("currentStudentEnrollment") ? "border-red-500" : ""}
@@ -337,29 +376,10 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
           </div>
 
           <div>
-            <Label htmlFor="campusStatus">Campus Status *</Label>
-            <select
-              id="campusStatus"
-              value={formData.campusStatus || ""}
-              onChange={e => onInputChange("campusStatus", e.target.value)}
-              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('campusStatus') ? 'border-red-500' : ''}`}
-            >
-              <option value="">Select Status</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Closed">Closed</option>
-              <option value="Under Construction">Under Construction</option>
-            </select>
-            {invalidFields.includes("campusStatus") && (
-              <p className="text-sm text-red-600 mt-1">Campus status is required</p>
-            )}
-          </div>
-
-          <div>
             <Label htmlFor="totalStaffMembers">Total Staff Members *</Label>
             <Input
               id="totalStaffMembers"
-              type="number"
+              type="text"
               value={formData.totalStaffMembers || ""}
               onChange={e => onInputChange("totalStaffMembers", e.target.value)}
               className={invalidFields.includes("totalStaffMembers") ? "border-red-500" : ""}
@@ -370,13 +390,53 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
           </div>
 
           <div>
+            <Label htmlFor="maleTeachers">Total Male Teachers</Label>
+            <Input
+              id="maleTeachers"
+              type="number"
+              value={formData.maleTeachers || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                onInputChange("maleTeachers", value);
+
+                // Auto update total teachers
+                const total =
+                  (parseInt(value || "0") || 0) +
+                  (parseInt(formData.femaleTeachers || "0") || 0);
+                onInputChange("totalTeachers", total.toString());
+              }}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="femaleTeachers">Total Female Teachers</Label>
+            <Input
+              id="femaleTeachers"
+              type="number"
+              value={formData.femaleTeachers || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                onInputChange("femaleTeachers", value);
+
+                // Auto update total teachers
+                const total =
+                  (parseInt(formData.maleTeachers || "0") || 0) +
+                  (parseInt(value || "0") || 0);
+                onInputChange("totalTeachers", total.toString());
+              }}
+            />
+          </div>
+
+          <div>
             <Label htmlFor="totalTeachers">Total Teachers *</Label>
             <Input
               id="totalTeachers"
               type="number"
               value={formData.totalTeachers || ""}
-              onChange={e => onInputChange("totalTeachers", e.target.value)}
-              className={invalidFields.includes("totalTeachers") ? "border-red-500" : ""}
+              readOnly
+              className={
+                invalidFields.includes("totalTeachers") ? "border-red-500" : ""
+              }
             />
             {invalidFields.includes("totalTeachers") && (
               <p className="text-sm text-red-600 mt-1">Total teachers is required</p>
@@ -384,61 +444,10 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
           </div>
 
           <div>
-            <Label htmlFor="maleTeachers">No. of Male Teachers</Label>
-            <Input
-              id="maleTeachers"
-              type="number"
-              value={formData.maleTeachers || ""}
-              onChange={e => onInputChange("maleTeachers", e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="femaleTeachers">No. of Female Teachers</Label>
-            <Input
-              id="femaleTeachers"
-              type="number"
-              value={formData.femaleTeachers || ""}
-              onChange={e => onInputChange("femaleTeachers", e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="maleStudents">No. of Male Students</Label>
-            <Input
-              id="maleStudents"
-              type="number"
-              value={formData.maleStudents || ""}
-              onChange={e => onInputChange("maleStudents", e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="femaleStudents">No. of Female Students</Label>
-            <Input
-              id="femaleStudents"
-              type="number"
-              value={formData.femaleStudents || ""}
-              onChange={e => onInputChange("femaleStudents", e.target.value)}
-            />
-          </div>
-
-
-          <div>
-            <Label htmlFor="specialClasses">Special Classes (e.g. Montessori, Prep)</Label>
-            <Input
-              id="specialClasses"
-              value={formData.specialClasses || ""}
-              onChange={e => onInputChange("specialClasses", e.target.value)}
-              placeholder="Montessori, Prep Section, etc"
-            />
-          </div>
-
-          <div>
             <Label htmlFor="totalCoordinators">Total Coordinators *</Label>
             <Input
               id="totalCoordinators"
-              type="number"
+              type="text"
               value={formData.totalCoordinators || ""}
               onChange={e => onInputChange("totalCoordinators", e.target.value)}
               className={invalidFields.includes("totalCoordinators") ? "border-red-500" : ""}
@@ -452,7 +461,7 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
             <Label htmlFor="totalMaids">Total Maids *</Label>
             <Input
               id="totalMaids"
-              type="number"
+              type="text"
               value={formData.totalMaids || ""}
               onChange={e => onInputChange("totalMaids", e.target.value)}
               className={invalidFields.includes("totalMaids") ? "border-red-500" : ""}
@@ -466,7 +475,7 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
             <Label htmlFor="totalGuards">Total Guards *</Label>
             <Input
               id="totalGuards"
-              type="number"
+              type="text"
               value={formData.totalGuards || ""}
               onChange={e => onInputChange("totalGuards", e.target.value)}
               className={invalidFields.includes("totalGuards") ? "border-red-500" : ""}
@@ -475,7 +484,15 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
               <p className="text-sm text-red-600 mt-1">Total guards is required</p>
             )}
           </div>
-          {/* Newly added fields end here */}
+          <div>
+            <Label htmlFor="totalNonTeachingStaff">Total Non-Teaching Staff</Label>
+            <Input
+              id="totalNonTeachingStaff"
+              type="number"
+              value={formData.totalNonTeachingStaff || ""}
+              onChange={e => onInputChange("totalNonTeachingStaff", e.target.value)}
+            />
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -485,7 +502,7 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
 // Small local UploadArea component to keep this file self-contained
 function UploadArea({ existing, onFile }: { existing?: string | null, onFile: (dataUrl: string | null) => void }) {
   const [isDragging, setIsDragging] = useState(false)
-  const inputRef = useRef<HTMLInputElement | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const openFilePicker = useCallback(() => {
     inputRef.current?.click()
