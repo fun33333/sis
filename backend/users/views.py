@@ -86,13 +86,18 @@ class UserListView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
+        role_param = self.request.query_params.get('role')
         
-        if user.is_superadmin():
-            return User.objects.all()
-        elif user.is_principal():
-            return User.objects.filter(campus=user.campus)
+        if user.is_superadmin() or user.is_principal():
+            qs = User.objects.all()
+            if role_param:
+                return qs.filter(role=role_param)
+            return qs
         elif user.is_coordinator():
-            return User.objects.filter(campus=user.campus, role__in=['teacher', 'coordinator'])
+            qs = User.objects.filter(campus=user.campus, role__in=['teacher', 'coordinator'])
+            if role_param in ['teacher', 'coordinator']:
+                return qs.filter(role=role_param)
+            return qs
         else:
             return User.objects.filter(id=user.id)
 

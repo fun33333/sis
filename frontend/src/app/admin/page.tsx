@@ -119,21 +119,37 @@ export default function MainDashboardPage() {
       setLoading(true)
       try {
         // Try to fetch from API first
-        const [apiStudents, apiStats] = await Promise.all([
+        const [apiStudents, apiStats, caps] = await Promise.all([
           getAllStudents(),
-          getDashboardStats()
+          getDashboardStats(),
+          getAllCampuses()
         ])
 
         // Urdu roman: Yahan pe hum ensure kar rahe hain ke apiStudents array hai aur us par length aur map dono kaam karen.
         // English: Here we ensure that apiStudents is an array so that length and map work correctly.
         const studentsArray = Array.isArray(apiStudents) ? apiStudents : [];
-        if (studentsArray.length > 0) {
-          // Use API data
-          const mapped: DashboardStudent[] = studentsArray.map((item: any, idx: number) => {
+        // Always use API data (real database)
+        const campusArray = Array.isArray(caps) ? caps : (Array.isArray((caps as any)?.results) ? (caps as any).results : [])
+        const idToCampusName = new Map<string, string>(
+          campusArray.map((c: any) => [String(c.id), String(c.name || '')])
+        )
+        const idToCampusCode = new Map<string, string>(
+          campusArray.map((c: any) => [String(c.id), String(c.code || '')])
+        )
+
+        const mapped: DashboardStudent[] = studentsArray.map((item: any, idx: number) => {
             const createdAt = typeof item?.created_at === "string" ? item.created_at : ""
             const year = createdAt ? Number(createdAt.split("-")[0]) : new Date().getFullYear()
             const genderRaw = (item?.gender ?? "").toString().trim()
-            const campusName = (item?.campus?.name ?? "Unknown").toString().trim()
+          const campusCode = (() => {
+            const raw = item?.campus
+            if (raw && typeof raw === 'object') return String(raw?.code || 'Unknown').trim()
+            if (typeof raw === 'number' || typeof raw === 'string') {
+              const hit = idToCampusCode.get(String(raw))
+              if (hit) return hit
+            }
+            return 'Unknown'
+          })()
             const gradeName = (item?.current_grade ?? "Unknown").toString().trim()
             const motherTongue = (item?.mother_tongue ?? "Other").toString().trim()
             const religion = (item?.religion ?? "Other").toString().trim()
@@ -142,7 +158,7 @@ export default function MainDashboardPage() {
               studentId: String(item?.gr_no || item?.id || idx + 1),
               name: item?.name || "Unknown",
               academicYear: isNaN(year) ? new Date().getFullYear() : year,
-              campus: campusName,
+              campus: campusCode,
               grade: gradeName,
               current_grade: gradeName,
               gender: genderRaw || "Unknown",
@@ -154,43 +170,7 @@ export default function MainDashboardPage() {
               enrollmentDate: createdAt ? new Date(createdAt) : new Date(),
             }
           })
-          setStudents(mapped)
-        } else {
-          // Fallback to CSV data
-          const res = await fetch("/csvjson.json")
-          if (!res.ok) {
-            setStudents([])
-            return
-          }
-          let data: any[] = []
-          const text = await res.text()
-          try {
-            data = text ? JSON.parse(text) : []
-          } catch {
-            data = []
-          }
-          const mapped: DashboardStudent[] = data.map((item: any, idx: number) => {
-            let academicYear = Number(item["Year of Admission"])
-            if (isNaN(academicYear)) academicYear = 2025
-            return {
-              rawData: item,
-              studentId: `CSV${idx + 1}`,
-              name: item["Student Name"] || "Unknown",
-              academicYear,
-              campus: item["Campus"] || "Unknown",
-              grade: item["Current Grade/Class"] || "Unknown",
-              current_grade: item["Current Grade/Class"] || "Unknown",
-              gender: item["Gender"] === "Male" || item["Gender"] === "Female" ? item["Gender"] : "Other",
-              motherTongue: item["Mother Tongue"] || "Other",
-              religion: item["Religion"] || "Other",
-              attendancePercentage: Math.floor(Math.random() * 31) + 70,
-              averageScore: Math.floor(Math.random() * 41) + 60,
-              retentionFlag: Math.random() > 0.2,
-              enrollmentDate: new Date(),
-            }
-          })
-          setStudents(mapped)
-        }
+        setStudents(mapped)
       } catch (error) {
         console.error('Error fetching data:', error)
         // Fallback to empty array

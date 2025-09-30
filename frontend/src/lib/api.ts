@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   TEACHERS: "/api/teachers/",
   CAMPUS: "/api/campus/",
   CAMPUS_ACTIVE: "/api/campus/active/",
+  USERS: "/api/users/",
   AUTH_LOGIN: "/api/auth/login/",
   AUTH_REFRESH: "/api/auth/refresh/",
 } as const;
@@ -286,7 +287,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
 export async function getAllStudents() {
   try {
-    return await apiGet(API_ENDPOINTS.STUDENTS);
+    const data = await apiGet(API_ENDPOINTS.STUDENTS);
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray((data as any).results)) return (data as any).results;
+    return [];
   } catch (error) {
     console.error('Failed to fetch students:', error);
     return [];
@@ -298,6 +302,18 @@ export async function getAllCampuses() {
     return await apiGet(API_ENDPOINTS.CAMPUS_ACTIVE);
   } catch (error) {
     console.error('Failed to fetch campuses:', error);
+    return [];
+  }
+}
+
+
+// Users API
+export async function getUsers(role?: string) {
+  try {
+    const path = role ? `${API_ENDPOINTS.USERS}?role=${encodeURIComponent(role)}` : API_ENDPOINTS.USERS;
+    return await apiGet(path);
+  } catch (error) {
+    console.error('Failed to fetch users:', error);
     return [];
   }
 }

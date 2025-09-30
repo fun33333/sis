@@ -35,7 +35,7 @@ export default function TeacherListPage() {
                 <div className="text-sm text-muted-foreground">{t.subject} • {t.email}</div>
               </div>
               <div>
-                <Link href={`/teachers/profile?id=${encodeURIComponent(t.id)}`}>
+                <Link href={`/admin/teachers/profile?id=${encodeURIComponent(t.id)}`}>
                   <Button size="sm">Open</Button>
                 </Link>
               </div>

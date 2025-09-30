@@ -1,10 +1,13 @@
 from rest_framework import viewsets, decorators, response
+from rest_framework.permissions import IsAuthenticated
+from users.permissions import IsSuperAdminOrPrincipal
 from .models import Campus
 from .serializers import CampusSerializer
 
 class CampusViewSet(viewsets.ModelViewSet):
     queryset = Campus.objects.all()
     serializer_class = CampusSerializer
+    permission_classes = [IsAuthenticated, IsSuperAdminOrPrincipal]
 
     # ✅ Custom endpoint: campus summary
     @decorators.action(detail=True, methods=["get"])

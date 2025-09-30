@@ -101,6 +101,52 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         ],
       },
     ]
+    : userRole === "superadmin"
+    ? [
+      {
+        key: "dashboard",
+        title: "Dashboard",
+        icon: TrendingUp,
+        href: "/admin",
+        subItems: [],
+      },
+      {
+        key: "students",
+        title: "Students",
+        icon: Users,
+        href: "/admin/students",
+        subItems: [
+          { title: "Student List", href: "/admin/students/student-list" },
+        ],
+      },
+      {
+        key: "teachers",
+        title: "Teachers",
+        icon: GraduationCap,
+        href: "/admin/teachers",
+        subItems: [
+          { title: "Teacher List", href: "/admin/teachers/list" },
+        ],
+      },
+      {
+        key: "campus",
+        title: "Campus",
+        icon: Building2,
+        href: "/admin/campus",
+        subItems: [
+          { title: "Campus List", href: "/admin/campus/list" },
+        ],
+      },
+      {
+        key: "coordinator",
+        title: "Co-Ordinator",
+        icon: Award,
+        href: "/admin/coordinator",
+        subItems: [
+          { title: "Coordinator List", href: "/admin/coordinator/list" },
+        ],
+      },
+    ]
     : [
       {
         key: "dashboard",
@@ -152,6 +198,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         icon: Award,
         href: "/admin/coordinator",
         subItems: [
+          { title: "Coordinator List", href: "/admin/coordinator/list" },
           { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
           { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
           { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
@@ -183,7 +230,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         transition: 'background 0.5s, box-shadow 0.5s, width 0.5s, padding 0.5s',
       }}
     >
-      <div>
+      <div className="flex flex-col h-full">
         <div className="flex items-center gap-3 mb-10">
           <div
             className="p-2 rounded-xl cursor-pointer hover:scale-105 transition-transform duration-300"
@@ -201,7 +248,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           )}
         </div>
 
-        <nav className="space-y-2">
+        <nav className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1 hide-scrollbar">
           {menuItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
             const hasSubItems = item.subItems.length > 0
@@ -269,31 +316,32 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
               </div>
             )
           })}
-          {(userRole === "teacher" || userRole === "coordinator" || userRole === "superadmin") && (
-            <button
-              onClick={() => {
-                window.localStorage.removeItem("sis_user");
-                window.location.href = "/Universal_Login";
-              }}
-              className={`w-full flex ${sidebarOpen ? "items-center gap-3 px-4 py-3" : "justify-center items-center p-0"} rounded-xl font-semibold shadow-lg transition-all duration-500 text-red-700 hover:bg-red-50 mt-2`}
+        </nav>
+
+        {(userRole === "teacher" || userRole === "coordinator" || userRole === "superadmin" || userRole === "principal") && (
+          <button
+            onClick={() => {
+              window.localStorage.removeItem("sis_user");
+              window.location.href = "/Universal_Login";
+            }}
+            className={`w-full flex ${sidebarOpen ? "items-center gap-3 px-4 py-3" : "justify-center items-center p-0"} rounded-xl font-semibold shadow-lg transition-all duration-500 text-red-700 hover:bg-red-50 mt-2`}
+            style={{
+              border: "1.5px solid #ef4444",
+            }}
+          >
+            <span className={`${sidebarOpen ? "flex items-center justify-center" : "flex items-center justify-center w-12 h-12"} transition-all duration-500`}>
+              <LogOut className="h-6 w-6" />
+            </span>
+            <span
+              className={`sidebar-label inline-block whitespace-nowrap overflow-hidden transition-all duration-500 ${sidebarOpen && showText ? 'opacity-100 max-w-xs ml-2' : 'opacity-0 max-w-0 ml-0'}`}
               style={{
-                border: "1.5px solid #ef4444",
+                transition: 'opacity 0.5s, max-width 0.5s, margin-left 0.5s',
               }}
             >
-              <span className={`${sidebarOpen ? "flex items-center justify-center" : "flex items-center justify-center w-12 h-12"} transition-all duration-500`}>
-                <LogOut className="h-6 w-6" />
-              </span>
-              <span
-                className={`sidebar-label inline-block whitespace-nowrap overflow-hidden transition-all duration-500 ${sidebarOpen && showText ? 'opacity-100 max-w-xs ml-2' : 'opacity-0 max-w-0 ml-0'}`}
-                style={{
-                  transition: 'opacity 0.5s, max-width 0.5s, margin-left 0.5s',
-                }}
-              >
-                {showText ? "Logout" : ''}
-              </span>
-            </button>
-          )}
-        </nav>
+              {showText ? "Logout" : ''}
+            </span>
+          </button>
+        )}
       </div>
     </aside>
   )
