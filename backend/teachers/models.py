@@ -21,6 +21,7 @@ SAVE_STATUS_CHOICES = [
 ]
 
 class Teacher(models.Model):
+    # Personal Information
     full_name = models.CharField(max_length=150)
     dob = models.DateField(verbose_name="Date of Birth")
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
@@ -29,6 +30,53 @@ class Teacher(models.Model):
     permanent_address = models.TextField()
     current_address = models.TextField(blank=True, null=True)
     marital_status = models.CharField(max_length=20, choices=MARITAL_STATUS_CHOICES, blank=True, null=True)
+    
+    # Education Information
+    education_level = models.CharField(max_length=100, blank=True, null=True)
+    institution_name = models.CharField(max_length=200, blank=True, null=True)
+    year_of_passing = models.IntegerField(blank=True, null=True)
+    education_subjects = models.CharField(max_length=200, blank=True, null=True)
+    education_grade = models.CharField(max_length=50, blank=True, null=True)
+    
+    # Additional Education Fields
+    additional_education_level = models.CharField(max_length=100, blank=True, null=True)
+    additional_institution_name = models.CharField(max_length=200, blank=True, null=True)
+    additional_year_of_passing = models.IntegerField(blank=True, null=True)
+    additional_education_subjects = models.CharField(max_length=200, blank=True, null=True)
+    additional_education_grade = models.CharField(max_length=50, blank=True, null=True)
+    
+    # Experience Information
+    previous_institution_name = models.CharField(max_length=200, blank=True, null=True)
+    previous_position = models.CharField(max_length=150, blank=True, null=True)
+    experience_from_date = models.DateField(blank=True, null=True)
+    experience_to_date = models.DateField(blank=True, null=True)
+    experience_subjects_classes_taught = models.CharField(max_length=200, blank=True, null=True)
+    previous_responsibilities = models.TextField(blank=True, null=True)
+    total_experience_years = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    
+    # Additional Experience Fields
+    additional_institution_name_exp = models.CharField(max_length=200, blank=True, null=True)
+    additional_position = models.CharField(max_length=150, blank=True, null=True)
+    additional_experience_from_date = models.DateField(blank=True, null=True)
+    additional_experience_to_date = models.DateField(blank=True, null=True)
+    additional_experience_subjects_classes = models.CharField(max_length=200, blank=True, null=True)
+    additional_responsibilities = models.TextField(blank=True, null=True)
+    
+    # Current Role Information
+    current_role_title = models.CharField(max_length=150, blank=True, null=True)
+    current_campus = models.ForeignKey(Campus, on_delete=models.CASCADE, related_name="teachers", blank=True, null=True)
+    current_subjects = models.CharField(max_length=200, blank=True, null=True)
+    current_classes_taught = models.CharField(max_length=200, blank=True, null=True)
+    current_extra_responsibilities = models.TextField(blank=True, null=True)
+    role_start_date = models.DateField(blank=True, null=True)
+    role_end_date = models.DateField(blank=True, null=True)
+    is_currently_active = models.BooleanField(default=True)
+    
+    # Auto Generated Fields
+    teacher_id = models.CharField(max_length=20, unique=True, editable=False, null=True, blank=True)
+    employee_code = models.CharField(max_length=20, unique=True, editable=False, null=True, blank=True)
+    
+    # System Fields
     save_status = models.CharField(max_length=10, choices=SAVE_STATUS_CHOICES, default="draft")
     
     # --- ID Generation Fields ---
@@ -43,32 +91,7 @@ class Teacher(models.Model):
     date_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.full_name} ({self.teacher_id or 'No ID'})"
-    
-    def generate_teacher_id(self, role='teacher'):
-        """
-        Generate teacher ID based on campus, shift, joining year, role, and teacher number
-        """
-        if not all([self.campus, self.shift, self.joining_year, self.teacher_number]):
-            return None
-        
-        from users.utils import generate_teacher_id, get_shift_code, get_role_code
-        
-        campus_code = self.campus.code or f"C{self.campus.id:02d}"
-        shift_code = get_shift_code(self.shift)
-        year = str(self.joining_year)[-2:]  # Last 2 digits of year
-        role_code = get_role_code(role)
-        
-        return generate_teacher_id(campus_code, shift_code, year, role_code, self.teacher_number)
-    
-    def save(self, *args, **kwargs):
-        # Generate teacher_id if not exists
-        if not self.teacher_id and all([self.campus, self.shift, self.joining_year, self.teacher_number]):
-            # Default role is 'teacher', can be overridden
-            role = getattr(self, 'role', 'teacher')
-            self.teacher_id = self.generate_teacher_id(role)
-        
-        super().save(*args, **kwargs)
+        return self.full_name
 
 class TeacherEducation(models.Model):
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name="educations")
@@ -106,5 +129,9 @@ class TeacherRole(models.Model):
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.teacher.full_name} - {self.role_title} ({self.campus.name})"
-# done
+        return f"{self.full_name} ({self.teacher_id or 'No ID'})"
+
+    class Meta:
+        verbose_name = "Teacher"
+        verbose_name_plural = "Teachers"
+        ordering = ['-date_created']
