@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
-import { apiGet } from "@/lib/api"
+import { apiGet, getAllStudents } from "@/lib/api"
 import { ArrowLeft, User, Phone, MapPin, GraduationCap, Users, Calendar, Award, BookOpen, TrendingUp, Star, Crown, Sparkles, Trophy, Medal, Target, Activity, Clock, Mail, Home, School, CheckCircle, AlertCircle, BarChart3, PieChart as PieChartIcon, LineChart as LineChartIcon, RefreshCw, Download, Share } from "lucide-react"
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, LineChart, Line, RadialBarChart, RadialBar, AreaChart, Area } from 'recharts'
 
@@ -96,10 +96,10 @@ export default function StudentProfilePage() {
       try {
         const [studentData, allStudents] = await Promise.all([
           apiGet<any>(`/api/students/${studentId}/`),
-          apiGet<any[]>("/api/students/")
+          getAllStudents()
         ])
         setStudent(studentData)
-        setStudents(allStudents)
+        setStudents(Array.isArray(allStudents) ? allStudents : [])
         
         // Generate dynamic data based on real student
         setPerformanceData(generatePerformanceData(studentData))

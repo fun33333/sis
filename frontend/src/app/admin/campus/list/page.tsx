@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 // mock data removed; using real API data only
-import { apiGet } from "@/lib/api"
+import { apiGet, getAllCampuses } from "@/lib/api"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { useEffect } from "react";
@@ -25,17 +25,18 @@ export default function CampusListPage() {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
-  const filtered = campuses.filter((c) => c.name?.toLowerCase().includes(query.toLowerCase()))
+  const filtered = (Array.isArray(campuses) ? campuses : []).filter((c: any) => (c?.name || "").toLowerCase().includes(query.toLowerCase()))
 
   // metrics from API data only (fallbacks to 0 for avg score)
 
   React.useEffect(() => {
     let mounted = true
     setLoading(true)
-    apiGet<any[]>("/api/campus/")
+    getAllCampuses()
       .then((data) => {
         if (!mounted) return
-        setCampuses(data)
+        const list = Array.isArray(data) ? data : (Array.isArray((data as any)?.results) ? (data as any).results : [])
+        setCampuses(list)
       })
       .catch((err) => {
         console.error(err)

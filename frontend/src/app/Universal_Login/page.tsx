@@ -17,7 +17,7 @@ type Teacher = {
 
 export default function LoginPage() {
   const [showForgot, setShowForgot] = useState(false);
-  const [role, setRole] = useState<"coordinator" | "teacher" | "admin" | "superadmin">("teacher");
+  const [role, setRole] = useState<"coordinator" | "teacher" | "principal" | "superadmin">("teacher");
   const [animate, setAnimate] = useState(false);
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
@@ -32,45 +32,39 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Login handler: teacher/coordinator keep demo JSON; admin/superadmin use backend
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     if (role === "teacher") {
       try {
-        const res = await fetch("/teachers.json");
-        const teachers: Teacher[] = await res.json();
-        const found = teachers.find((t) => (t.id === id || t.username === id) && t.password === password);
-        if (found) {
-          setTeacherInfo(found);
-          if (typeof window !== "undefined") {
-            window.localStorage.setItem("sis_user", JSON.stringify({ role: "teacher", ...found }));
-          }
-          router.push("/admin");
-        } else {
-          setError("Invalid teacher ID or password");
+        const email = id.trim();
+        const emailOk = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(email);
+        if (!emailOk) {
+          setError("Please enter a valid email address");
+          setLoading(false);
+          return;
         }
-      } catch (err) {
-        setError("Login failed. Please try again.");
+        await loginWithEmailPassword(email, password);
+        router.push("/admin");
+      } catch (err: any) {
+        setError(err?.response || err?.message || "Login failed");
       }
     } else if (role === "coordinator") {
       try {
-        const res = await fetch("/coordinators.json");
-        const coordinators = await res.json();
-        const found = coordinators.find((c: any) => (c.id === id || c.username === id) && c.password === password);
-        if (found) {
-          if (typeof window !== "undefined") {
-            window.localStorage.setItem("sis_user", JSON.stringify({ role: "coordinator", ...found }));
-          }
-          router.push("/admin");
-        } else {
-          setError("Invalid coordinator ID or password");
+        const email = id.trim();
+        const emailOk = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(email);
+        if (!emailOk) {
+          setError("Please enter a valid email address");
+          setLoading(false);
+          return;
         }
-      } catch (err) {
-        setError("Login failed. Please try again.");
+        await loginWithEmailPassword(email, password);
+        router.push("/admin");
+      } catch (err: any) {
+        setError(err?.response || err?.message || "Login failed");
       }
-    } else if (role === "admin" || role === "superadmin") {
+    } else if (role === "principal" || role === "superadmin") {
       try {
         // Basic email format validation before API call
         const email = id.trim();
@@ -139,7 +133,7 @@ export default function LoginPage() {
                     >
                       <option value="teacher">Teacher</option>
                       <option value="coordinator">Coordinator</option>
-                      <option value="admin">Admin</option>
+                      <option value="principal">Principal</option>
                       <option value="superadmin">Super Admin</option>
                     </select>
                     <span className="pointer-events-none absolute right-4 top-1/2 transform -translate-y-1/2 text-[#274c77] text-lg">
@@ -151,28 +145,22 @@ export default function LoginPage() {
                 {/* ID/Email Input */}
                 <div className="w-full mb-2">
                   <label htmlFor="login-email" className="block mb-1 text-[#274c77] font-semibold">
-                    {role === "admin" || role === "superadmin"
-                      ? "Email"
-                      : role === "teacher"
-                      ? "Teacher ID or Username"
-                      : "Coordinator ID"}
+                    {role === "principal" || role === "superadmin" || role === "teacher" || role === "coordinator" ? "Email" : "Coordinator ID"}
                   </label>
                 </div>
                 <div className="relative w-full h-14 mb-6">
                   <input
-                    type={role === "admin" || role === "superadmin" ? "email" : "text"}
+                    type={role === "principal" || role === "superadmin" || role === "teacher" || role === "coordinator" ? "email" : "text"}
                     id="login-email"
                     required
                     value={id}
                     onChange={e => setId(e.target.value)}
                     className="w-full h-full border-2 border-[#a3cef1] rounded-xl pl-14 pr-12 text-[#274c77] text-lg font-medium focus:outline-none focus:ring-2 focus:ring-[#6096ba] shadow transition-all duration-200 placeholder:font-normal placeholder:text-[#6096ba]"
                     placeholder={
-                      role === "teacher"
-                        ? "Teacher ID or Username"
+                      role === "teacher" || role === "principal" || role === "superadmin" || role === "coordinator"
+                        ? "Email"
                         : role === "coordinator"
                         ? "Coordinator ID"
-                        : role === "admin" || role === "superadmin"
-                        ? "Email"
                         : "ID"
                     }
                   />
@@ -195,8 +183,8 @@ export default function LoginPage() {
                         ? "Teacher Password"
                         : role === "coordinator"
                         ? "Coordinator Password"
-                        : role === "admin"
-                        ? "Admin Password"
+                        : role === "principal"
+                        ? "Principal Password"
                         : "Super Admin Password"
                     }
                   />

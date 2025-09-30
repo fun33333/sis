@@ -33,23 +33,36 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
   }, [])
 
   const getCampusId = (campusName: string) => {
-    // Handle hardcoded campus values based on actual database data
-    const campusMap: { [key: string]: number } = {
-      "campus-1": 5,  // campus 1 has ID 5
-      "campus-2": 5,  // Map to campus 1 for now
-      "campus-3": 5,  // Map to campus 1 for now
-      "campus-4": 5,  // Map to campus 1 for now
-      "campus-5": 5,  // Map to campus 1 for now
-      "campus-6": 6,  // campus 6 has ID 6
-      "campus-8": 6,  // Map to campus 6 for now
-    }
-    
-    // First try to find by name in fetched campuses
-    const campus = campuses.find(c => c.name === campusName)
+    if (!campusName) return null
+    const name = String(campusName).trim().toLowerCase()
+    // Try strict name match
+    let campus = campuses.find((c) => String(c?.name || '').trim().toLowerCase() === name)
     if (campus) return campus.id
-    
-    // Fallback to hardcoded mapping
-    return campusMap[campusName] || null
+    // Try code match if provided
+    campus = campuses.find((c) => String(c?.code || '').trim().toLowerCase() === name)
+    if (campus) return campus.id
+    // Try contains match
+    campus = campuses.find((c) => String(c?.name || '').toLowerCase().includes(name))
+    if (campus) return campus.id
+    // As a safe fallback, do not send an invalid campus id
+    return null
+  }
+
+  const normalizeGender = (value: string | undefined): 'male' | 'female' | null => {
+    const v = (value || '').toString().trim().toLowerCase()
+    if (v === 'male' || v === 'm') return 'male'
+    if (v === 'female' || v === 'f') return 'female'
+    // Backend model allows only male/female; if 'other' or unknown -> null
+    return null
+  }
+
+  const normalizeShift = (value: string | undefined): string | null => {
+    const v = (value || '').toString().trim().toLowerCase()
+    if (!v) return null
+    if (v === 'morning' || v === 'm') return 'morning'
+    if (v === 'afternoon' || v === 'evening' || v === 'e') return 'evening'
+    // Only morning and afternoon supported; anything else becomes null
+    return null
   }
 
   const normalizeZakatStatus = (value: string | undefined): string | null => {
@@ -67,7 +80,7 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
       name: formData.name || "",
       
       // Optional Personal Information
-      gender: formData.gender || null,
+      gender: normalizeGender(formData.gender),
       dob: formData.dob || null,
       place_of_birth: formData.placeOfBirth || null,
       religion: formData.religion || null,
@@ -85,6 +98,9 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
       campus: getCampusId(formData.campus),
       current_grade: formData.currentGrade || null,
       section: formData.section || null,
+      enrollment_year: formData.admissionYear ? Number(formData.admissionYear) : null,
+      student_number: formData.studentNumber ? Number(formData.studentNumber) : null,
+      shift: normalizeShift(formData.shift),
       last_class_passed: formData.lastClassPassed || null,
       last_school_name: formData.lastSchoolName || null,
       gr_no: formData.grNumber || null,

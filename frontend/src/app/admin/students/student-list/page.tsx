@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import type { Student } from "@/types/dashboard"
-import { apiGet } from "@/lib/api"
+import { getAllStudents, getAllCampuses } from "@/lib/api"
 
 export default function StudentListPage() {
   useEffect(() => {
@@ -42,11 +42,12 @@ export default function StudentListPage() {
       setLoading(true);
       try {
         const [data, campusList] = await Promise.all([
-          apiGet<any[]>("/api/students/"),
-          apiGet<any[]>("/api/campus/"),
+          getAllStudents(),
+          getAllCampuses(),
         ])
-        setStudents(data);
-        setCampuses(campusList || [])
+        setStudents(Array.isArray(data) ? data : []);
+        const clist = Array.isArray(campusList) ? campusList : (Array.isArray((campusList as any)?.results) ? (campusList as any).results : [])
+        setCampuses(clist)
       } catch (err) {
         setStudents([]);
         setCampuses([])

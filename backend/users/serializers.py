@@ -80,8 +80,8 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     def validate_campus(self, value):
         user = self.context['request'].user
         
-        # Only SuperAdmin can change campus
-        if not user.is_superadmin() and value != user.campus:
+        # Allow SuperAdmin and Principal to change campus for any user
+        if not (user.is_superadmin() or user.is_principal()) and value != user.campus:
             raise serializers.ValidationError("You don't have permission to change campus")
         
         return value

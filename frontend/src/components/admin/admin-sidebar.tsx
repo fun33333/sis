@@ -150,6 +150,52 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         ],
       },
     ]
+    : userRole === "superadmin"
+    ? [
+      {
+        key: "dashboard",
+        title: "Dashboard",
+        icon: TrendingUp,
+        href: "/admin",
+        subItems: [],
+      },
+      {
+        key: "students",
+        title: "Students",
+        icon: Users,
+        href: "/admin/students",
+        subItems: [
+          { title: "Student List", href: "/admin/students/student-list" },
+        ],
+      },
+      {
+        key: "teachers",
+        title: "Teachers",
+        icon: GraduationCap,
+        href: "/admin/teachers",
+        subItems: [
+          { title: "Teacher List", href: "/admin/teachers/list" },
+        ],
+      },
+      {
+        key: "campus",
+        title: "Campus",
+        icon: Building2,
+        href: "/admin/campus",
+        subItems: [
+          { title: "Campus List", href: "/admin/campus/list" },
+        ],
+      },
+      {
+        key: "coordinator",
+        title: "Co-Ordinator",
+        icon: Award,
+        href: "/admin/coordinator",
+        subItems: [
+          { title: "Coordinator List", href: "/admin/coordinator/list" },
+        ],
+      },
+    ]
     : [
       {
         key: "dashboard",
@@ -201,6 +247,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         icon: Award,
         href: "/admin/coordinator",
         subItems: [
+          { title: "Coordinator List", href: "/admin/coordinator/list" },
           { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
           { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
           { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
@@ -223,6 +270,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
   }
 
   return (
+<<<<<<< HEAD
     <>
       <style dangerouslySetInnerHTML={{ __html: customScrollbarStyles }} />
       <aside
@@ -236,6 +284,18 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
       >
       {/* Header Section - Fixed */}
       <div className="flex-shrink-0">
+=======
+    <aside
+      className={`h-screen fixed left-0 top-0 flex flex-col justify-between rounded-r-3xl shadow-2xl backdrop-blur-lg border-r border-[#8b8c89]/30 z-20 transition-all duration-500 ${sidebarOpen ? "w-72 px-4 py-8" : "w-18 px-2 py-4"}`}
+      style={{
+        background: sidebarOpen ? "#e7ecef" : "#a3cef1",
+        boxShadow: sidebarOpen ? "0 8px 32px 0 #add0e7bc" : "0 2px 8px 0 #a3cef1e8",
+        borderRight: "3px solid #1c3f67ff",
+        transition: 'background 0.5s, box-shadow 0.5s, width 0.5s, padding 0.5s',
+      }}
+    >
+      <div className="flex flex-col h-full">
+>>>>>>> b498f334ef07ab09bc02a3e57d8bb45f56055b0b
         <div className="flex items-center gap-3 mb-10">
           <div
             className="p-2 rounded-xl cursor-pointer hover:scale-105 transition-transform duration-300"
@@ -258,6 +318,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* Navigation Section - Scrollable */}
       <div 
         className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar"
@@ -266,6 +327,9 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         }}
       >
         <nav className="space-y-2 pr-2" style={{ direction: 'ltr' }}>
+=======
+        <nav className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1 hide-scrollbar">
+>>>>>>> b498f334ef07ab09bc02a3e57d8bb45f56055b0b
           {menuItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
             const hasSubItems = item.subItems.length > 0
@@ -353,6 +417,34 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
             )
           })}
         </nav>
+<<<<<<< HEAD
+=======
+
+        {(userRole === "teacher" || userRole === "coordinator" || userRole === "superadmin" || userRole === "principal") && (
+          <button
+            onClick={() => {
+              window.localStorage.removeItem("sis_user");
+              window.location.href = "/Universal_Login";
+            }}
+            className={`w-full flex ${sidebarOpen ? "items-center gap-3 px-4 py-3" : "justify-center items-center p-0"} rounded-xl font-semibold shadow-lg transition-all duration-500 text-red-700 hover:bg-red-50 mt-2`}
+            style={{
+              border: "1.5px solid #ef4444",
+            }}
+          >
+            <span className={`${sidebarOpen ? "flex items-center justify-center" : "flex items-center justify-center w-12 h-12"} transition-all duration-500`}>
+              <LogOut className="h-6 w-6" />
+            </span>
+            <span
+              className={`sidebar-label inline-block whitespace-nowrap overflow-hidden transition-all duration-500 ${sidebarOpen && showText ? 'opacity-100 max-w-xs ml-2' : 'opacity-0 max-w-0 ml-0'}`}
+              style={{
+                transition: 'opacity 0.5s, max-width 0.5s, margin-left 0.5s',
+              }}
+            >
+              {showText ? "Logout" : ''}
+            </span>
+          </button>
+        )}
+>>>>>>> b498f334ef07ab09bc02a3e57d8bb45f56055b0b
       </div>
 
       {/* Logout Section - Fixed at Bottom */}
