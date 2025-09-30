@@ -77,16 +77,21 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 
+# Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+# Database Configuration - SQLite for Development, PostgreSQL for Production
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', os.getenv('POSTGRES_DB', 'project_db')),
-        'USER': os.getenv('DB_USER', os.getenv('POSTGRES_USER', 'project_user')),
-        'PASSWORD': os.getenv('DB_PASSWORD', os.getenv('POSTGRES_PASSWORD', 'project_pass')),
-        'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-        'PORT': os.getenv('DB_PORT', os.getenv('POSTGRES_PORT', '5432')),
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv("DB_NAME", "student_management"),
+            'USER': os.getenv("DB_USER", "postgres"),
+            'PASSWORD': os.getenv("DB_PASSWORD", "postgres123"),
+            'HOST': os.getenv("DB_HOST", "localhost"),
+            'PORT': os.getenv("DB_PORT", "5432"),
+        }
     }
-}
+
 
 
 # Password validation
