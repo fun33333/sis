@@ -212,7 +212,4 @@ CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 SUPERUSER_USERNAME = os.getenv('SUPERUSER_USERNAME', 'admin')
 SUPERUSER_PASSWORD = os.getenv('SUPERUSER_PASSWORD', 'admin123')
 SUPERUSER_EMAIL = os.getenv('SUPERUSER_EMAIL', 'admin@example.com')
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-]
 
