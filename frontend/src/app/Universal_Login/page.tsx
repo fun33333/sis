@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 // For navigation after login (if needed)
 import { useRouter } from "next/navigation";
 import { FaLock, FaEnvelope } from "react-icons/fa";
+import { loginWithEmailPassword } from "@/lib/api";
 
 
 type Teacher = {
@@ -31,7 +32,7 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Dummy login handler
+  // Login handler: teacher/coordinator keep demo JSON; admin/superadmin use backend
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -53,22 +54,6 @@ export default function LoginPage() {
       } catch (err) {
         setError("Login failed. Please try again.");
       }
-    } else if (role === "superadmin") {
-      try {
-        const res = await fetch("/superadmins.json");
-        const superadmins = await res.json();
-        const found = superadmins.find((s: any) => (s.id === id || s.username === id) && s.password === password);
-        if (found) {
-          if (typeof window !== "undefined") {
-            window.localStorage.setItem("sis_user", JSON.stringify({ role: "superadmin", ...found }));
-          }
-          router.push("/admin");
-        } else {
-          setError("Invalid super admin ID or password");
-        }
-      } catch (err) {
-        setError("Login failed. Please try again.");
-      }
     } else if (role === "coordinator") {
       try {
         const res = await fetch("/coordinators.json");
@@ -85,8 +70,24 @@ export default function LoginPage() {
       } catch (err) {
         setError("Login failed. Please try again.");
       }
+    } else if (role === "admin" || role === "superadmin") {
+      try {
+        // Basic email format validation before API call
+        const email = id.trim();
+        const emailOk = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(email);
+        if (!emailOk) {
+          setError("Please enter a valid email address");
+          setLoading(false);
+          return;
+        }
+        // Expect backend to use email as username for auth
+        await loginWithEmailPassword(email, password);
+        router.push("/admin");
+      } catch (err: any) {
+        setError(err?.response || err?.message || "Login failed");
+      }
     } else {
-      setError("Admin login not implemented in demo");
+      setError("Unsupported role");
     }
     setLoading(false);
   };
@@ -147,10 +148,19 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* ID Input */}
+                {/* ID/Email Input */}
+                <div className="w-full mb-2">
+                  <label htmlFor="login-email" className="block mb-1 text-[#274c77] font-semibold">
+                    {role === "admin" || role === "superadmin"
+                      ? "Email"
+                      : role === "teacher"
+                      ? "Teacher ID or Username"
+                      : "Coordinator ID"}
+                  </label>
+                </div>
                 <div className="relative w-full h-14 mb-6">
                   <input
-                    type="text"
+                    type={role === "admin" || role === "superadmin" ? "email" : "text"}
                     id="login-email"
                     required
                     value={id}
@@ -161,9 +171,9 @@ export default function LoginPage() {
                         ? "Teacher ID or Username"
                         : role === "coordinator"
                         ? "Coordinator ID"
-                        : role === "admin"
-                        ? "Admin ID"
-                        : "Super Admin ID"
+                        : role === "admin" || role === "superadmin"
+                        ? "Email"
+                        : "ID"
                     }
                   />
                   <span className="absolute left-5 top-1/2 transform -translate-y-1/2 text-[#6096ba] text-xl">

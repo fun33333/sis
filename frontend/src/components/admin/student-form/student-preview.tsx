@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Eye, ArrowLeft, Save } from "lucide-react"
-import { apiPost, apiGet } from "@/lib/api"
+import { apiPost, apiGet, apiPostFormData, getAllCampuses } from "@/lib/api"
 import { toast } from "sonner"
 
 interface StudentPreviewProps {
@@ -20,9 +20,12 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
   const [campuses, setCampuses] = useState<any[]>([])
 
   useEffect(() => {
-    // Fetch campuses to get proper IDs
-    apiGet<any[]>("/api/campus/")
-      .then((data) => setCampuses(data))
+    // Fetch campuses to get proper IDs (handle paginated or direct list)
+    getAllCampuses()
+      .then((data: any) => {
+        const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+        setCampuses(list)
+      })
       .catch((err) => {
         console.error("Failed to fetch campuses:", err)
         toast.error("Failed to load campus list")
@@ -150,16 +153,7 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
         })
 
         // Send FormData instead of JSON
-        const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000"
-        const response = await fetch(`${base}/api/students/`, {
-          method: "POST",
-          body: formData,
-        })
-
-        if (!response.ok) {
-          const text = await response.text()
-          throw new Error(`Request failed (${response.status}): ${text}`)
-        }
+        await apiPostFormData("/api/students/", formData)
 
         // Wait for minimum delay
         await new Promise((res) => setTimeout(res, 2000))

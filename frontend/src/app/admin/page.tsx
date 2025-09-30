@@ -158,7 +158,17 @@ export default function MainDashboardPage() {
         } else {
           // Fallback to CSV data
           const res = await fetch("/csvjson.json")
-          const data = await res.json()
+          if (!res.ok) {
+            setStudents([])
+            return
+          }
+          let data: any[] = []
+          const text = await res.text()
+          try {
+            data = text ? JSON.parse(text) : []
+          } catch {
+            data = []
+          }
           const mapped: DashboardStudent[] = data.map((item: any, idx: number) => {
             let academicYear = Number(item["Year of Admission"])
             if (isNaN(academicYear)) academicYear = 2025

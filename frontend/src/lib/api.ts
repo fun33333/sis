@@ -14,6 +14,8 @@ export const API_ENDPOINTS = {
   TEACHERS: "/api/teachers/",
   CAMPUS: "/api/campus/",
   CAMPUS_ACTIVE: "/api/campus/active/",
+  AUTH_LOGIN: "/api/auth/login/",
+  AUTH_REFRESH: "/api/auth/refresh/",
 } as const;
 
 
@@ -37,15 +39,107 @@ function handleApiError(response: Response, errorText: string): never {
   throw new ApiError(errorMessage, response.status, response.statusText, errorText);
 }
 
-//post api call for creating a new campus;
-export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+// Token storage helpers
+const ACCESS_TOKEN_KEY = 'sis_access_token';
+const REFRESH_TOKEN_KEY = 'sis_refresh_token';
+
+function getAccessToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+function getRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+export function setAuthTokens(access: string, refresh?: string) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(ACCESS_TOKEN_KEY, access);
+  if (refresh) window.localStorage.setItem(REFRESH_TOKEN_KEY, refresh);
+}
+
+export function clearAuthTokens() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+// Centralized authorized fetch with auto-refresh and retry
+export async function authorizedFetch(path: string, init: RequestInit = {}, alreadyRetried = false): Promise<Response> {
   const base = getApiBaseUrl();
+  const url = `${base}${path}`;
+
+  const headers = new Headers(init.headers || {});
+  const token = getAccessToken();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const res = await fetch(url, { ...init, headers, credentials: 'omit' });
+
+  if (res.status !== 401) return res;
+
+  // Attempt token refresh once
+  if (!alreadyRetried) {
+    const refresh = getRefreshToken();
+    if (refresh) {
+      const refreshRes = await fetch(`${base}${API_ENDPOINTS.AUTH_REFRESH}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh })
+      });
+      if (refreshRes.ok) {
+        const data = await refreshRes.json();
+        const newAccess = data?.access as string | undefined;
+        if (newAccess) {
+          setAuthTokens(newAccess, refresh);
+          const retryHeaders = new Headers(init.headers || {});
+          retryHeaders.set('Authorization', `Bearer ${newAccess}`);
+          return fetch(url, { ...init, headers: retryHeaders, credentials: 'omit' });
+        }
+      }
+    }
+  }
+
+  return res; // Caller will handle error body
+}
+
+// Auth APIs
+export async function loginWithEmailPassword(email: string, password: string) {
+  const base = getApiBaseUrl();
+  const res = await fetch(`${base}${API_ENDPOINTS.AUTH_LOGIN}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+    credentials: 'omit'
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    handleApiError(res, text);
+  }
+  const data = await res.json();
+  const access = data?.access as string | undefined;
+  const refresh = data?.refresh as string | undefined;
+  if (access) setAuthTokens(access, refresh);
+  if (typeof window !== 'undefined' && data?.user) {
+    window.localStorage.setItem('sis_user', JSON.stringify(data.user));
+  }
+  return data;
+}
+
+export function logoutClientOnly() {
+  clearAuthTokens();
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem('sis_user');
+  }
+}
+
+//post api call for creating a new campus; and other JSON POSTs
+export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   try {
-    const res = await fetch(`${base}${path}`, {
+    const res = await authorizedFetch(path, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify(body),
-      credentials: "omit",
     });
     if (!res.ok) {
       const text = await res.text();
@@ -61,12 +155,10 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
 
 // simple GET helper 
 export async function apiGet<T>(path: string): Promise<T> {
-  const base = getApiBaseUrl();
   try {
-    const res = await fetch(`${base}${path}`, {
+    const res = await authorizedFetch(path, {
       method: "GET",
       headers: { "Accept": "application/json" },
-      credentials: "omit",
     });
     if (!res.ok) {
       const text = await res.text();
@@ -81,9 +173,8 @@ export async function apiGet<T>(path: string): Promise<T> {
 
 // optional: DELETE helper
 export async function apiDelete(path: string): Promise<void> {
-  const base = getApiBaseUrl();
   try {
-    const res = await fetch(`${base}${path}`, { method: "DELETE", credentials: "omit" });
+    const res = await authorizedFetch(path, { method: "DELETE" });
     if (!res.ok) {
       const text = await res.text();
       handleApiError(res, text);
@@ -96,13 +187,11 @@ export async function apiDelete(path: string): Promise<void> {
 
 // PATCH helper for updating partial resources
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
-  const base = getApiBaseUrl();
   try {
-    const res = await fetch(`${base}${path}`, {
+    const res = await authorizedFetch(path, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify(body),
-      credentials: "omit",
     });
     if (!res.ok) {
       const text = await res.text();
@@ -117,13 +206,29 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
 
 // PUT helper for replacing resources
 export async function apiPut<T>(path: string, body: unknown): Promise<T> {
-  const base = getApiBaseUrl();
   try {
-    const res = await fetch(`${base}${path}`, {
+    const res = await authorizedFetch(path, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify(body),
-      credentials: "omit",
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      handleApiError(res, text);
+    }
+    return (await res.json()) as T;
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
+  }
+}
+
+// FormData POST helper (e.g., uploading photo)
+export async function apiPostFormData<T>(path: string, formData: FormData): Promise<T> {
+  try {
+    const res = await authorizedFetch(path, {
+      method: 'POST',
+      body: formData,
     });
     if (!res.ok) {
       const text = await res.text();
