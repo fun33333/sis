@@ -32,62 +32,41 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Login handler: teacher/coordinator keep demo JSON; principal/superadmin use backend
+  // Login handler: all roles use backend email/password
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    if (role === "teacher") {
-      try {
-        const res = await fetch("/teachers.json");
-        const teachers: Teacher[] = await res.json();
-        const found = teachers.find((t) => (t.id === id || t.username === id) && t.password === password);
-        if (found) {
-          setTeacherInfo(found);
-          if (typeof window !== "undefined") {
-            window.localStorage.setItem("sis_user", JSON.stringify({ role: "teacher", ...found }));
-          }
-          router.push("/admin");
-        } else {
-          setError("Invalid teacher ID or password");
-        }
-      } catch (err) {
-        setError("Login failed. Please try again.");
+    try {
+      const email = id.trim();
+      const emailOk = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(email);
+      if (!emailOk) {
+        setError("Please enter a valid email address");
+        setLoading(false);
+        return;
       }
-    } else if (role === "coordinator") {
-      try {
-        const res = await fetch("/coordinators.json");
-        const coordinators = await res.json();
-        const found = coordinators.find((c: any) => (c.id === id || c.username === id) && c.password === password);
-        if (found) {
-          if (typeof window !== "undefined") {
-            window.localStorage.setItem("sis_user", JSON.stringify({ role: "coordinator", ...found }));
-          }
-          router.push("/admin");
-        } else {
-          setError("Invalid coordinator ID or password");
-        }
-      } catch (err) {
-        setError("Login failed. Please try again.");
+      const data = await loginWithEmailPassword(email, password);
+      const userRole = String(data?.user?.role || "").toLowerCase();
+      if (role === "teacher" && !userRole.includes("teach")) {
+        setError("This account is not a Teacher");
+        setLoading(false);
+        return;
       }
-    } else if (role === "principal" || role === "superadmin") {
-      try {
-        // Basic email format validation before API call
-        const email = id.trim();
-        const emailOk = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(email);
-        if (!emailOk) {
-          setError("Please enter a valid email address");
-          setLoading(false);
-          return;
-        }
-        // Expect backend to use email as username for auth
-        await loginWithEmailPassword(email, password);
-        router.push("/admin");
-      } catch (err: any) {
-        setError(err?.response || err?.message || "Login failed");
+      if (role === "coordinator" && !userRole.includes("coord")) {
+        setError("This account is not a Coordinator");
+        setLoading(false);
+        return;
       }
-    } else {
-      setError("Unsupported role");
+      if (role === "principal" && !userRole.includes("princ")) {
+        // Allow if backend marks principal explicitly
+        setError("This account is not a Principal");
+        setLoading(false);
+        return;
+      }
+      // superadmin check optional; skip or ensure admin
+      router.push("/admin");
+    } catch (err: any) {
+      setError(err?.response || err?.message || "Login failed");
     }
     setLoading(false);
   };
@@ -152,9 +131,9 @@ export default function LoginPage() {
                 <div className="w-full mb-2">
                   <label htmlFor="login-email" className="block mb-1 text-[#274c77] font-semibold">
                     {role === "teacher"
-                      ? "Teacher ID or Username"
+                      ? "Teacher Email"
                       : role === "coordinator"
-                      ? "Coordinator ID"
+                      ? "Coordinator Email"
                       : role === "principal"
                       ? "Principal Email"
                       : "Super Admin Email"}
@@ -162,7 +141,7 @@ export default function LoginPage() {
                 </div>
                 <div className="relative w-full h-14 mb-6">
                   <input
-                    type={role === "principal" || role === "superadmin" ? "email" : "text"}
+                    type="email"
                     id="login-email"
                     required
                     value={id}
@@ -170,9 +149,9 @@ export default function LoginPage() {
                     className="w-full h-full border-2 border-[#a3cef1] rounded-xl pl-14 pr-12 text-[#274c77] text-lg font-medium focus:outline-none focus:ring-2 focus:ring-[#6096ba] shadow transition-all duration-200 placeholder:font-normal placeholder:text-[#6096ba]"
                     placeholder={
                       role === "teacher"
-                        ? "Teacher ID or Username"
+                        ? "teacher@example.com"
                         : role === "coordinator"
-                        ? "Coordinator ID"
+                        ? "coordinator@example.com"
                         : role === "principal"
                         ? "principal@example.com"
                         : "superadmin@example.com"

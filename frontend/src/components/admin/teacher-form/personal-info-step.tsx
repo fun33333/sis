@@ -64,76 +64,6 @@ export function PersonalInfoStep({ formData, invalidFields, onInputChange }: Per
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
-            <Label htmlFor="image">Teacher Photo *</Label>
-            {/* Dropzone */}
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={(e) => {
-                e.preventDefault()
-                setIsDragActive(true)
-              }}
-              onDragLeave={() => setIsDragActive(false)}
-              onDrop={(e) => {
-                e.preventDefault()
-                setIsDragActive(false)
-                const file = e.dataTransfer?.files?.[0] || null
-                handleDropFile(file)
-              }}
-              className={`mt-2 border-2 border-dashed rounded-md p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-colors ${
-                isDragActive ? "bg-gray-50 border-primary" : "bg-transparent"
-              }`}
-            >
-              <input
-                id="image"
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-
-              {/* center icon */}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-8 h-8 text-muted-foreground"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7 16v2a2 2 0 002 2h6a2 2 0 002-2v-2M7 10l5-5 5 5" />
-              </svg>
-
-              <div className="mt-4 text-sm font-semibold">Upload Teacher photo</div>
-              <div className="mt-1 text-xs text-muted-foreground">PNG, JPG or GIF. Click to choose or drag and drop here.</div>
-            </div>
-
-            {preview && (
-              <div className="mt-3">
-                <img src={preview} alt="preview" className="w-full max-w-md h-32 object-cover rounded" />
-              </div>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="campus">Select Campus</Label>
-            <Select value={formData.campus || ""} onValueChange={(v) => onInputChange("campus", v)}>
-              <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("campus") ? "border-red-500" : ""}`}>
-                <SelectValue placeholder="Select campus" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="campus-1">Campus 1</SelectItem>
-                <SelectItem value="campus-2">Campus 2</SelectItem>
-                <SelectItem value="campus-3">Campus 3</SelectItem>
-                <SelectItem value="campus-4">Campus 4</SelectItem>
-                <SelectItem value="campus-5">Campus 5</SelectItem>
-                <SelectItem value="campus-6">Campus 6</SelectItem>
-                <SelectItem value="campus-7">Campus 7</SelectItem>
-                <SelectItem value="campus-8">Campus 8</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           <div>
             <Label htmlFor="fullName">Full Name *</Label>
             <Input
@@ -204,7 +134,7 @@ export function PersonalInfoStep({ formData, invalidFields, onInputChange }: Per
           </div>
 
           <div className="md:col-span-2">
-            <Label htmlFor="permanentAddress">Permanent Address *</Label>
+            <Label htmlFor="permanentAddress">Permanent address *</Label>
             <Textarea
               id="permanentAddress"
               value={formData.permanentAddress || ""}
@@ -214,7 +144,7 @@ export function PersonalInfoStep({ formData, invalidFields, onInputChange }: Per
           </div>
 
           <div className="md:col-span-2">
-            <Label htmlFor="temporaryAddress">Temporary Address (if different) *</Label>
+            <Label htmlFor="temporaryAddress">Current address *</Label>
             <Textarea
               id="temporaryAddress"
               value={formData.temporaryAddress || ""}
@@ -238,47 +168,7 @@ export function PersonalInfoStep({ formData, invalidFields, onInputChange }: Per
             </Select>
           </div>
 
-          <div>
-            <Label htmlFor="cnic">CNIC *</Label>
-            <Input
-              id="cnic"
-              value={formData.cnic || ""}
-              onChange={(e) => onInputChange("cnic", e.target.value.replace(/[^0-9-]/g, ""))}
-            />
-            {invalidFields.includes("cnic") && <p className="text-sm text-red-600 mt-1">CNIC is required</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="cnicIssueDate">Issue Date of CNIC *</Label>
-            <Input
-              id="cnicIssueDate"
-              type="date"
-              value={formData.cnicIssueDate || ""}
-              onChange={(e) => onInputChange("cnicIssueDate", e.target.value)}
-            />
-            {invalidFields.includes("cnicIssueDate") && <p className="text-sm text-red-600 mt-1">CNIC issue date is required</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="cnicExpiryDate">Expiry Date of CNIC *</Label>
-            <Input
-              id="cnicExpiryDate"
-              type="date"
-              value={formData.cnicExpiryDate || ""}
-              onChange={(e) => onInputChange("cnicExpiryDate", e.target.value)}
-            />
-            {invalidFields.includes("cnicExpiryDate") && <p className="text-sm text-red-600 mt-1">CNIC expiry date is required</p>}
-          </div>
-
-          <div className="md:col-span-2">
-            <Label htmlFor="bFormNumber">B-Form / Birth Certificate Number *</Label>
-            <Input
-              id="bFormNumber"
-              value={formData.bFormNumber || ""}
-              onChange={(e) => onInputChange("bFormNumber", e.target.value.replace(/[^0-9-]/g, ""))}
-            />
-            {invalidFields.includes("bFormNumber") && <p className="text-sm text-red-600 mt-1">B-Form number is required</p>}
-          </div>
+          {null}
         </div>
       </CardContent>
     </Card>

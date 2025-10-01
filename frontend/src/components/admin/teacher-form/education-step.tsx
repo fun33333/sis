@@ -18,12 +18,16 @@ export function EducationStep({ formData, invalidFields, onInputChange }: Educat
   const { toast } = useToast()
 
   const stepFields = [
-    "education",
-    "instituteName",
-    "educationQualification",
-    "fieldSpecialization",
-    "passingYear",
-    "passingYearGrade",
+    "education_level",
+    "institution_name",
+    "year_of_passing",
+    "education_subjects",
+    "education_grade",
+    "additional_education_level",
+    "additional_institution_name",
+    "additional_year_of_passing",
+    "additional_education_subjects",
+    "additional_education_grade",
   ]
   function isEmptyValue(val: any) {
     return val === undefined || val === null || String(val).trim() === ""
@@ -64,92 +68,53 @@ export function EducationStep({ formData, invalidFields, onInputChange }: Educat
         <CardTitle>Educational Qualifications</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Keep only the requested fields and remove others */}
-        <div>
-          <Label htmlFor="education">Education Details *</Label>
-          <Textarea
-            id="education"
-            placeholder="Detail some (e.g., degree, board, remarks)"
-            value={formData.education || ""}
-            onChange={(e) => onInputChange("education", e.target.value)}
-            className={`min-h-[120px] ${invalidFields.includes("education") ? "border-red-500" : ""}`}
-          />
-          {invalidFields.includes("education") && (
-            <p className="text-sm text-red-600 mt-1">This field is required</p>
-          )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="education_level">Education level</Label>
+            <Input id="education_level" value={formData.education_level || ""} onChange={(e) => onInputChange("education_level", e.target.value)} />
+          </div>
+
+          <div>
+            <Label htmlFor="institution_name">Institution name</Label>
+            <Input id="institution_name" value={formData.institution_name || ""} onChange={(e) => onInputChange("institution_name", e.target.value)} />
+          </div>
+
+          <div>
+            <Label htmlFor="year_of_passing">Year of passing</Label>
+            <Input id="year_of_passing" type="number" value={formData.year_of_passing || ""} onChange={(e) => onInputChange("year_of_passing", e.target.value)} />
+          </div>
+
+          <div>
+            <Label htmlFor="education_subjects">Education subjects</Label>
+            <Input id="education_subjects" value={formData.education_subjects || ""} onChange={(e) => onInputChange("education_subjects", e.target.value)} />
+          </div>
+
+          <div className="md:col-span-2">
+            <Label htmlFor="education_grade">Education grade</Label>
+            <Input id="education_grade" value={formData.education_grade || ""} onChange={(e) => onInputChange("education_grade", e.target.value)} />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="instituteName">Institute Name *</Label>
-            <Input
-              id="instituteName"
-              value={formData.instituteName || ""}
-              onChange={(e) => onInputChange("instituteName", e.target.value)}
-              className={invalidFields.includes("instituteName") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("instituteName") && (
-              <p className="text-sm text-red-600 mt-1">Institute name is required</p>
-            )}
+            <Label htmlFor="additional_education_level">Additional education level</Label>
+            <Input id="additional_education_level" value={formData.additional_education_level || ""} onChange={(e) => onInputChange("additional_education_level", e.target.value)} />
           </div>
-
           <div>
-            <Label htmlFor="educationQualification">Education Qualification *</Label>
-            <Select value={formData.educationQualification || ""} onValueChange={(v) => onInputChange("educationQualification", v)}>
-              <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("educationQualification") ? "border-red-500" : ""}`}>
-                <SelectValue placeholder="Select qualification" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="secondary">Secondary</SelectItem>
-                <SelectItem value="higher-secondary">Higher Secondary</SelectItem>
-                <SelectItem value="graduation-or-higher">Graduation or higher</SelectItem>
-              </SelectContent>
-            </Select>
-            {invalidFields.includes("educationQualification") && (
-              <p className="text-sm text-red-600 mt-1">Qualification is required</p>
-            )}
+            <Label htmlFor="additional_institution_name">Additional institution name</Label>
+            <Input id="additional_institution_name" value={formData.additional_institution_name || ""} onChange={(e) => onInputChange("additional_institution_name", e.target.value)} />
           </div>
-
           <div>
-            <Label htmlFor="fieldSpecialization">Field Specialization *</Label>
-            <Input
-              id="fieldSpecialization"
-              value={formData.fieldSpecialization || ""}
-              onChange={(e) => onInputChange("fieldSpecialization", e.target.value)}
-              className={invalidFields.includes("fieldSpecialization") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("fieldSpecialization") && (
-              <p className="text-sm text-red-600 mt-1">Specialization is required</p>
-            )}
+            <Label htmlFor="additional_year_of_passing">Additional year of passing</Label>
+            <Input id="additional_year_of_passing" type="number" value={formData.additional_year_of_passing || ""} onChange={(e) => onInputChange("additional_year_of_passing", e.target.value)} />
           </div>
-
           <div>
-            <Label htmlFor="passingYear">Passing Year *</Label>
-            <Input
-              id="passingYear"
-              type="number"
-              value={formData.passingYear || ""}
-              onChange={(e) => onInputChange("passingYear", e.target.value)}
-              min={1900}
-              max={2100}
-              className={invalidFields.includes("passingYear") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("passingYear") && (
-              <p className="text-sm text-red-600 mt-1">Passing year is required</p>
-            )}
+            <Label htmlFor="additional_education_subjects">Additional education subjects</Label>
+            <Input id="additional_education_subjects" value={formData.additional_education_subjects || ""} onChange={(e) => onInputChange("additional_education_subjects", e.target.value)} />
           </div>
-
           <div className="md:col-span-2">
-            <Label htmlFor="passingYearGrade">Passing Year Grade *</Label>
-            <Input
-              id="passingYearGrade"
-              value={formData.passingYearGrade || ""}
-              onChange={(e) => onInputChange("passingYearGrade", e.target.value)}
-              className={invalidFields.includes("passingYearGrade") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("passingYearGrade") && (
-              <p className="text-sm text-red-600 mt-1">Grade is required</p>
-            )}
+            <Label htmlFor="additional_education_grade">Additional education grade</Label>
+            <Input id="additional_education_grade" value={formData.additional_education_grade || ""} onChange={(e) => onInputChange("additional_education_grade", e.target.value)} />
           </div>
         </div>
       </CardContent>

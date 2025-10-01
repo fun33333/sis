@@ -330,7 +330,7 @@ export default function MainDashboardPage() {
           <ReligionChart data={chartData.religionDistribution} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mt-8 mb-8">
           <GradeDistributionChart data={chartData.gradeDistribution} />
           <MotherTongueChart data={chartData.motherTongueDistribution} />
         </div>

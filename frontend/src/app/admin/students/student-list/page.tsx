@@ -8,10 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination"
 import type { Student } from "@/types/dashboard"
 import { getAllStudents, getAllCampuses } from "@/lib/api"
-import PrettyLoader from "@/components/ui/pretty-loader"
 
 export default function StudentListPage() {
   useEffect(() => {
@@ -26,8 +24,6 @@ export default function StudentListPage() {
   const [campuses, setCampuses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [teacherClass, setTeacherClass] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const pageSize = 50
 
   useEffect(() => {
     // Check if teacher is logged in
@@ -44,28 +40,19 @@ export default function StudentListPage() {
     }
     async function fetchStudents() {
       setLoading(true);
-      // Start both requests in parallel, but don't block UI on campuses
-      const studentsPromise = getAllStudents();
-      const campusesPromise = getAllCampuses();
-
       try {
-        const data = await studentsPromise;
+        const [data, campusList] = await Promise.all([
+          getAllStudents(),
+          getAllCampuses(),
+        ])
         setStudents(Array.isArray(data) ? data : []);
-      } catch (err) {
-        setStudents([]);
-      } finally {
-        setLoading(false);
-      }
-
-      try {
-        const campusList = await campusesPromise;
-        const clist = Array.isArray(campusList)
-          ? campusList
-          : (Array.isArray((campusList as any)?.results) ? (campusList as any).results : [])
+        const clist = Array.isArray(campusList) ? campusList : (Array.isArray((campusList as any)?.results) ? (campusList as any).results : [])
         setCampuses(clist)
       } catch (err) {
+        setStudents([]);
         setCampuses([])
       }
+      setLoading(false);
     }
     fetchStudents();
   }, [])
@@ -114,56 +101,8 @@ export default function StudentListPage() {
     })
   }, [search, yearFilter, campusFilter, gradeFilter, students, teacherClass])
 
-  // Reset to first page when filters/search/role constraints change
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [search, yearFilter, campusFilter, gradeFilter, teacherClass])
-
-  const totalRecords = filtered.length
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(totalRecords / pageSize)), [totalRecords])
-  const startIndex = (currentPage - 1) * pageSize
-  const endIndex = Math.min(totalRecords, startIndex + pageSize)
-
-  // Clamp current page if total pages shrink
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages)
-    }
-  }, [totalPages, currentPage])
-
-  const currentPageItems = useMemo(() => {
-    return filtered.slice(startIndex, startIndex + pageSize)
-  }, [filtered, startIndex, pageSize])
-
-  const pageNumbers = useMemo<(number | "ellipsis")[]>(() => {
-    const pages: (number | "ellipsis")[] = []
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i)
-      return pages
-    }
-    pages.push(1)
-    if (currentPage > 3) pages.push("ellipsis")
-    const windowStart = Math.max(2, currentPage - 1)
-    const windowEnd = Math.min(totalPages - 1, currentPage + 1)
-    for (let i = windowStart; i <= windowEnd; i++) pages.push(i)
-    if (currentPage < totalPages - 2) pages.push("ellipsis")
-    pages.push(totalPages)
-    return pages
-  }, [currentPage, totalPages])
-
   if (loading) {
-    return (
-      <div className="p-6 bg-white min-h-screen">
-        <Card className="rounded-xl shadow-lg bg-white">
-          <CardHeader className="rounded-t-xl">
-            <CardTitle className="text-[#274c77] text-xl text-bold">Student Records</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PrettyLoader variant="embedded" label="Loading student data" subLabel="Please wait while we prepare your list" />
-          </CardContent>
-        </Card>
-      </div>
-    )
+    return <div className="p-6 text-xl text-[#274c77]">Loading student data...</div>
   }
   return (
     <div className="p-6 bg-white min-h-screen">
@@ -172,14 +111,6 @@ export default function StudentListPage() {
         <div>
           <h1 className="text-3xl font-bold text-[#274c77]">Student List</h1>
           <p className="text-[#8b8c89]">Search, filter and select students to manage profiles and actions.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            className="bg-gradient-to-r from-[#6096ba] to-[#274c77] hover:from-[#274c77] hover:to-[#6096ba] text-white rounded-lg shadow-md"
-            onClick={() => router.push('/students')}
-          >
-            Refresh
-          </Button>
         </div>
       </div>
 
@@ -265,7 +196,7 @@ export default function StudentListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentPageItems.map((s, idx) => {
+              {filtered.map((s, idx) => {
                 const statusRaw = (s as any).current_state || ""
                 const isActive = String(statusRaw).toLowerCase() === "active"
                 const contact =
@@ -278,7 +209,7 @@ export default function StudentListPage() {
                 const shift = (s as any).shift || ""
                 return (
                   <TableRow
-                    key={s.id || (startIndex + idx)}
+                    key={s.id || idx}
                     className={`cursor-pointer hover:bg-[#a3cef1]  transition ${idx % 2 === 0 ? "bg-[#e7ecef]" : "bg-white"
                       }`}
                     onClick={() => router.push(`/admin/students/profile?studentId=${s.id}`)}
@@ -306,46 +237,6 @@ export default function StudentListPage() {
               })}
             </TableBody>
           </Table>
-          <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="text-sm text-[#274c77]">
-              {totalRecords > 0
-                ? `Showing ${startIndex + 1}-${endIndex} of ${totalRecords}`
-                : 'No records found'}
-            </div>
-            <Pagination className="w-full sm:w-auto">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    onClick={(e) => { e.preventDefault(); setCurrentPage((p) => Math.max(1, p - 1)) }}
-                  />
-                </PaginationItem>
-                {pageNumbers.map((p, i) => (
-                  p === "ellipsis" ? (
-                    <PaginationItem key={`e-${i}`}>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                  ) : (
-                    <PaginationItem key={p}>
-                      <PaginationLink
-                        href="#"
-                        isActive={p === currentPage}
-                        onClick={(e) => { e.preventDefault(); setCurrentPage(p) }}
-                      >
-                        {p}
-                      </PaginationLink>
-                    </PaginationItem>
-                  )
-                ))}
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    onClick={(e) => { e.preventDefault(); setCurrentPage((p) => Math.min(totalPages, p + 1)) }}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
         </CardContent>
       </Card>
     </div>

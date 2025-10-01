@@ -35,6 +35,15 @@ export function ContactDetailsStep({ formData, invalidFields, onInputChange }: C
           </div>
 
           <div>
+            <Label htmlFor="primaryPhone">Primary phone</Label>
+            <Input id="primaryPhone" value={formData.primaryPhone || ""} onChange={(e) => onInputChange("primaryPhone", e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="secondaryPhone">Secondary phone</Label>
+            <Input id="secondaryPhone" value={formData.secondaryPhone || ""} onChange={(e) => onInputChange("secondaryPhone", e.target.value)} />
+          </div>
+
+          <div>
             <Label htmlFor="fatherStatus">Father Status</Label>
             <Select value={formData.fatherStatus || ""} onValueChange={(v) => onInputChange("fatherStatus", v)}>
               <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("fatherStatus") ? "border-red-500" : ""}`}>

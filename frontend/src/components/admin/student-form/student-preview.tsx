@@ -104,6 +104,7 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
       shift: normalizeShift(formData.shift),
       last_class_passed: formData.lastClassPassed || null,
       last_school_name: formData.lastSchoolName || null,
+      current_state: formData.currentState || "active",
       gr_no: formData.grNumber || null,
       
       // Family Information
@@ -125,7 +126,6 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
       
       // System fields
       is_draft: false, // Set to false for final save
-      current_state: "active", // Default state
     }
 
     // Remove null values to avoid validation issues
@@ -143,12 +143,9 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
     try {
       const payload = buildPayload()
       
-      // Debug: Log the payload to see what we're sending
       console.log("Sending payload:", JSON.stringify(payload, null, 2))
 
-      // Handle image upload separately if present
       if (uploadedImages.studentPhoto) {
-        // Convert base64 to file
         const base64Data = uploadedImages.studentPhoto.split(',')[1]
         const byteCharacters = atob(base64Data)
         const byteNumbers = new Array(byteCharacters.length)

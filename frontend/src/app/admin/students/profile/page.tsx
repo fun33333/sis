@@ -4,11 +4,14 @@ import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
-import { apiGet, getAllStudents } from "@/lib/api"
+import { apiGet, apiPatch, getAllStudents } from "@/lib/api"
 import { ArrowLeft, User, Phone, MapPin, GraduationCap, Users, Calendar, Award, BookOpen, TrendingUp, Star, Crown, Sparkles, Trophy, Medal, Target, Activity, Clock, Mail, Home, School, CheckCircle, AlertCircle, BarChart3, PieChart as PieChartIcon, LineChart as LineChartIcon, RefreshCw, Download, Share } from "lucide-react"
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, LineChart, Line, RadialBarChart, RadialBar, AreaChart, Area } from 'recharts'
 
@@ -87,6 +90,9 @@ export default function StudentProfilePage() {
   const [overallScore, setOverallScore] = useState(0)
   const [suspensionRate, setSuspensionRate] = useState(0)
   const [participationRate, setParticipationRate] = useState(0)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editData, setEditData] = useState<any>({})
+  const [canEdit, setCanEdit] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
@@ -118,6 +124,38 @@ export default function StudentProfilePage() {
     }
     fetchData()
   }, [studentId])
+
+  useEffect(() => {
+    // role-gated: teacher or coordinator can edit
+    if (typeof window !== 'undefined') {
+      try {
+        const uStr = window.localStorage.getItem('sis_user')
+        if (uStr) {
+          const u = JSON.parse(uStr)
+          const role = String(u?.role || '').toLowerCase()
+          setCanEdit(role.includes('teach') || role.includes('coord'))
+        }
+      } catch {}
+    }
+  }, [])
+
+  useEffect(() => {
+    if (student) {
+      setEditData({
+        name: student.name || '',
+        campus: student.campus || student.campus_name || '',
+        current_grade: student.current_grade || '',
+        section: student.section || '',
+        shift: student.shift || '',
+        emergency_contact: student.emergency_contact || '',
+        father_name: student.father_name || '',
+        father_cnic: student.father_cnic || '',
+        father_contact: student.father_contact || '',
+        address: student.address || '',
+        current_state: student.current_state || 'active',
+      })
+    }
+  }, [student])
 
   if (loading) {
     return (
@@ -197,6 +235,93 @@ export default function StudentProfilePage() {
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
+              {canEdit && (
+                <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-amber-600 hover:bg-amber-700" size="sm">Update</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Update Student</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Name</Label>
+                          <Input value={editData.name || ''} onChange={(e) => setEditData((p: any) => ({...p, name: e.target.value}))} />
+                        </div>
+                        <div>
+                          <Label>Grade</Label>
+                          <Input value={editData.current_grade || ''} onChange={(e) => setEditData((p: any) => ({...p, current_grade: e.target.value}))} />
+                        </div>
+                        <div>
+                          <Label>Section</Label>
+                          <Input value={editData.section || ''} onChange={(e) => setEditData((p: any) => ({...p, section: e.target.value}))} />
+                        </div>
+                        <div>
+                          <Label>Shift</Label>
+                          <Input value={editData.shift || ''} onChange={(e) => setEditData((p: any) => ({...p, shift: e.target.value}))} />
+                        </div>
+                        <div>
+                          <Label>Emergency Contact</Label>
+                          <Input value={editData.emergency_contact || ''} onChange={(e) => setEditData((p: any) => ({...p, emergency_contact: e.target.value}))} />
+                        </div>
+                        <div>
+                          <Label>Father Name</Label>
+                          <Input value={editData.father_name || ''} onChange={(e) => setEditData((p: any) => ({...p, father_name: e.target.value}))} />
+                        </div>
+                        <div>
+                          <Label>Father CNIC</Label>
+                          <Input value={editData.father_cnic || ''} onChange={(e) => setEditData((p: any) => ({...p, father_cnic: e.target.value}))} />
+                        </div>
+                        <div>
+                          <Label>Father Contact</Label>
+                          <Input value={editData.father_contact || ''} onChange={(e) => setEditData((p: any) => ({...p, father_contact: e.target.value}))} />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label>Address</Label>
+                          <Input value={editData.address || ''} onChange={(e) => setEditData((p: any) => ({...p, address: e.target.value}))} />
+                        </div>
+                        <div>
+                          <Label>Status</Label>
+                          <Input value={editData.current_state || ''} onChange={(e) => setEditData((p: any) => ({...p, current_state: e.target.value}))} />
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter className="mt-4">
+                      <DialogClose asChild>
+                        <Button variant="ghost">Cancel</Button>
+                      </DialogClose>
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const id = student?.id || student?.studentId || studentId
+                            if (!id) return setEditOpen(false)
+                            await apiPatch(`/api/students/${id}/`, {
+                              name: editData.name,
+                              current_grade: editData.current_grade,
+                              section: editData.section,
+                              shift: editData.shift,
+                              emergency_contact: editData.emergency_contact,
+                              father_name: editData.father_name,
+                              father_cnic: editData.father_cnic,
+                              father_contact: editData.father_contact,
+                              address: editData.address,
+                              current_state: editData.current_state,
+                            })
+                            setEditOpen(false)
+                            // refresh minimal fields locally
+                            setStudent((prev: any) => ({ ...prev, ...editData }))
+                          } catch (e) {
+                            console.error(e)
+                            setEditOpen(false)
+                          }
+                        }}
+                      >Save</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
               <Button 
                 onClick={() => router.back()}
                 className="bg-blue-600 hover:bg-blue-700"

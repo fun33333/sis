@@ -21,7 +21,7 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
     "lastClassPassed",
     "lastSchoolName",
     "lastClassResult",
-    
+    "currentState",
   ]
 
   const missingRequired = requiredFields.filter((f) => {
@@ -56,6 +56,22 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
               <p className="text-sm text-red-600 mt-1">Campus is required</p>
             )}
           </div>
+
+        <div>
+          <Label htmlFor="currentState">Current state *</Label>
+          <Select value={formData.currentState || ""} onValueChange={(v) => onInputChange("currentState", v)}>
+            <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("currentState") ? "border-red-500" : ""}`}>
+              <SelectValue placeholder="Select state" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+          {(invalidFields.includes("currentState") || missingRequired.includes("currentState")) && (
+            <p className="text-sm text-red-600 mt-1">Current state is required</p>
+          )}
+        </div>
 
           <div>
             <Label htmlFor="currentGrade">Current Grade/Class *</Label>
@@ -183,6 +199,25 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
               <p className="text-sm text-red-600 mt-1">Last class result is required</p>
             )}
           </div>
+
+        <div>
+          <Label htmlFor="grNumber">Old gr no</Label>
+          <Input id="grNumber" value={formData.grNumber || ""} onChange={(e) => onInputChange("grNumber", e.target.value)} />
+        </div>
+
+        <div>
+          <Label htmlFor="fromYear">From year</Label>
+          <Input id="fromYear" type="number" value={formData.fromYear || ""} onChange={(e) => onInputChange("fromYear", e.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor="toYear">To year</Label>
+          <Input id="toYear" type="number" value={formData.toYear || ""} onChange={(e) => onInputChange("toYear", e.target.value)} />
+        </div>
+
+        <div className="md:col-span-2">
+          <Label htmlFor="reasonForTransfer">Reason for transfer</Label>
+          <Input id="reasonForTransfer" value={formData.reasonForTransfer || ""} onChange={(e) => onInputChange("reasonForTransfer", e.target.value)} />
+        </div>
         </div>
       </CardContent>
     </Card>

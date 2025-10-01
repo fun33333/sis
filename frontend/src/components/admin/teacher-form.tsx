@@ -13,9 +13,9 @@ import { TeacherPreview } from "./teacher-form/teacher-preview"
 import { useToast } from "@/hooks/use-toast"
 
 const steps = [
-  { id: 1, title: "Personal Information" },
-  { id: 2, title: "Educational Qualifications" },
-  { id: 3, title: "Work Experience" },
+  { id: 1, title: "Personal" },
+  { id: 2, title: "Education" },
+  { id: 3, title: "Experience" },
   { id: 4, title: "Current Role" },
 ]
 
@@ -38,46 +38,18 @@ export function TeacherForm() {
   const validateCurrentStep = () => {
     const requiredFields: { [step: number]: string[] } = {
       1: [
-        "imageFile",
-        "campus",
         "fullName",
         "dob",
         "gender",
         "contactNumber",
-        "emergencyContactNumber",
         "email",
         "permanentAddress",
         "temporaryAddress",
         "maritalStatus",
-        "cnic",
-        "cnicIssueDate",
-        "cnicExpiryDate",
-        "bFormNumber",
       ],
-      2: [
-        "education",
-        "instituteName",
-        "educationQualification",
-        "fieldSpecialization",
-        "passingYear",
-        "passingYearGrade",
-      ],
-      3: [
-        "lastWorkExperience",
-        "lastOrganizationName",
-        "position",
-        "teacherRoleType",
-        "fromDate",
-        "toDate",
-        "teacherSubjects",
-      ],
-      4: [
-        "currentRoleDetails",
-        "shift",
-        "classAssigned",
-        "subjectsAssigned",
-        "isClassTeacher",
-      ],
+      2: [],
+      3: [],
+      4: [],
     }
 
     const required = requiredFields[currentStep] || []

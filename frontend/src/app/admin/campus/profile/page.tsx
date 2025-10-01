@@ -18,6 +18,7 @@ export default function AdminCampusProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'courses'>('overview')
+  const [canEdit, setCanEdit] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -38,6 +39,19 @@ export default function AdminCampusProfilePage() {
   useEffect(() => {
     if (campus?.name) document.title = `${campus.name} | Campus Profile`
   }, [campus])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const uStr = window.localStorage.getItem('sis_user')
+        if (uStr) {
+          const u = JSON.parse(uStr)
+          const role = String(u?.role || '').toLowerCase()
+          setCanEdit(role.includes('princ'))
+        }
+      } catch {}
+    }
+  }, [])
 
   if (!id) {
     return <div className="p-6">No campus selected</div>
@@ -334,6 +348,30 @@ export default function AdminCampusProfilePage() {
           </div>
         </div>
       </header>
+
+      {canEdit && (
+        <div className="flex justify-end mb-4">
+          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-amber-600 hover:bg-amber-700">Update Campus</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Update Campus</DialogTitle>
+              </DialogHeader>
+              <EditForm
+                onSaved={(updated: any) => setCampus(updated)}
+                onClose={() => setEditOpen(false)}
+              />
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="ghost">Close</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
 
       <main className="mt-6 grid grid-cols-4 lg:grid-cols-3 gap-8">
         <section className="lg:col-span-2 space-y-6">
