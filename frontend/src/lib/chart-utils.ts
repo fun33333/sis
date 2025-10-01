@@ -8,17 +8,42 @@ export function getMotherTongueDistribution(students: any[]): ChartData[] {
   const distribution = (students || []).reduce(
     (acc: Record<string, number>, student: any) => {
       const key = norm(student.motherTongue)
-      if (!key) return acc
+      if (!key || key === "" || key.toLowerCase() === "unknown") {
+        acc["Others"] = (acc["Others"] || 0) + 1
+        return acc
+      }
       acc[key] = (acc[key] || 0) + 1
       return acc
     },
     {} as Record<string, number>,
   )
-  return Object.entries(distribution).map(([tongue, count]) => ({
-    name: tongue,
-    value: count,
-    fill: colorFor(tongue),
-  }))
+  
+  // Group languages with count < 10 into "Others"
+  const result: ChartData[] = []
+  let othersCount = 0
+  
+  Object.entries(distribution).forEach(([tongue, count]) => {
+    if (count < 10) {
+      othersCount += count
+    } else {
+      result.push({
+        name: tongue,
+        value: count,
+        fill: colorFor(tongue),
+      })
+    }
+  })
+  
+  // Add "Others" if there are any languages with count < 10
+  if (othersCount > 0) {
+    result.push({
+      name: "Others",
+      value: othersCount,
+      fill: colorFor("Others"),
+    })
+  }
+  
+  return result
 }
 
 export function getReligionDistribution(students: any[]): ChartData[] {

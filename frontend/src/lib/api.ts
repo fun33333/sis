@@ -287,10 +287,27 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
 export async function getAllStudents() {
   try {
-    const data = await apiGet(API_ENDPOINTS.STUDENTS);
-    if (Array.isArray(data)) return data;
-    if (data && Array.isArray((data as any).results)) return (data as any).results;
-    return [];
+    // Fetch all students with pagination
+    let allStudents: any[] = [];
+    let page = 1;
+    let hasNext = true;
+    
+    while (hasNext) {
+      const data = await apiGet(`${API_ENDPOINTS.STUDENTS}?page=${page}&page_size=1000`);
+      
+      if (Array.isArray(data)) {
+        allStudents = [...allStudents, ...data];
+        hasNext = false; // If no pagination, stop
+      } else if (data && Array.isArray((data as any).results)) {
+        allStudents = [...allStudents, ...(data as any).results];
+        hasNext = (data as any).next !== null; // Check if there's a next page
+        page++;
+      } else {
+        hasNext = false;
+      }
+    }
+    
+    return allStudents;
   } catch (error) {
     console.error('Failed to fetch students:', error);
     return [];
@@ -302,6 +319,35 @@ export async function getAllCampuses() {
     return await apiGet(API_ENDPOINTS.CAMPUS_ACTIVE);
   } catch (error) {
     console.error('Failed to fetch campuses:', error);
+    return [];
+  }
+}
+
+export async function getAllTeachers() {
+  try {
+    // Fetch all teachers with pagination
+    let allTeachers: any[] = [];
+    let page = 1;
+    let hasNext = true;
+    
+    while (hasNext) {
+      const data = await apiGet(`${API_ENDPOINTS.TEACHERS}?page=${page}&page_size=1000`);
+      
+      if (Array.isArray(data)) {
+        allTeachers = [...allTeachers, ...data];
+        hasNext = false; // If no pagination, stop
+      } else if (data && Array.isArray((data as any).results)) {
+        allTeachers = [...allTeachers, ...(data as any).results];
+        hasNext = (data as any).next !== null; // Check if there's a next page
+        page++;
+      } else {
+        hasNext = false;
+      }
+    }
+    
+    return allTeachers;
+  } catch (error) {
+    console.error('Failed to fetch teachers:', error);
     return [];
   }
 }

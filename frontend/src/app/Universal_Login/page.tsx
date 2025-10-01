@@ -32,37 +32,43 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Login handler: teacher/coordinator keep demo JSON; principal/superadmin use backend
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     if (role === "teacher") {
       try {
-        const email = id.trim();
-        const emailOk = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(email);
-        if (!emailOk) {
-          setError("Please enter a valid email address");
-          setLoading(false);
-          return;
+        const res = await fetch("/teachers.json");
+        const teachers: Teacher[] = await res.json();
+        const found = teachers.find((t) => (t.id === id || t.username === id) && t.password === password);
+        if (found) {
+          setTeacherInfo(found);
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("sis_user", JSON.stringify({ role: "teacher", ...found }));
+          }
+          router.push("/admin");
+        } else {
+          setError("Invalid teacher ID or password");
         }
-        await loginWithEmailPassword(email, password);
-        router.push("/admin");
-      } catch (err: any) {
-        setError(err?.response || err?.message || "Login failed");
+      } catch (err) {
+        setError("Login failed. Please try again.");
       }
     } else if (role === "coordinator") {
       try {
-        const email = id.trim();
-        const emailOk = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(email);
-        if (!emailOk) {
-          setError("Please enter a valid email address");
-          setLoading(false);
-          return;
+        const res = await fetch("/coordinators.json");
+        const coordinators = await res.json();
+        const found = coordinators.find((c: any) => (c.id === id || c.username === id) && c.password === password);
+        if (found) {
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("sis_user", JSON.stringify({ role: "coordinator", ...found }));
+          }
+          router.push("/admin");
+        } else {
+          setError("Invalid coordinator ID or password");
         }
-        await loginWithEmailPassword(email, password);
-        router.push("/admin");
-      } catch (err: any) {
-        setError(err?.response || err?.message || "Login failed");
+      } catch (err) {
+        setError("Login failed. Please try again.");
       }
     } else if (role === "principal" || role === "superadmin") {
       try {
@@ -145,23 +151,31 @@ export default function LoginPage() {
                 {/* ID/Email Input */}
                 <div className="w-full mb-2">
                   <label htmlFor="login-email" className="block mb-1 text-[#274c77] font-semibold">
-                    {role === "principal" || role === "superadmin" || role === "teacher" || role === "coordinator" ? "Email" : "Coordinator ID"}
+                    {role === "teacher"
+                      ? "Teacher ID or Username"
+                      : role === "coordinator"
+                      ? "Coordinator ID"
+                      : role === "principal"
+                      ? "Principal Email"
+                      : "Super Admin Email"}
                   </label>
                 </div>
                 <div className="relative w-full h-14 mb-6">
                   <input
-                    type={role === "principal" || role === "superadmin" || role === "teacher" || role === "coordinator" ? "email" : "text"}
+                    type={role === "principal" || role === "superadmin" ? "email" : "text"}
                     id="login-email"
                     required
                     value={id}
                     onChange={e => setId(e.target.value)}
                     className="w-full h-full border-2 border-[#a3cef1] rounded-xl pl-14 pr-12 text-[#274c77] text-lg font-medium focus:outline-none focus:ring-2 focus:ring-[#6096ba] shadow transition-all duration-200 placeholder:font-normal placeholder:text-[#6096ba]"
                     placeholder={
-                      role === "teacher" || role === "principal" || role === "superadmin" || role === "coordinator"
-                        ? "Email"
+                      role === "teacher"
+                        ? "Teacher ID or Username"
                         : role === "coordinator"
                         ? "Coordinator ID"
-                        : "ID"
+                        : role === "principal"
+                        ? "principal@example.com"
+                        : "superadmin@example.com"
                     }
                   />
                   <span className="absolute left-5 top-1/2 transform -translate-y-1/2 text-[#6096ba] text-xl">
@@ -199,7 +213,7 @@ export default function LoginPage() {
                   className="w-full h-11 bg-[#a3cef1] border-none rounded-full shadow-sm cursor-pointer text-base text-black font-semibold mt-3 hover:bg-[#87b9e3] transition-colors"
                   disabled={loading}
                 >
-                  {loading ? "Logging in..." : "Login"}
+                  {loading ? "Logging in..." : `Login as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
                 </button>
                 {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
 

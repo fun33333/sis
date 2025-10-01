@@ -82,16 +82,15 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 # Database Configuration - SQLite for Development, PostgreSQL for Production
 DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv("DB_NAME", "student_management"),
-            'USER': os.getenv("DB_USER", "postgres"),
-            'PASSWORD': os.getenv("DB_PASSWORD", "postgres123"),
-            'HOST': os.getenv("DB_HOST", "localhost"),
-            'PORT': os.getenv("DB_PORT", "5432"),
-        }
-    }
-
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'sis',
+        'USER': 'postgres',
+        'PASSWORD': 'password',
+        'HOST': '192.168.100.4',
+        'PORT': '5432',
+}
+}
 
 
 # Password validation
@@ -153,7 +152,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
+    'PAGE_SIZE': 1000,
 }
 
 SIMPLE_JWT = {
