@@ -8,6 +8,7 @@ import { apiPost } from "@/lib/api"
 import type { CampusCreateRequest, CampusStatus } from "@/types/dashboard"
 import { useState } from "react"
 import { toast as sonnerToast } from "sonner"
+import { Badge } from "@/components/ui/badge"
 
 interface CampusPreviewProps {
   formData: any
@@ -140,68 +141,144 @@ export function CampusPreview({ formData, onBack, onSaved }: CampusPreviewProps)
         </CardTitle>
         <CardDescription>Review all information before submitting</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-8">
+        {formData.campusPhoto ? (
+          <div className="rounded-xl overflow-hidden border">
+            <img src={formData.campusPhoto} alt="Campus photo" className="w-full h-48 object-cover" />
+          </div>
+        ) : null}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          <div>
-            <h3 className="text-lg font-semibold mb-3 text-primary">General Information</h3>
-            <div className="space-y-2">
-              <div><strong>Campus Name:</strong> {formData.campusName || "N/A"}</div>
-              <div><strong>Registration Number:</strong> {formData.registrationNumber || "N/A"}</div>
-              <div><strong>Status:</strong> {formData.campusStatus || "N/A"}</div>
-              <div><strong>Languages:</strong> {formData.languagesOfInstruction || "N/A"}</div>
-              <div><strong>Academic Year:</strong> {formData.academicYearStartMonth && formData.academicYearEndMonth ? `${formData.academicYearStartMonth} - ${formData.academicYearEndMonth}` : "N/A"}</div>
-              <div><strong>District:</strong> {formData.district || "N/A"}</div>
-              <div><strong>City:</strong> {formData.city || "N/A"}</div>
-              <div><strong>Postal Code:</strong> {formData.postalCode || "N/A"}</div>
-              <div><strong>Campus Established Year:</strong> {formData.campusEstablishedYear || "N/A"}</div>
-              <div><strong>Shift Available:</strong> {formData.shiftAvailable || "N/A"}</div>
-              <div><strong>Education Level Available:</strong> {formData.educationLevelAvailable || "N/A"}</div>
-              <div><strong>Current Grade/Class:</strong> {formData.currentGradeClass || "N/A"}</div>
-              <div><strong>Total Student Capacity:</strong> {formData.totalStudentCapacity || "N/A"}</div>
-              <div><strong>Current Student Enrollment:</strong> {formData.currentStudentEnrollment || "N/A"}</div>
-              <div><strong>Total Staff Members:</strong> {formData.totalStaffMembers || "N/A"}</div>
-              <div><strong>Total Teachers:</strong> {formData.totalTeachers || "N/A"}</div>
-              <div><strong>Total Coordinators:</strong> {formData.totalCoordinators || "N/A"}</div>
-              <div><strong>Total Maids:</strong> {formData.totalMaids || "N/A"}</div>
-              <div><strong>Total Guards:</strong> {formData.totalGuards || "N/A"}</div>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-3 text-primary">Facilities</h3>
-            <div className="space-y-2">
-              <div><strong>Total Rooms:</strong> {formData.totalRooms || "N/A"}</div>
-              <div><strong>Total Classrooms:</strong> {formData.totalClassrooms || "N/A"}</div>
-              <div><strong>Average Class Size:</strong> {formData.averageClassSize || "N/A"}</div>
-              <div><strong>Average Current Class Capacity:</strong> {formData.averageCurrentClassCapacity || "N/A"}</div>
-              <div><strong>Computer Labs:</strong> {formData.computerLabs || "N/A"}</div>
-              <div><strong>Science Labs:</strong> {formData.scienceLabs || "N/A"}</div>
-              <div><strong>Teacher Transport Facility:</strong> {formData.teacherTransportFacility || "N/A"}</div>
-              <div><strong>Canteen Facility:</strong> {formData.canteenFacility || "N/A"}</div>
-              <div><strong>Meal Programs:</strong> {formData.mealPrograms || "N/A"}</div>
-              <div><strong>Boys Washrooms:</strong> {formData.boysWashrooms || "N/A"}</div>
-              <div><strong>Girls Washrooms:</strong> {formData.girlsWashrooms || "N/A"}</div>
-              <div><strong>Male Teacher Washrooms:</strong> {formData.maleTeacherWashrooms || "N/A"}</div>
-              <div><strong>Female Teacher Washrooms:</strong> {formData.femaleTeacherWashrooms || "N/A"}</div>
-              <div><strong>Facilities:</strong> {formData.facilities || "N/A"}</div>
-              <div><strong>Any Other Room:</strong> {formData.anyOtherRoom || "N/A"}</div>
-              <div><strong>Sports Facilities:</strong> {formData.sportsFacilities || "N/A"}</div>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-3 text-primary">Contact Information</h3>
-            <div className="space-y-2">
-              <div><strong>Primary Phone:</strong> {formData.primaryPhone || "N/A"}</div>
-              <div><strong>Secondary Phone:</strong> {formData.secondaryPhone || "N/A"}</div>
-              <div><strong>Official Email:</strong> {formData.officialEmail || "N/A"}</div>
-              <div><strong>Campus Head Name:</strong> {formData.campusHeadName || "N/A"}</div>
-              <div><strong>Campus Head Phone:</strong> {formData.campusHeadPhone || "N/A"}</div>
-              <div><strong>Campus Head Email:</strong> {formData.campusHeadEmail || "N/A"}</div>
-              <div><strong>Coordinator Name:</strong> {formData.campusHeadCoordinatorName || "N/A"}</div>
-              <div><strong>Coordinator Phone:</strong> {formData.campusHeadCoordinatorPhone || "N/A"}</div>
-              <div><strong>Coordinator Email:</strong> {formData.campusHeadCoordinatorEmail || "N/A"}</div>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="border-[#a3cef1]">
+            <CardHeader>
+              <CardTitle className="text-[#274c77]">General Information</CardTitle>
+              <CardDescription>Basic campus details</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div><strong>Campus Name:</strong> {formData.campusName || "N/A"}</div>
+                <div><strong>Registration #:</strong> {formData.registrationNumber || "N/A"}</div>
+                <div><strong>Status:</strong> {formData.campusStatus || "N/A"}</div>
+                <div><strong>Established:</strong> {formData.campusEstablishedYear || "N/A"}</div>
+                <div className="sm:col-span-2"><strong>Address:</strong> {formData.address || formData.campusAddress || "N/A"}</div>
+                <div><strong>City:</strong> {formData.city || "N/A"}</div>
+                <div><strong>District:</strong> {formData.district || "N/A"}</div>
+                <div><strong>Postal Code:</strong> {formData.postalCode || "N/A"}</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#a3cef1]">
+            <CardHeader>
+              <CardTitle className="text-[#274c77]">Academics</CardTitle>
+              <CardDescription>Programs and academic year</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="sm:col-span-2">
+                  <strong>Languages:</strong>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {String(formData.languagesOfInstruction || "N/A")}
+                  </div>
+                </div>
+                <div><strong>Shift:</strong> {formData.shiftAvailable || "N/A"}</div>
+                <div>
+                  <strong>Academic Year:</strong> {formData.academicYearStartMonth && formData.academicYearEndMonth ? `${formData.academicYearStartMonth} - ${formData.academicYearEndMonth}` : "N/A"}
+                </div>
+                <div className="sm:col-span-2">
+                  <strong>Education Levels:</strong>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {String(formData.educationLevelAvailable || "").split(',').filter(Boolean).length > 0 ? (
+                      String(formData.educationLevelAvailable || "").split(',').filter(Boolean).map((x: string, i: number) => (
+                        <Badge key={i} variant="secondary">{x.trim()}</Badge>
+                      ))
+                    ) : (
+                      <span>N/A</span>
+                    )}
+                  </div>
+                </div>
+                <div className="sm:col-span-2">
+                  <strong>Grades Offered:</strong>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {String(formData.gradesOffered || "").split(',').filter(Boolean).length > 0 ? (
+                      String(formData.gradesOffered || "").split(',').filter(Boolean).map((x: string, i: number) => (
+                        <Badge key={i} variant="secondary">{x.trim()}</Badge>
+                      ))
+                    ) : (
+                      <span>N/A</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#a3cef1]">
+            <CardHeader>
+              <CardTitle className="text-[#274c77]">Capacity & Staffing</CardTitle>
+              <CardDescription>Students and staff</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div><strong>Total Capacity:</strong> {formData.totalStudentCapacity || formData.campusCapacity || "N/A"}</div>
+                <div><strong>Enrollment:</strong> {formData.currentStudentEnrollment || formData.totalStudents || "N/A"}</div>
+                <div><strong>Male Students:</strong> {formData.maleStudents || formData.num_students_male || "N/A"}</div>
+                <div><strong>Female Students:</strong> {formData.femaleStudents || formData.num_students_female || "N/A"}</div>
+                <div><strong>Total Teachers:</strong> {formData.totalTeachers || "N/A"}</div>
+                <div><strong>Non-Teaching Staff:</strong> {formData.totalNonTeachingStaff || formData.totalStaffMembers || "N/A"}</div>
+                <div><strong>Coordinators:</strong> {formData.totalCoordinators || "N/A"}</div>
+                <div><strong>Maids:</strong> {formData.totalMaids || "N/A"}</div>
+                <div><strong>Guards:</strong> {formData.totalGuards || "N/A"}</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#a3cef1]">
+            <CardHeader>
+              <CardTitle className="text-[#274c77]">Facilities</CardTitle>
+              <CardDescription>Infrastructure and amenities</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div><strong>Total Rooms:</strong> {formData.totalRooms || "N/A"}</div>
+                <div><strong>Total Classrooms:</strong> {formData.totalClassrooms || "N/A"}</div>
+                <div><strong>Avg Class Size:</strong> {formData.averageClassSize || "N/A"}</div>
+                <div><strong>Avg Current Class Capacity:</strong> {formData.averageCurrentClassCapacity || "N/A"}</div>
+                <div><strong>Computer Labs:</strong> {formData.computerLabs || "N/A"}</div>
+                <div><strong>Science Labs:</strong> {formData.scienceLabs || "N/A"}</div>
+                <div><strong>Teacher Transport:</strong> {formData.teacherTransportFacility || "N/A"}</div>
+                <div><strong>Canteen:</strong> {formData.canteenFacility || "N/A"}</div>
+                <div><strong>Meal Programs:</strong> {formData.mealPrograms || "N/A"}</div>
+                <div><strong>Boys Washrooms:</strong> {formData.boysWashrooms || "N/A"}</div>
+                <div><strong>Girls Washrooms:</strong> {formData.girlsWashrooms || "N/A"}</div>
+                <div><strong>Male Teacher Washrooms:</strong> {formData.maleTeacherWashrooms || "N/A"}</div>
+                <div><strong>Female Teacher Washrooms:</strong> {formData.femaleTeacherWashrooms || "N/A"}</div>
+                <div className="sm:col-span-2"><strong>Facilities:</strong> {formData.facilities || "N/A"}</div>
+                <div className="sm:col-span-2"><strong>Any Other Room:</strong> {formData.anyOtherRoom || "N/A"}</div>
+                <div className="sm:col-span-2"><strong>Sports Facilities:</strong> {formData.sportsFacilities || "N/A"}</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#a3cef1] lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-[#274c77]">Contact Information</CardTitle>
+              <CardDescription>Official points of contact</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                <div><strong>Primary Phone:</strong> {formData.primaryPhone || "N/A"}</div>
+                <div><strong>Secondary Phone:</strong> {formData.secondaryPhone || "N/A"}</div>
+                <div><strong>Official Email:</strong> {formData.officialEmail || "N/A"}</div>
+                <div><strong>Campus Head:</strong> {formData.campusHeadName || "N/A"}</div>
+                <div><strong>Head Phone:</strong> {formData.campusHeadPhone || "N/A"}</div>
+                <div><strong>Head Email:</strong> {formData.campusHeadEmail || "N/A"}</div>
+                <div><strong>Coordinator:</strong> {formData.campusHeadCoordinatorName || "N/A"}</div>
+                <div><strong>Coordinator Phone:</strong> {formData.campusHeadCoordinatorPhone || "N/A"}</div>
+                <div><strong>Coordinator Email:</strong> {formData.campusHeadCoordinatorEmail || "N/A"}</div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <Separator />

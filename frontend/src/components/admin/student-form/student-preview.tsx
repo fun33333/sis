@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator"
 import { Eye, ArrowLeft, Save } from "lucide-react"
 import { apiPost, apiGet, apiPostFormData, getAllCampuses } from "@/lib/api"
 import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
 
 interface StudentPreviewProps {
   formData: any
@@ -222,10 +223,10 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
         </CardTitle>
         <CardDescription>Review all information before submitting</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-8">
         {/* Image preview intentionally removed per request */}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Personal Information */}
           {(() => {
             const personal = [
@@ -240,22 +241,24 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
             if (personal.length === 0) return null
 
             return (
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-primary">Personal Information</h3>
-                <div className="space-y-2">
-                  {personal.map((f) => (
-                    <div key={f.label}>
-                      <strong>{f.label}:</strong> {f.value}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Card className="border-[#a3cef1]">
+                <CardHeader>
+                  <CardTitle className="text-[#274c77]">Personal Information</CardTitle>
+                  <CardDescription>Basic details</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    {personal.map((f) => (
+                      <div key={f.label}><strong>{f.label}:</strong> {f.value}</div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             )
           })()}
 
           {/* Contact Information */}
           {(() => {
-
             const contact = [
               { label: "Emergency Contact", value: formData.emergencyContact },
               { label: "Address", value: formData.address },
@@ -264,7 +267,6 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
               { label: "Zakat Status", value: formData.zakatStatus },
             ].filter((f) => hasValue(f.value))
 
-            // include rent only if houseOwned === 'no' and rent has value
             if (formData.houseOwned === "no" && hasValue(formData.rent)) {
               contact.push({ label: "Monthly Rent", value: formData.rent })
             }
@@ -272,16 +274,19 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
             if (contact.length === 0) return null
 
             return (
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-primary">Contact Information</h3>
-                <div className="space-y-2">
-                  {contact.map((f) => (
-                    <div key={f.label}>
-                      <strong>{f.label}:</strong> {f.value}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Card className="border-[#a3cef1]">
+                <CardHeader>
+                  <CardTitle className="text-[#274c77]">Contact Information</CardTitle>
+                  <CardDescription>How to reach</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    {contact.map((f) => (
+                      <div key={f.label}><strong>{f.label}:</strong> {f.value}</div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             )
           })()}
 
@@ -302,16 +307,19 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
             if (academic.length === 0) return null
 
             return (
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-primary">Academic Information</h3>
-                <div className="space-y-2">
-                  {academic.map((f) => (
-                    <div key={f.label}>
-                      <strong>{f.label}:</strong> {f.value}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Card className="border-[#a3cef1]">
+                <CardHeader>
+                  <CardTitle className="text-[#274c77]">Academic Information</CardTitle>
+                  <CardDescription>Schooling details</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    {academic.map((f) => (
+                      <div key={f.label}><strong>{f.label}:</strong> {f.value}</div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             )
           })()}
 
@@ -333,23 +341,42 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
               { label: "Guardian Phone", value: formData.guardianPhone },
               { label: "Guardian CNIC", value: formData.guardianCNIC },
               { label: "Guardian Occupation", value: formData.guardianOccupation },
-              { label: "Siblings in Alkhair", value: formData.siblingsInAlkhair },
-              { label: "Siblings Names", value: formData.siblingsNames },
             ].filter((f) => hasValue(f.value))
 
-            if (family.length === 0) return null
+            const siblingsChips = String(formData.siblingsNames || "")
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+
+            if (family.length === 0 && siblingsChips.length === 0 && !hasValue(formData.siblingsInAlkhair)) return null
 
             return (
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-primary">Family Information</h3>
-                <div className="space-y-2">
-                  {family.map((f) => (
-                    <div key={f.label}>
-                      <strong>{f.label}:</strong> {f.value}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Card className="border-[#a3cef1]">
+                <CardHeader>
+                  <CardTitle className="text-[#274c77]">Family Information</CardTitle>
+                  <CardDescription>Parents and guardian</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    {family.map((f) => (
+                      <div key={f.label}><strong>{f.label}:</strong> {f.value}</div>
+                    ))}
+                    {hasValue(formData.siblingsInAlkhair) && (
+                      <div className="sm:col-span-2"><strong>Siblings in Alkhair:</strong> {formData.siblingsInAlkhair}</div>
+                    )}
+                    {siblingsChips.length > 0 && (
+                      <div className="sm:col-span-2">
+                        <strong>Siblings Names:</strong>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          {siblingsChips.map((n: string, i: number) => (
+                            <Badge key={i} variant="secondary">{n}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             )
           })()}
         </div>

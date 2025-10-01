@@ -186,27 +186,6 @@ export function FacilitiesStep({ formData, invalidFields, onInputChange }: Facil
           </div>
 
           <div>
-            <Label htmlFor="campusAddress">Campus Address (full)</Label>
-            <Input 
-              id="campusAddress" 
-              value={formData.campusAddress || ""} 
-              onChange={e => onInputChange("campusAddress", e.target.value)} 
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="anyOtherRoom">Any Other Room (specify)</Label>
-            <Input
-              id="anyOtherRoom"
-              value={formData.anyOtherRoom || ""}
-              onChange={e => onInputChange("anyOtherRoom", e.target.value)}
-            />
-            {invalidFields.includes("anyOtherRoom") && (
-              <p className="text-sm text-red-600 mt-1">Other room info is required</p>
-            )}
-          </div>
-
-          <div>
             <Label htmlFor="sportsFacilities">Sports Facilities</Label>
             <Textarea
               id="sportsFacilities"
@@ -268,20 +247,6 @@ export function FacilitiesStep({ formData, invalidFields, onInputChange }: Facil
             </select>
             {invalidFields.includes("mealPrograms") && (
               <p className="text-sm text-red-600 mt-1">Meal programs selection is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="otherFacilities">Other Facilities</Label>
-            <Textarea
-              id="otherFacilities"
-              placeholder="Power Backup, Internet/Wi-Fi, Other"
-              value={formData.otherFacilities || ""}
-              onChange={e => onInputChange("otherFacilities", e.target.value)}
-              className="min-h-[60px]"
-            />
-            {invalidFields.includes("otherFacilities") && (
-              <p className="text-sm text-red-600 mt-1">Other facilities info is required</p>
             )}
           </div>
 
@@ -358,20 +323,6 @@ export function FacilitiesStep({ formData, invalidFields, onInputChange }: Facil
             />
             {invalidFields.includes("toiletsTeachers") && (
               <p className="text-sm text-red-600 mt-1">Total washrooms is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="facilities">Additional Facilities *</Label>
-            <Textarea
-              id="facilities"
-              placeholder="List additional facilities like playground, cafeteria, sports facilities, etc."
-              value={formData.facilities || ""}
-              onChange={(e) => onInputChange("facilities", e.target.value)}
-              className={`min-h-[100px] ${invalidFields.includes("facilities") ? "border-red-500" : ""}`}
-            />
-            {invalidFields.includes("facilities") && (
-              <p className="text-sm text-red-600 mt-1">Facilities description is required</p>
             )}
           </div>
         </div>

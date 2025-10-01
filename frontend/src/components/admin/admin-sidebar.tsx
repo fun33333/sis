@@ -28,32 +28,52 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
 
   const pathname = usePathname()
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [isReady, setIsReady] = useState(false);
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const userStr = window.localStorage.getItem("sis_user");
-      if (userStr) {
+    // Sync role if localStorage changes (e.g., login/logout in another tab)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "sis_user") {
         try {
-          const user = JSON.parse(userStr);
-          let roleRaw = String(user.role || "");
-          const roleNorm = roleRaw.toLowerCase().trim();
-          // Normalize common variants just in case
+          const user = e.newValue ? JSON.parse(e.newValue) : null;
+          if (!user) {
+            setUserRole(null);
+            return;
+          }
+          const roleNorm = String(user.role || "").toLowerCase().trim();
           const normalized = roleNorm.includes("coord")
             ? "coordinator"
             : roleNorm.includes("teach")
             ? "teacher"
             : roleNorm.includes("admin")
             ? "superadmin"
-            : roleNorm; // fallback to whatever it is
+            : roleNorm;
           setUserRole(normalized);
         } catch {
           setUserRole(null);
         }
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    // Initialize once on mount to avoid SSR/CSR mismatch
+    try {
+      const userStr = window.localStorage.getItem("sis_user");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        const roleNorm = String(user.role || "").toLowerCase().trim();
+        const normalized = roleNorm.includes("coord")
+          ? "coordinator"
+          : roleNorm.includes("teach")
+          ? "teacher"
+          : roleNorm.includes("admin")
+          ? "superadmin"
+          : roleNorm;
+        setUserRole(normalized);
       } else {
         setUserRole(null);
       }
-      setIsReady(true);
+    } catch {
+      setUserRole(null);
     }
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   // Restrict menu based on user role
@@ -163,15 +183,6 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         ],
       },
     ];
-
-  if (!isReady) {
-    return (
-      <aside
-        className={`h-screen fixed left-0 top-0 flex flex-col justify-between rounded-r-3xl border-r z-20 ${sidebarOpen ? "w-72 px-4 py-8" : "w-18 px-2 py-4"}`}
-        style={{ background: "#e7ecef", borderRight: "3px solid #1c3f67ff" }}
-      />
-    );
-  }
 
   return (
     <aside

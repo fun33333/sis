@@ -1,23 +1,28 @@
 "use client"
 
-import Link from "next/link"
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search, Users, Eye, Edit, GraduationCap, Mail, Phone, MapPin, BookOpen } from "lucide-react"
+import { Search, Users } from "lucide-react"
 import { getAllTeachers, getAllCampuses } from "@/lib/api"
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 
 export default function TeacherListPage() {
   useEffect(() => {
     document.title = "Teacher List | IAK SMS";
   }, []);
 
+  const router = useRouter()
   const [search, setSearch] = useState("")
   const [teachers, setTeachers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 30
 
   useEffect(() => {
     async function fetchTeachers() {
@@ -69,6 +74,43 @@ export default function TeacherListPage() {
     teacher.campus.toLowerCase().includes(search.toLowerCase()) ||
     teacher.email.toLowerCase().includes(search.toLowerCase())
   )
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search])
+
+  const totalRecords = filteredTeachers.length
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(totalRecords / pageSize)), [totalRecords])
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = Math.min(totalRecords, startIndex + pageSize)
+
+  // Clamp current page if total pages shrink (e.g., after search)
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [totalPages, currentPage])
+
+  const currentPageTeachers = useMemo(() => {
+    return filteredTeachers.slice(startIndex, startIndex + pageSize)
+  }, [filteredTeachers, startIndex, pageSize])
+
+  const pageNumbers = useMemo<(number | "ellipsis")[]>(() => {
+    const pages: (number | "ellipsis")[] = []
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i)
+      return pages
+    }
+    pages.push(1)
+    if (currentPage > 3) pages.push("ellipsis")
+    const windowStart = Math.max(2, currentPage - 1)
+    const windowEnd = Math.min(totalPages - 1, currentPage + 1)
+    for (let i = windowStart; i <= windowEnd; i++) pages.push(i)
+    if (currentPage < totalPages - 2) pages.push("ellipsis")
+    pages.push(totalPages)
+    return pages
+  }, [currentPage, totalPages])
 
   return (
     <div className="space-y-6">
@@ -125,78 +167,89 @@ export default function TeacherListPage() {
               </Button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {filteredTeachers.map((teacher, index) => (
-                <div 
-                  key={teacher.id} 
-                  className={`flex items-center justify-between p-4 rounded-lg border hover:shadow-md transition-shadow ${
-                    index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
-                  }`}
-                  style={{ 
-                    backgroundColor: index % 2 === 0 ? '#e7ecef' : 'white',
-                    borderColor: '#a3cef1'
-                  }}
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-3 rounded-full">
-                      <GraduationCap className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="font-semibold text-lg text-gray-900">{teacher.name}</h3>
-                        <Badge 
-                          style={{ 
-                            backgroundColor: teacher.is_active ? '#6096ba' : '#8b8c89', 
-                            color: 'white' 
-                          }}
-                        >
-                          {teacher.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
-                        <div className="flex items-center">
-                          <BookOpen className="h-4 w-4 mr-2" />
-                          <span><strong>Subject:</strong> {teacher.subject}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-2" />
-                          <span><strong>Campus:</strong> {teacher.campus}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Mail className="h-4 w-4 mr-2" />
-                          <span><strong>Email:</strong> {teacher.email}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Phone className="h-4 w-4 mr-2" />
-                          <span><strong>Phone:</strong> {teacher.phone}</span>
-                        </div>
-                      </div>
-                      <div className="mt-2 text-sm text-gray-500">
-                        <span><strong>Experience:</strong> {teacher.experience} years</span>
-                        <span className="mx-2">•</span>
-                        <span><strong>Classes:</strong> {teacher.classes}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Link href={`/admin/teachers/profile?teacherId=${teacher.id}`}>
-                      <Button size="sm" variant="outline" style={{ borderColor: '#6096ba', color: '#274c77' }}>
-                        <Eye className="h-4 w-4 mr-1" />
-                        View Profile
-                      </Button>
-                    </Link>
-                    <Button size="sm" variant="outline" style={{ borderColor: '#6096ba', color: '#274c77' }}>
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                  </div>
-                </div>
-              ))}
+            <div>
+              <Table className="w-full">
+                <TableHeader>
+                  <TableRow className="bg-[#274c77] text-white hover:bg-[#274c77]">
+                    <TableHead className="text-white">Name</TableHead>
+                    <TableHead className="text-white">Subject</TableHead>
+                    <TableHead className="text-white">Campus</TableHead>
+                    <TableHead className="text-white">Email</TableHead>
+                    <TableHead className="text-white">Classes</TableHead>
+                    <TableHead className="text-white">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentPageTeachers.map((teacher, index) => {
+                    const isActive = !!teacher.is_active
+                    return (
+                      <TableRow
+                        key={teacher.id}
+                        className={`cursor-pointer hover:bg-[#a3cef1] transition ${index % 2 === 0 ? 'bg-[#e7ecef]' : 'bg-white'}`}
+                        onClick={() => router.push(`/admin/teachers/profile?teacherId=${teacher.id}`)}
+                      >
+                        <TableCell className="font-medium">{teacher.name || 'Unknown'}</TableCell>
+                        <TableCell>{teacher.subject || 'Not Assigned'}</TableCell>
+                        <TableCell>{teacher.campus || 'Unknown Campus'}</TableCell>
+                        <TableCell>{teacher.email || 'Not provided'}</TableCell>
+                        <TableCell>{teacher.classes || 'Not Assigned'}</TableCell>
+                        <TableCell>
+                          {isActive ? (
+                            <span className="px-2 py-1 text-xs font-semibold text-white bg-green-600/70 rounded-full shadow">Active</span>
+                          ) : (
+                            <span className="px-2 py-1 text-xs font-semibold text-white bg-[#8b8c89] rounded-full shadow">Inactive</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
               {filteredTeachers.length === 0 && !loading && (
                 <div className="text-center py-8 text-gray-500">
                   No teachers found matching your search criteria.
                 </div>
               )}
+              <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-sm text-[#274c77]">
+                  {totalRecords > 0
+                    ? `Showing ${startIndex + 1}-${endIndex} of ${totalRecords}`
+                    : 'No records found'}
+                </div>
+                <Pagination className="w-full sm:w-auto">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => { e.preventDefault(); setCurrentPage((p) => Math.max(1, p - 1)) }}
+                      />
+                    </PaginationItem>
+                    {pageNumbers.map((p, i) => (
+                      p === "ellipsis" ? (
+                        <PaginationItem key={`e-${i}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      ) : (
+                        <PaginationItem key={p}>
+                          <PaginationLink
+                            href="#"
+                            isActive={p === currentPage}
+                            onClick={(e) => { e.preventDefault(); setCurrentPage(p) }}
+                          >
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => { e.preventDefault(); setCurrentPage((p) => Math.min(totalPages, p + 1)) }}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
             </div>
           )}
         </CardContent>

@@ -191,42 +191,56 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
           <div className="md:col-span-2">
             <Label htmlFor="gradesOffered">Grades Offered *</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 w-full">
-              {[
-                "Nursery",
-                "KG 1",
-                "KG 2",
-                "1 Class",
-                "2 Class",
-                "3 Class",
-                "4 Class",
-                "5 Class",
-                "6 Class",
-                "7 Class",
-                "8 Class",
-                "9 Class",
-                "10 Class",
-                "Special Class",
-              ].map((grade) => (
-                <label key={grade} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    value={grade}
-                    checked={formData.gradesOffered?.includes(grade) || false}
-                    onChange={(e) => {
-                      const currentGrades = Array.isArray(formData.gradesOffered) ? formData.gradesOffered : [];
-                      let updatedGrades;
-                      if (e.target.checked) {
-                        updatedGrades = [...currentGrades, grade];
-                      } else {
-                        updatedGrades = currentGrades.filter((g: string) => g !== grade);
-                      }
-                      onInputChange("gradesOffered", updatedGrades.join(","));
-                    }}
-                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm">{grade}</span>
-                </label>
-              ))}
+              {(() => {
+                const selectedGradesList = Array.isArray(formData.gradesOffered)
+                  ? (formData.gradesOffered as string[])
+                  : (typeof formData.gradesOffered === 'string' && formData.gradesOffered.trim().length > 0
+                      ? String(formData.gradesOffered)
+                          .split(',')
+                          .map((s) => s.trim())
+                          .filter(Boolean)
+                      : ([] as string[]))
+
+                const toggle = (grade: string, checked: boolean) => {
+                  const currentGrades = selectedGradesList
+                  const updatedGrades = checked
+                    ? Array.from(new Set([...currentGrades, grade]))
+                    : currentGrades.filter((g) => g !== grade)
+                  onInputChange("gradesOffered", updatedGrades.join(","))
+                }
+
+                return (
+                  <>
+                    {[
+                      "Nursery",
+                      "KG 1",
+                      "KG 2",
+                      "1 Class",
+                      "2 Class",
+                      "3 Class",
+                      "4 Class",
+                      "5 Class",
+                      "6 Class",
+                      "7 Class",
+                      "8 Class",
+                      "9 Class",
+                      "10 Class",
+                      "Special Class",
+                    ].map((grade) => (
+                      <label key={grade} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          value={grade}
+                          checked={selectedGradesList.includes(grade)}
+                          onChange={(e) => toggle(grade, e.target.checked)}
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm">{grade}</span>
+                      </label>
+                    ))}
+                  </>
+                )
+              })()}
             </div>
             {invalidFields.includes("gradesOffered") && (
               <p className="text-sm text-red-600 mt-1">Grades offered is required</p>
@@ -310,18 +324,43 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
 
           <div>
             <Label htmlFor="educationLevelAvailable">Education Level Available *</Label>
-            <select
-              id="educationLevelAvailable"
-              value={formData.educationLevelAvailable || ""}
-              onChange={e => onInputChange("educationLevelAvailable", e.target.value)}
-              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('educationLevelAvailable') ? 'border-red-500' : ''}`}
-            >
-              <option value="">Select Level</option>
-              <option value="Pre-Primary">Pre-Primary</option>
-              <option value="Primary">Primary</option>
-              <option value="Secondary">Secondary</option>
-              <option value="All">All</option>
-            </select>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 w-full">
+              {(() => {
+                const selectedLevels = Array.isArray(formData.educationLevelAvailable)
+                  ? (formData.educationLevelAvailable as string[])
+                  : (typeof formData.educationLevelAvailable === 'string' && formData.educationLevelAvailable.trim().length > 0
+                      ? String(formData.educationLevelAvailable)
+                          .split(',')
+                          .map((s) => s.trim())
+                          .filter(Boolean)
+                      : ([] as string[]))
+
+                const toggle = (level: string, checked: boolean) => {
+                  const current = selectedLevels
+                  const updated = checked
+                    ? Array.from(new Set([...current, level]))
+                    : current.filter((l) => l !== level)
+                  onInputChange("educationLevelAvailable", updated.join(","))
+                }
+
+                return (
+                  <>
+                    {["Pre-Primary", "Primary", "Secondary", "Higher Secondary"].map((level) => (
+                      <label key={level} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          value={level}
+                          checked={selectedLevels.includes(level)}
+                          onChange={(e) => toggle(level, e.target.checked)}
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm">{level}</span>
+                      </label>
+                    ))}
+                  </>
+                )
+              })()}
+            </div>
             {invalidFields.includes("educationLevelAvailable") && (
               <p className="text-sm text-red-600 mt-1">Education level is required</p>
             )}

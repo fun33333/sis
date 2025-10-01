@@ -102,7 +102,7 @@ export default function CoordinatorListPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map((u, index) => (
-                  <TableRow key={u.id} style={{ backgroundColor: index % 2 === 0 ? '#e7ecef' : 'white' }} className="cursor-pointer" onClick={() => router.push(`/admin/coordinator`)}>
+                  <TableRow key={u.id} style={{ backgroundColor: index % 2 === 0 ? '#e7ecef' : 'white' }} className="cursor-pointer hover:bg-[#a3cef1] transition" onClick={() => router.push(`/admin/coordinator`)}>
                     <TableCell className="font-medium">{`${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username}</TableCell>
                     <TableCell>{u.email}</TableCell>
                     <TableCell>{u.username}</TableCell>
