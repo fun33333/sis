@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import type { Student } from "@/types/dashboard"
 import { getAllStudents, getAllCampuses } from "@/lib/api"
+import PrettyLoader from "@/components/ui/pretty-loader"
 
 export default function StudentListPage() {
   useEffect(() => {
@@ -40,19 +41,28 @@ export default function StudentListPage() {
     }
     async function fetchStudents() {
       setLoading(true);
+      // Start both requests in parallel, but don't block UI on campuses
+      const studentsPromise = getAllStudents();
+      const campusesPromise = getAllCampuses();
+
       try {
-        const [data, campusList] = await Promise.all([
-          getAllStudents(),
-          getAllCampuses(),
-        ])
+        const data = await studentsPromise;
         setStudents(Array.isArray(data) ? data : []);
-        const clist = Array.isArray(campusList) ? campusList : (Array.isArray((campusList as any)?.results) ? (campusList as any).results : [])
-        setCampuses(clist)
       } catch (err) {
         setStudents([]);
+      } finally {
+        setLoading(false);
+      }
+
+      try {
+        const campusList = await campusesPromise;
+        const clist = Array.isArray(campusList)
+          ? campusList
+          : (Array.isArray((campusList as any)?.results) ? (campusList as any).results : [])
+        setCampuses(clist)
+      } catch (err) {
         setCampuses([])
       }
-      setLoading(false);
     }
     fetchStudents();
   }, [])
@@ -102,7 +112,18 @@ export default function StudentListPage() {
   }, [search, yearFilter, campusFilter, gradeFilter, students, teacherClass])
 
   if (loading) {
-    return <div className="p-6 text-xl text-[#274c77]">Loading student data...</div>
+    return (
+      <div className="p-6 bg-white min-h-screen">
+        <Card className="rounded-xl shadow-lg bg-white">
+          <CardHeader className="rounded-t-xl">
+            <CardTitle className="text-[#274c77] text-xl text-bold">Student Records</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PrettyLoader variant="embedded" label="Loading student data" subLabel="Please wait while we prepare your list" />
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
   return (
     <div className="p-6 bg-white min-h-screen">

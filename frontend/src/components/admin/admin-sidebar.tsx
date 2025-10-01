@@ -44,7 +44,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
             ? "teacher"
             : roleNorm.includes("admin")
             ? "superadmin"
-            : roleNorm; // fallback to whatever it is
+            : roleNorm; 
           setUserRole(normalized);
         } catch {
           setUserRole(null);
@@ -98,6 +98,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
           { title: "Time Table", href: "/admin/coordinator/time-table" },
           { title: "Sections Progress", href: "/admin/coordinator/sections-progress" },
+          { title: "Add Coordinator", href: "/admin/coordinator/add" },
         ],
       },
     ]
@@ -153,6 +154,8 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         href: "/admin/coordinator",
         subItems: [
           { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
+          { title: "Add Coordinator", href: "/admin/coordinator/add" },
+
           { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
           { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
           { title: "Result Approval", href: "/admin/coordinator/result-approval" },
@@ -183,7 +186,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         transition: 'background 0.5s, box-shadow 0.5s, width 0.5s, padding 0.5s',
       }}
     >
-      <div>
+      <div className="flex h-full flex-col">
         <div className="flex items-center gap-3 mb-10">
           <div
             className="p-2 rounded-xl cursor-pointer hover:scale-105 transition-transform duration-300"
@@ -201,7 +204,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           )}
         </div>
 
-        <nav className="space-y-2">
+        <nav className="space-y-2 flex-1 overflow-y-auto hide-scrollbar pr-1">
           {menuItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
             const hasSubItems = item.subItems.length > 0
@@ -269,7 +272,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
               </div>
             )
           })}
-          {(userRole === "teacher" || userRole === "coordinator" || userRole === "superadmin") && (
+          {(userRole === "teacher" || userRole === "coordinator" || userRole === "superadmin" || userRole === "principal") && (
             <button
               onClick={() => {
                 window.localStorage.removeItem("sis_user");
