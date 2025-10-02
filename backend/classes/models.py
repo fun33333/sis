@@ -4,32 +4,47 @@ from django.utils.crypto import get_random_string
 # Teacher model assumed in 'teachers' app
 TEACHER_MODEL = "teachers.Teacher"
 
+# ----------------------
+class Level(models.Model):
+    """
+    School levels: Pre-Primary, Primary, Secondary, etc.
+    """
+    name = models.CharField(max_length=50, unique=True)
+    short_code = models.CharField(max_length=10, blank=True, null=True)
+    grades = models.ManyToManyField("Grade", blank=True, related_name="levels")
+    code = models.CharField(max_length=10, unique=True, blank=True, null=True, editable=False)  # Auto code
 
-class Grade(models.Model):
-    """
-    Top-level grade (e.g., Grade 1, Grade 2).
-    """
-    name = models.CharField(max_length=50, unique=True)  # Example: "Grade 1"
-    short_code = models.CharField(
-        max_length=10,
-        blank=True,
-        null=True,
-        help_text="Short code used in generated codes (optional)"
-    )
+    def save(self, *args, **kwargs):
+        if not self.code:
+            # Generate code from short_code or name
+            base = self.short_code or "".join(self.name.split()).upper()[:5]  # Max 5 chars
+            suffix = 1
+            new_code = f"{base}{suffix}"
+            while Level.objects.filter(code=new_code).exists():
+                suffix += 1
+                new_code = f"{base}{suffix}"
+            self.code = new_code
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
 
+# ----------------------
+class Grade(models.Model):
+    """
+    Top-level grade (e.g., Grade 1, Grade 2)
+    """
+    name = models.CharField(max_length=50, unique=True)
+    short_code = models.CharField(max_length=10, blank=True, null=True)
 
+    def __str__(self):
+        return self.name
+
+# ----------------------
 class ClassRoom(models.Model):
     """
-    Represents a specific class (Grade + Section).
+    Represents a specific class (Grade + Section)
     Example: "Grade 1 - A"
-    - grade: dropdown (foreign key)
-    - section: choices (A, B, C, ...)
-    - class_teacher: optional FK to Teacher
-    - capacity: maximum number of students allowed
-    - code: auto-generated unique class code
     """
     SECTION_CHOICES = [(c, c) for c in ("A", "B", "C", "D", "E")]
 
@@ -38,10 +53,7 @@ class ClassRoom(models.Model):
     class_teacher = models.ForeignKey(
         TEACHER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
     )
-    capacity = models.PositiveIntegerField(
-        default=30,
-        help_text="Maximum number of students allowed in this classroom"
-    )
+    capacity = models.PositiveIntegerField(default=30)
     code = models.CharField(max_length=30, unique=True, editable=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
