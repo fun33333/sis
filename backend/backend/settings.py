@@ -113,15 +113,14 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'sis',
-        'USER': 'postgres',
-        'PASSWORD': 'password',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.postgresql',  # ye add karo
+        'NAME': os.getenv('DB_NAME', 'project_db'),
+        'USER': os.getenv('DB_USER', 'project_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'project_pass'),
+        'HOST': os.getenv('DB_HOST', '192.168.100.36'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
