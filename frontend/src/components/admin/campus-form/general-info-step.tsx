@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
 interface GeneralInfoStepProps {
   formData: any
@@ -15,187 +16,105 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
   return (
     <Card className="border-2">
       <CardHeader>
-        <CardTitle>General Information</CardTitle>
+        <CardTitle>Campus Information</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Campus photo upload - nicer drag/drop UI */}
+        {/* Campus photo upload */}
         <div className="md:col-span-2">
-          <Label htmlFor="campusPhoto">Campus Photo *</Label>
-
-          {/* hidden file input for accessibility */}
-          <input
-            id="campusPhoto"
-            name="campusPhoto"
-            type="file"
-            accept="image/*"
-            className="hidden"
-            aria-hidden
-            onChange={() => { }}
-          />
-
-          {/* Styled drop area */}
+          <Label htmlFor="photo">Campus Photo</Label>
           <UploadArea
-            existing={formData.campusPhoto}
-            onFile={(dataUrl: string | null) => onInputChange("campusPhoto", dataUrl || "")}
+            existing={formData.photo}
+            onFile={(dataUrl: string | null) => onInputChange("photo", dataUrl || "")}
           />
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="campusName">Campus Name *</Label>
+            <Label htmlFor="name">Campus Name *</Label>
             <select
-              id="campusName"
-              value={formData.campusName || ""}
-              onChange={e => onInputChange("campusName", e.target.value)}
-              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('campusName') ? 'border-red-500' : ''}`}
+              id="name"
+              value={formData.name || ""}
+              onChange={e => onInputChange("name", e.target.value)}
+              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('name') ? 'border-red-500' : ''}`}
             >
               <option value="">Select Campus</option>
-              <option value="campus 1">Campus 1</option>
-              <option value="campus 2">Campus 2</option>
-              <option value="campus 3">Campus 3</option>
-              <option value="campus 4">Campus 4</option>
-              <option value="campus 5">Campus 5</option>
-              <option value="campus 6">Campus 6</option>
-              <option value="campus 8">Campus 8</option>
+              <option value="Campus 1">Campus 1</option>
+              <option value="Campus 2">Campus 2</option>
+              <option value="Campus 3">Campus 3</option>
+              <option value="Campus 4">Campus 4</option>
+              <option value="Campus 5">Campus 5</option>
+              <option value="Campus 6">Campus 6</option>
+              <option value="Campus 7">Campus 7</option>
+              <option value="Campus 8">Campus 8</option>
             </select>
-            {invalidFields.includes("campusName") && (
+            {invalidFields.includes("name") && (
               <p className="text-sm text-red-600 mt-1">Campus name is required</p>
             )}
           </div>
 
           <div>
-            <Label htmlFor="campusCode">Campus Code *</Label>
+            <Label htmlFor="code">Campus Code</Label>
             <Input
-              id="campusCode"
-              value={formData.campusCode || ""}
-              onChange={e => onInputChange("campusCode", e.target.value)}
+              id="code"
+              value={formData.code || ""}
+              onChange={e => onInputChange("code", e.target.value)}
             />
           </div>
 
           <div>
-            <Label htmlFor="governingBody">Governing Body *</Label>
-            <Input
-              id="governingBody"
-              value={formData.governingBody || ""}
-              onChange={e => onInputChange("governingBody", e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="registrationNumber">Registration Number *</Label>
-            <Input
-              id="registrationNumber"
-              value={formData.registrationNumber || ""}
-              onChange={(e) => onInputChange("registrationNumber", e.target.value)}
-              className={invalidFields.includes("registrationNumber") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("registrationNumber") && (
-              <p className="text-sm text-red-600 mt-1">Registration number is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="address">Address *</Label>
-            <Input
-              id="address"
-              value={formData.address || ""}
-              onChange={(e) => onInputChange("address", e.target.value)}
-              className={invalidFields.includes("address") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("address") && (
-              <p className="text-sm text-red-600 mt-1">Address is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="city">City *</Label>
-            <Input
-              id="city"
-              value={formData.city || ""}
-              onChange={(e) => onInputChange("city", e.target.value)}
-              className={invalidFields.includes("city") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("city") && (
-              <p className="text-sm text-red-600 mt-1">City is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="district">District *</Label>
+            <Label htmlFor="status">Status *</Label>
             <select
-              id="district"
-              value={formData.district || ""}
-              onChange={e => onInputChange("district", e.target.value)}
-              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('district') ? 'border-red-500' : ''}`}
-            >
-              <option value="">Select District</option>
-              <option value="Karachi Central">Karachi Central</option>
-              <option value="Karachi East">Karachi East</option>
-              <option value="Karachi South">Karachi South</option>
-              <option value="Karachi West">Karachi West</option>
-              <option value="Korangi">Korangi</option>
-              <option value="Malir">Malir</option>
-              <option value="Keamari">Keamari</option>
-            </select>
-            {invalidFields.includes("district") && (
-              <p className="text-sm text-red-600 mt-1">District is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="postalCode">Postal Code *</Label>
-            <Input
-              id="postalCode"
-              value={formData.postalCode || ""}
-              onChange={(e) => onInputChange("postalCode", e.target.value)}
-              className={invalidFields.includes("postalCode") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("postalCode") && (
-              <p className="text-sm text-red-600 mt-1">Postal code is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="campusEstablishedYear">Campus Established Date *</Label>
-            <input
-              id="campusEstablishedYear"
-              type="date"
-              value={formData.campusEstablishedYear || ""}
-              onChange={e => onInputChange("campusEstablishedYear", e.target.value)}
-              className={`w-full border rounded px-3 py-2 ${invalidFields.includes("campusEstablishedYear") ? "border-red-500" : ""
-                }`}
-            />
-            {invalidFields.includes("campusEstablishedYear") && (
-              <p className="text-sm text-red-600 mt-1">Established date is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="campusStatus">Campus Status *</Label>
-            <select
-              id="campusStatus"
-              value={formData.campusStatus || ""}
-              onChange={e => onInputChange("campusStatus", e.target.value)}
-              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('campusStatus') ? 'border-red-500' : ''}`}
+              id="status"
+              value={formData.status || ""}
+              onChange={e => onInputChange("status", e.target.value)}
+              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('status') ? 'border-red-500' : ''}`}
             >
               <option value="">Select Status</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Closed">Closed</option>
-              <option value="Under Construction">Under Construction</option>
+              <option value="active">Active</option>
+              <option value="not_active">Not Active</option>
+              <option value="underconstruction">Under Construction</option>
             </select>
-            {invalidFields.includes("campusStatus") && (
-              <p className="text-sm text-red-600 mt-1">Campus status is required</p>
+            {invalidFields.includes("status") && (
+              <p className="text-sm text-red-600 mt-1">Status is required</p>
             )}
+          </div>
+
+          <div>
+            <Label htmlFor="governing_body">Governing Body</Label>
+            <Input
+              id="governing_body"
+              value={formData.governing_body || ""}
+              onChange={e => onInputChange("governing_body", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="registration_no">Registration No</Label>
+            <Input
+              id="registration_no"
+              value={formData.registration_no || ""}
+              onChange={e => onInputChange("registration_no", e.target.value)}
+            />
           </div>
 
           <div className="md:col-span-2">
-            <Label htmlFor="gradesOffered">Grades Offered *</Label>
+            <Label htmlFor="address">Address</Label>
+            <Textarea
+              id="address"
+              value={formData.address || ""}
+              onChange={e => onInputChange("address", e.target.value)}
+              className="min-h-[60px]"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <Label htmlFor="grades_offered">Grades Offered</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 w-full">
               {(() => {
-                const selectedGradesList = Array.isArray(formData.gradesOffered)
-                  ? (formData.gradesOffered as string[])
-                  : (typeof formData.gradesOffered === 'string' && formData.gradesOffered.trim().length > 0
-                      ? String(formData.gradesOffered)
+                const selectedGradesList = Array.isArray(formData.grades_offered)
+                  ? (formData.grades_offered as string[])
+                  : (typeof formData.grades_offered === 'string' && formData.grades_offered.trim().length > 0
+                      ? String(formData.grades_offered)
                           .split(',')
                           .map((s) => s.trim())
                           .filter(Boolean)
@@ -206,25 +125,33 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
                   const updatedGrades = checked
                     ? Array.from(new Set([...currentGrades, grade]))
                     : currentGrades.filter((g) => g !== grade)
-                  onInputChange("gradesOffered", updatedGrades.join(","))
+                  onInputChange("grades_offered", updatedGrades.join(","))
                 }
 
                 return (
                   <>
+                    {/* Read-only summary field showing selected grades */}
+                    <Input
+                      id="grades_offered_display"
+                      value={(selectedGradesList || []).join(", ")}
+                      readOnly
+                      placeholder="Selected grades will appear here"
+                      className="mb-2 col-span-2 md:col-span-4"
+                    />
                     {[
                       "Nursery",
-                      "KG 1",
+                      "KG 1", 
                       "KG 2",
-                      "1 Class",
-                      "2 Class",
-                      "3 Class",
-                      "4 Class",
-                      "5 Class",
-                      "6 Class",
-                      "7 Class",
-                      "8 Class",
-                      "9 Class",
-                      "10 Class",
+                      "Class 1",
+                      "Class 2",
+                      "Class 3",
+                      "Class 4",
+                      "Class 5",
+                      "Class 6",
+                      "Class 7",
+                      "Class 8",
+                      "Class 9",
+                      "Class 10 (Matric)",
                       "Special Class",
                     ].map((grade) => (
                       <label key={grade} className="flex items-center space-x-2">
@@ -242,294 +169,189 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
                 )
               })()}
             </div>
-            {invalidFields.includes("gradesOffered") && (
-              <p className="text-sm text-red-600 mt-1">Grades offered is required</p>
-            )}
           </div>
 
           <div>
-            <Label htmlFor="languagesOfInstruction">Language of Instruction *</Label>
+            <Label htmlFor="languages_of_instruction">Languages of Instruction</Label>
             <select
-              id="languagesOfInstruction"
-              value={formData.languagesOfInstruction || ""}
-              onChange={e => onInputChange("languagesOfInstruction", e.target.value)}
-              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('languagesOfInstruction') ? 'border-red-500' : ''}`}
+              id="languages_of_instruction"
+              value={formData.languages_of_instruction || ""}
+              onChange={e => onInputChange("languages_of_instruction", e.target.value)}
+              className="w-full border rounded px-3 py-2"
             >
               <option value="">Select Language</option>
-              <option value="English">English</option>
-              <option value="Urdu">Urdu</option>
-              <option value="Both">English and Urdu Both</option>
+              <option value="urdu">Urdu</option>
+              <option value="english">English</option>
+              <option value="english_and_urdu">English and Urdu</option>
             </select>
-            {invalidFields.includes("languagesOfInstruction") && (
-              <p className="text-sm text-red-600 mt-1">Language of instruction is required</p>
-            )}
           </div>
 
           <div>
-            <Label htmlFor="specialClasses">Special Classes (e.g. Montessori, Prep)</Label>
-            <Input
-              id="specialClasses"
-              type="text"
-              value={formData.specialClasses || ""}
-              onChange={e => onInputChange("specialClasses", e.target.value)}
-              placeholder="Montessori, Prep Section, etc"
-            />
-          </div>
-
-          <div>
-            <Label>Academic Year Start Date *</Label>
-            <input
-              type="date"
-              value={formData.academicYearStartMonth || ""}
-              onChange={e => onInputChange("academicYearStartMonth", e.target.value)}
-              className={`w-full border rounded px-3 py-2 ${invalidFields.includes("academicYearStartMonth") ? "border-red-500" : ""
-                }`}
-            />
-            {invalidFields.includes("academicYearStartMonth") && (
-              <p className="text-sm text-red-600 mt-1">Start date required</p>
-            )}
-          </div>
-
-          <div>
-            <Label>Academic Year End Date *</Label>
-            <input
-              type="date"
-              value={formData.academicYearEndMonth || ""}
-              onChange={e => onInputChange("academicYearEndMonth", e.target.value)}
-              className={`w-full border rounded px-3 py-2 ${invalidFields.includes("academicYearEndMonth") ? "border-red-500" : ""
-                }`}
-            />
-            {invalidFields.includes("academicYearEndMonth") && (
-              <p className="text-sm text-red-600 mt-1">End date required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="shiftAvailable">Shift Available *</Label>
+            <Label htmlFor="academic_year_start_month">Academic Year Start Month</Label>
             <select
-              id="shiftAvailable"
-              value={formData.shiftAvailable || ""}
-              onChange={e => onInputChange("shiftAvailable", e.target.value)}
-              className={`w-full border rounded px-3 py-2 ${invalidFields.includes('shiftAvailable') ? 'border-red-500' : ''}`}
+              id="academic_year_start_month"
+              value={formData.academic_year_start_month || ""}
+              onChange={e => onInputChange("academic_year_start_month", e.target.value)}
+              className="w-full border rounded px-3 py-2"
             >
-              <option value="">Select Shift</option>
-              <option value="Morning">Morning</option>
-              <option value="Afternoon">Afternoon</option>
-              <option value="Both">Morning and Afternoon both</option>
+              <option value="">Select Month</option>
+              <option value="January">January</option>
+              <option value="February">February</option>
+              <option value="March">March</option>
+              <option value="April">April</option>
+              <option value="May">May</option>
+              <option value="June">June</option>
+              <option value="July">July</option>
+              <option value="August">August</option>
+              <option value="September">September</option>
+              <option value="October">October</option>
+              <option value="November">November</option>
+              <option value="December">December</option>
             </select>
-            {invalidFields.includes("shiftAvailable") && (
-              <p className="text-sm text-red-600 mt-1">Shift is required</p>
-            )}
           </div>
 
           <div>
-            <Label htmlFor="educationLevelAvailable">Education Level Available *</Label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 w-full">
-              {(() => {
-                const selectedLevels = Array.isArray(formData.educationLevelAvailable)
-                  ? (formData.educationLevelAvailable as string[])
-                  : (typeof formData.educationLevelAvailable === 'string' && formData.educationLevelAvailable.trim().length > 0
-                      ? String(formData.educationLevelAvailable)
-                          .split(',')
-                          .map((s) => s.trim())
-                          .filter(Boolean)
-                      : ([] as string[]))
+            <Label htmlFor="academic_year_end_month">Academic Year End Month</Label>
+            <select
+              id="academic_year_end_month"
+              value={formData.academic_year_end_month || ""}
+              onChange={e => onInputChange("academic_year_end_month", e.target.value)}
+              className="w-full border rounded px-3 py-2"
+            >
+              <option value="">Select Month</option>
+              <option value="January">January</option>
+              <option value="February">February</option>
+              <option value="March">March</option>
+              <option value="April">April</option>
+              <option value="May">May</option>
+              <option value="June">June</option>
+              <option value="July">July</option>
+              <option value="August">August</option>
+              <option value="September">September</option>
+              <option value="October">October</option>
+              <option value="November">November</option>
+              <option value="December">December</option>
+            </select>
+          </div>
 
-                const toggle = (level: string, checked: boolean) => {
-                  const current = selectedLevels
-                  const updated = checked
-                    ? Array.from(new Set([...current, level]))
-                    : current.filter((l) => l !== level)
-                  onInputChange("educationLevelAvailable", updated.join(","))
-                }
-
-                return (
-                  <>
-                    {["Pre-Primary", "Primary", "Secondary", "Higher Secondary"].map((level) => (
-                      <label key={level} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          value={level}
-                          checked={selectedLevels.includes(level)}
-                          onChange={(e) => toggle(level, e.target.checked)}
-                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span className="text-sm">{level}</span>
-                      </label>
-                    ))}
-                  </>
-                )
-              })()}
-            </div>
-            {invalidFields.includes("educationLevelAvailable") && (
-              <p className="text-sm text-red-600 mt-1">Education level is required</p>
-            )}
+          <div>
+            <Label htmlFor="capacity">Maximum Student Capacity</Label>
+            <Input
+              id="capacity"
+              type="number"
+              value={formData.capacity || ""}
+              onChange={e => onInputChange("capacity", e.target.value)}
+            />
           </div>
           
           <div>
-            <Label htmlFor="maleStudents">Total Male Students</Label>
+            <Label htmlFor="avg_class_size">Average Class Size</Label>
             <Input
-              id="maleStudents"
-              type="text"
-              value={formData.maleStudents || ""}
-              onChange={e => onInputChange("maleStudents", e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="femaleStudents">Total Female Students</Label>
-            <Input
-              id="femaleStudents"
-              type="text"
-              value={formData.femaleStudents || ""}
-              onChange={e => onInputChange("femaleStudents", e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="totalStudentCapacity">Total Student Capacity *</Label>
-            <Input
-              id="totalStudentCapacity"
-              type="text"
-              value={formData.totalStudentCapacity || ""}
-              onChange={e => onInputChange("totalStudentCapacity", e.target.value)}
-              className={invalidFields.includes("totalStudentCapacity") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("totalStudentCapacity") && (
-              <p className="text-sm text-red-600 mt-1">Total student capacity is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="currentStudentEnrollment">Current Student Enrollment *</Label>
-            <Input
-              id="currentStudentEnrollment"
-              type="text"
-              value={formData.currentStudentEnrollment || ""}
-              onChange={e => onInputChange("currentStudentEnrollment", e.target.value)}
-              className={invalidFields.includes("currentStudentEnrollment") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("currentStudentEnrollment") && (
-              <p className="text-sm text-red-600 mt-1">Current student enrollment is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="totalStaffMembers">Total Staff Members *</Label>
-            <Input
-              id="totalStaffMembers"
-              type="text"
-              value={formData.totalStaffMembers || ""}
-              onChange={e => onInputChange("totalStaffMembers", e.target.value)}
-              className={invalidFields.includes("totalStaffMembers") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("totalStaffMembers") && (
-              <p className="text-sm text-red-600 mt-1">Total staff members is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="maleTeachers">Total Male Teachers</Label>
-            <Input
-              id="maleTeachers"
+              id="avg_class_size"
               type="number"
-              value={formData.maleTeachers || ""}
-              onChange={(e) => {
-                const value = e.target.value;
-                onInputChange("maleTeachers", value);
-
-                // Auto update total teachers
-                const total =
-                  (parseInt(value || "0") || 0) +
-                  (parseInt(formData.femaleTeachers || "0") || 0);
-                onInputChange("totalTeachers", total.toString());
-              }}
+              value={formData.avg_class_size || ""}
+              onChange={e => onInputChange("avg_class_size", e.target.value)}
             />
           </div>
 
           <div>
-            <Label htmlFor="femaleTeachers">Total Female Teachers</Label>
+            <Label htmlFor="num_students">Total Students</Label>
             <Input
-              id="femaleTeachers"
+              id="num_students"
               type="number"
-              value={formData.femaleTeachers || ""}
-              onChange={(e) => {
-                const value = e.target.value;
-                onInputChange("femaleTeachers", value);
-
-                // Auto update total teachers
-                const total =
-                  (parseInt(formData.maleTeachers || "0") || 0) +
-                  (parseInt(value || "0") || 0);
-                onInputChange("totalTeachers", total.toString());
-              }}
+              value={formData.num_students || ""}
+              onChange={e => onInputChange("num_students", e.target.value)}
             />
           </div>
 
           <div>
-            <Label htmlFor="totalTeachers">Total Teachers *</Label>
+            <Label htmlFor="num_students_male">Number of Male Students</Label>
             <Input
-              id="totalTeachers"
+              id="num_students_male"
               type="number"
-              value={formData.totalTeachers || ""}
-              readOnly
-              className={
-                invalidFields.includes("totalTeachers") ? "border-red-500" : ""
-              }
+              value={formData.num_students_male || ""}
+              onChange={e => onInputChange("num_students_male", e.target.value)}
             />
-            {invalidFields.includes("totalTeachers") && (
-              <p className="text-sm text-red-600 mt-1">Total teachers is required</p>
-            )}
           </div>
 
           <div>
-            <Label htmlFor="totalCoordinators">Total Coordinators *</Label>
+            <Label htmlFor="num_students_female">Number of Female Students</Label>
             <Input
-              id="totalCoordinators"
-              type="text"
-              value={formData.totalCoordinators || ""}
-              onChange={e => onInputChange("totalCoordinators", e.target.value)}
-              className={invalidFields.includes("totalCoordinators") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("totalCoordinators") && (
-              <p className="text-sm text-red-600 mt-1">Total coordinators is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="totalMaids">Total Maids *</Label>
-            <Input
-              id="totalMaids"
-              type="text"
-              value={formData.totalMaids || ""}
-              onChange={e => onInputChange("totalMaids", e.target.value)}
-              className={invalidFields.includes("totalMaids") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("totalMaids") && (
-              <p className="text-sm text-red-600 mt-1">Total maids is required</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="totalGuards">Total Guards *</Label>
-            <Input
-              id="totalGuards"
-              type="text"
-              value={formData.totalGuards || ""}
-              onChange={e => onInputChange("totalGuards", e.target.value)}
-              className={invalidFields.includes("totalGuards") ? "border-red-500" : ""}
-            />
-            {invalidFields.includes("totalGuards") && (
-              <p className="text-sm text-red-600 mt-1">Total guards is required</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="totalNonTeachingStaff">Total Non-Teaching Staff</Label>
-            <Input
-              id="totalNonTeachingStaff"
+              id="num_students_female"
               type="number"
-              value={formData.totalNonTeachingStaff || ""}
-              onChange={e => onInputChange("totalNonTeachingStaff", e.target.value)}
+              value={formData.num_students_female || ""}
+              onChange={e => onInputChange("num_students_female", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="num_teachers">Total Teachers</Label>
+            <Input
+              id="num_teachers"
+              type="number"
+              value={formData.num_teachers || ""}
+              onChange={e => onInputChange("num_teachers", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="num_teachers_male">Number of Male Teachers</Label>
+            <Input
+              id="num_teachers_male"
+              type="number"
+              value={formData.num_teachers_male || ""}
+              onChange={e => onInputChange("num_teachers_male", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="num_teachers_female">Number of Female Teachers</Label>
+            <Input
+              id="num_teachers_female"
+              type="number"
+              value={formData.num_teachers_female || ""}
+              onChange={e => onInputChange("num_teachers_female", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="total_classrooms">Total Classrooms</Label>
+            <Input
+              id="total_classrooms"
+              type="number"
+              value={formData.total_classrooms || ""}
+              onChange={e => onInputChange("total_classrooms", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="office_rooms">Number of Office Rooms</Label>
+            <Input
+              id="office_rooms"
+              type="number"
+              value={formData.office_rooms || ""}
+              onChange={e => onInputChange("office_rooms", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="num_rooms">Total Rooms</Label>
+            <Input
+              id="num_rooms"
+              type="number"
+              value={formData.num_rooms || ""}
+              onChange={e => onInputChange("num_rooms", e.target.value)}
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <Label htmlFor="facilities">Facilities</Label>
+            <Textarea
+              id="facilities"
+              value={formData.facilities || ""}
+              onChange={e => onInputChange("facilities", e.target.value)}
+              placeholder="List campus facilities..."
+              className="min-h-[60px]"
             />
           </div>
         </div>
@@ -538,7 +360,7 @@ export function GeneralInfoStep({ formData, invalidFields, onInputChange }: Gene
   )
 }
 
-// Small local UploadArea component to keep this file self-contained
+// Upload Area Component
 function UploadArea({ existing, onFile }: { existing?: string | null, onFile: (dataUrl: string | null) => void }) {
   const [isDragging, setIsDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)

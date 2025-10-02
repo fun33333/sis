@@ -98,3 +98,28 @@ class CanViewAllData(permissions.BasePermission):
             request.user.is_authenticated and 
             request.user.can_view_all_data()
         )
+
+class SuperAdminOnlyForCampusCreation(permissions.BasePermission):
+    """
+    Permission class that allows:
+    - SuperAdmin: Full CRUD access to campus
+    - Principal: Read, Update, Delete access (no creation)
+    - Others: No access
+    """
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        
+        # For campus creation (POST), only superadmin allowed
+        if request.method == 'POST':
+            return request.user.is_superadmin()
+        
+        # For other operations (GET, PUT, PATCH, DELETE), allow superadmin or principal
+        return request.user.is_superadmin() or request.user.is_principal()
+    
+    def has_object_permission(self, request, view, obj):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        
+        # For object-level operations, allow superadmin or principal
+        return request.user.is_superadmin() or request.user.is_principal()

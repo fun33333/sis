@@ -1,13 +1,30 @@
-from rest_framework import viewsets, decorators, response
+from rest_framework import viewsets, decorators, response, status
 from rest_framework.permissions import IsAuthenticated
-from users.permissions import IsSuperAdminOrPrincipal
+from rest_framework.exceptions import PermissionDenied
+from users.permissions import SuperAdminOnlyForCampusCreation
 from .models import Campus
 from .serializers import CampusSerializer
 
 class CampusViewSet(viewsets.ModelViewSet):
     queryset = Campus.objects.all()
     serializer_class = CampusSerializer
-    permission_classes = [IsAuthenticated, IsSuperAdminOrPrincipal]
+    permission_classes = [IsAuthenticated, SuperAdminOnlyForCampusCreation]
+
+    def create(self, request, *args, **kwargs):
+        """
+        Override create method to provide custom error message for non-superadmin users
+        """
+        if not request.user.is_superadmin():
+            raise PermissionDenied({
+                "error": "Access Denied",
+                "message": "Sirf Super Admin campus add kar sakta hai. Aap ka role '{}' hai.".format(
+                    request.user.get_role_display()
+                ),
+                "required_role": "Super Admin",
+                "your_role": request.user.get_role_display()
+            })
+        
+        return super().create(request, *args, **kwargs)
 
     # ✅ Custom endpoint: campus summary
     @decorators.action(detail=True, methods=["get"])

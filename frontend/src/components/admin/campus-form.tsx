@@ -38,63 +38,9 @@ export function CampusForm() {
 
   const validateCurrentStep = () => {
     const requiredFields: { [step: number]: string[] } = {
-      1: [
-        "campusName",
-        "registrationNumber",
-        "languagesOfInstruction",
-        "gradesOffered",
-  "academicYearStartMonth",
-  "academicYearEndMonth",
-        "address",
-        "city",
-        "district",
-        "postalCode",
-        "campusEstablishedYear",
-        "shiftAvailable",
-        "educationLevelAvailable",
-        "totalStudentCapacity",
-        "currentStudentEnrollment",
-        "campusStatus",
-        "totalStaffMembers",
-        "totalTeachers",
-        "totalCoordinators",
-        "totalMaids",
-        "totalGuards"
-      ],
-      2: [
-        "totalRooms",
-        "totalClassrooms",
-        "averageClassSize",
-        "averageCurrentClassCapacity",
-        "computerLabs",
-        "scienceLabs",
-        "teacherTransportFacility",
-        "canteenFacility",
-        "mealPrograms",
-        "boysWashrooms",
-        "girlsWashrooms",
-        "maleTeacherWashrooms",
-        "femaleTeacherWashrooms",
-        "facilities",
-       "anyOtherRoom",
-       "sportsFacilities"
-
-      ],
-      3: [
-        "address",
-        "city",
-        "district",
-        "postalCode",
-        "primaryPhone",
-        "secondaryPhone",
-        "officialEmail",
-        "campusHeadName",
-        "campusHeadPhone",
-        "campusHeadEmail",
-        "campusHeadCoordinatorName",
-        "campusHeadCoordinatorPhone",
-        "campusHeadCoordinatorEmail"
-      ], 
+      1: ["name", "status"], // Only name and status are required
+      2: [], // No required fields in facilities step
+      3: [], // No required fields in contact step
     }
 
     const required = requiredFields[currentStep] || []
@@ -140,8 +86,11 @@ export function CampusForm() {
   }
 
   const handleStepChange = (step: number) => {
-    setInvalidFields([])
-    setCurrentStep(step)
+    // Only allow navigation to current step or previous completed steps
+    if (step <= currentStep) {
+      setInvalidFields([])
+      setCurrentStep(step)
+    }
   }
 
   const renderCurrentStep = () => {
@@ -199,27 +148,26 @@ export function CampusForm() {
                   {steps.map((step, index) => (
                     <button
                       key={step.id}
-                      onClick={() => {
-                        // Only allow going back or staying on current step
-                        if (step.id <= currentStep) {
-                          handleStepChange(step.id)
-                        }
-                      }}
+                      onClick={() => handleStepChange(step.id)}
                       disabled={step.id > currentStep}
-                      className={`flex items-center gap-3 text-sm px-2 py-1 rounded-lg transition-all focus:outline-none ${currentStep === step.id
+                      className={`flex items-center gap-3 text-sm px-2 py-1 rounded-lg transition-all focus:outline-none ${
+                        currentStep === step.id
                           ? "bg-primary text-white font-medium"
                           : currentStep > step.id
-                            ? "bg-green-50 text-green-700"
-                            : "text-muted-foreground"
-                        } ${step.id > currentStep ? "opacity-50 cursor-not-allowed" : ""}`}
+                            ? "bg-green-50 text-green-700 cursor-pointer hover:bg-green-100"
+                            : step.id > currentStep
+                              ? "text-muted-foreground cursor-not-allowed opacity-50"
+                              : "text-muted-foreground"
+                      }`}
                     >
                       <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${currentStep === step.id
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${
+                          currentStep === step.id
                             ? "bg-primary text-white"
                             : currentStep > step.id
                               ? "bg-green-500 text-white"
                               : "bg-muted text-muted-foreground"
-                          }`}
+                        }`}
                       >
                         {index + 1}
                       </div>
@@ -238,26 +186,17 @@ export function CampusForm() {
       {!showPreview && (
         <div className="flex justify-between">
           <Button
+            variant="outline"
             onClick={handlePrevious}
             disabled={currentStep === 1}
-            variant="outline"
-            className="flex items-center gap-2 bg-transparent"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="w-4 h-4 mr-2" />
             Previous
           </Button>
-          <Button onClick={handleNext} className="flex items-center gap-2">
-            {currentStep === totalSteps ? (
-              <>
-                <Eye className="h-4 w-4" />
-                Preview
-              </>
-            ) : (
-              <>
-                Next
-                <ArrowRight className="h-4 w-4" />
-              </>
-            )}
+
+          <Button onClick={handleNext}>
+            {currentStep === totalSteps ? "Preview" : "Next"}
+            <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
       )}

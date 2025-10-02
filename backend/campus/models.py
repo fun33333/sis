@@ -1,11 +1,17 @@
-from django.db import models
+from django.db import models  # pyright: ignore[reportMissingImports]
 
 
 class Campus(models.Model):
     STATUS_CHOICES = [
         ("active", "Active"),
-        ("inactive", "Inactive"),
-        ("temporary_closed", "Temporary Closed"),
+        ("not_active", "Not Active"),
+        ("underconstruction", "Under Construction"),
+    ]
+    
+    LANGUAGE_CHOICES = [
+        ("urdu", "Urdu"),
+        ("english", "English"),
+        ("english_and_urdu", "English and Urdu"),
     ]
 
     # General Information
@@ -28,7 +34,7 @@ class Campus(models.Model):
     )
     address = models.TextField()
     grades_offered = models.CharField(max_length=255, help_text="e.g. Grade 1 - Grade 12")
-    languages_of_instruction = models.CharField(max_length=255, help_text="e.g. English, Urdu")
+    languages_of_instruction = models.CharField(max_length=50, choices=LANGUAGE_CHOICES, default="english")
     # Academic year start month (1-12)
     academic_year_start_month = models.CharField(max_length=255, null=True, blank=True)
     academic_year_end_month = models.CharField(max_length=255, null=True, blank=True)
