@@ -140,4 +140,3 @@ class Teacher(models.Model):
         ordering = ['-date_created']
 
 
-# 

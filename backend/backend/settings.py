@@ -43,7 +43,12 @@ INSTALLED_APPS = [
     'campus',
     'teachers',
     'rest_framework',
-    'corsheaders'
+    'corsheaders',
+    'subjects',
+    'classes',
+    # 'attendance',
+    
+
 ]
 
 MIDDLEWARE = [
