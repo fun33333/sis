@@ -143,10 +143,10 @@ export default function TeacherProfilePage() {
       <div className="min-h-screen" style={{ backgroundColor: '#e7ecef' }}>
         <div className="max-w-md mx-auto pt-20">
           <Card style={{ backgroundColor: '#a3cef1', borderColor: '#6096ba' }}>
-            <CardHeader>
+          <CardHeader>
               <CardTitle style={{ color: '#274c77' }}>Error</CardTitle>
-            </CardHeader>
-            <CardContent>
+          </CardHeader>
+          <CardContent>
               <div style={{ color: '#274c77' }}>{error || "Teacher not found"}</div>
               <Button 
                 onClick={() => router.back()} 
@@ -156,8 +156,8 @@ export default function TeacherProfilePage() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Go back
               </Button>
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
         </div>
       </div>
     )
@@ -205,8 +205,8 @@ export default function TeacherProfilePage() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
-            </div>
-          </div>
+        </div>
+      </div>
 
           {/* Teacher Profile Card */}
           <Card className="bg-white shadow-lg border-0">
@@ -360,7 +360,7 @@ export default function TeacherProfilePage() {
                   Select Teacher
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+            <CardContent>
                 <select 
                   value={teacher.id} 
                   onChange={(e) => router.push(`/admin/teachers/profile?teacherId=${e.target.value}`)}
@@ -388,7 +388,7 @@ export default function TeacherProfilePage() {
                 </Badge>
               </CardContent>
             </Card>
-          </div>
+              </div>
 
           {/* Main Content */}
           <div className="lg:col-span-6">
@@ -515,9 +515,9 @@ export default function TeacherProfilePage() {
                           </div>
                         </div>
                       ))}
-                    </div>
-                  </CardContent>
-                </Card>
+              </div>
+            </CardContent>
+          </Card>
               </TabsContent>
 
               {/* Performance Tab */}
@@ -529,7 +529,7 @@ export default function TeacherProfilePage() {
                       <BarChart3 className="h-5 w-5 mr-2" />
                       Performance by Category
                     </CardTitle>
-                  </CardHeader>
+            </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       {performanceData.map((item, index) => (
@@ -553,8 +553,8 @@ export default function TeacherProfilePage() {
                       Teacher Activities
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
+            <CardContent>
+              <div className="space-y-4">
                       {activityData.map((activity, index) => (
                         <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
                           <div className="flex items-center space-x-4">
@@ -565,20 +565,20 @@ export default function TeacherProfilePage() {
                             <div>
                               <p className="font-medium text-gray-900">{activity.activity}</p>
                               <p className="text-sm text-gray-600">{activity.level} Level</p>
-                            </div>
-                          </div>
+                  </div>
+                  </div>
                           <div className="flex items-center space-x-2">
                             <Trophy className="h-4 w-4 text-yellow-600" />
                             <span className="font-bold text-lg text-gray-900">{activity.count}</span>
-                          </div>
-                        </div>
+                  </div>
+                </div>
                       ))}
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
-          </div>
+                </div>
 
           {/* Right Sidebar - Analytics */}
           <div className="lg:col-span-3 space-y-6">
@@ -633,16 +633,16 @@ export default function TeacherProfilePage() {
                         dataKey="value"
                       />
                     </PieChart>
-                  </ResponsiveContainer>
+                    </ResponsiveContainer>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-600">{overallScore}%</div>
                       <div className="text-sm text-gray-600">Score</div>
-                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
 
             {/* Quick Actions */}
             <Card className="bg-white shadow-md border-0">

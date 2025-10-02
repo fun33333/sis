@@ -4,6 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Eye, ArrowLeft, Save } from "lucide-react"
+import { useEffect, useState } from "react"
+import { API_ENDPOINTS, apiPost, getAllCampuses } from "@/lib/api"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 
 interface TeacherPreviewProps {
@@ -12,9 +15,141 @@ interface TeacherPreviewProps {
 }
 
 export function TeacherPreview({ formData, onBack }: TeacherPreviewProps) {
-  const handleSave = () => {
-    // Handle save logic here
-    alert("Teacher information saved successfully!")
+  const [saving, setSaving] = useState(false)
+  const [campuses, setCampuses] = useState<any[]>([])
+
+  useEffect(() => {
+    getAllCampuses()
+      .then((data: any) => {
+        const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+        setCampuses(list)
+      })
+      .catch(() => {
+        toast.error("Failed to load campuses for mapping")
+      })
+  }, [])
+
+  const getCampusId = (value: string) => {
+    if (!value) return null
+    const v = String(value).trim().toLowerCase()
+    // try match by name
+    let campus = campuses.find((c) => String(c?.name || '').trim().toLowerCase() === v)
+    if (campus) return campus.id
+    // try by code
+    campus = campuses.find((c) => String(c?.code || '').trim().toLowerCase() === v)
+    if (campus) return campus.id
+    // fuzzy contains
+    campus = campuses.find((c) => String(c?.name || '').toLowerCase().includes(v))
+    return campus ? campus.id : null
+  }
+
+  const buildPayload = () => {
+    const payload: any = {
+      // Personal info tab fields
+      full_name: formData.fullName || null,
+      dob: formData.dob || null,
+      gender: formData.gender || null,
+      contact_number: formData.contactNumber || null,
+      email: formData.email || null,
+      permanent_address: formData.permanentAddress || null,
+      current_address: formData.temporaryAddress || null,
+      marital_status: formData.maritalStatus || null,
+
+      // Education tab fields
+      education_level: formData.education_level || null,
+      institution_name: formData.institution_name || null,
+      year_of_passing: formData.year_of_passing ? Number(formData.year_of_passing) : null,
+      education_subjects: formData.education_subjects || null,
+      education_grade: formData.education_grade || null,
+
+      additional_education_level: formData.additional_education_level || null,
+      additional_institution_name: formData.additional_institution_name || null,
+      additional_year_of_passing: formData.additional_year_of_passing ? Number(formData.additional_year_of_passing) : null,
+      additional_education_subjects: formData.additional_education_subjects || null,
+      additional_education_grade: formData.additional_education_grade || null,
+
+      // Experience tab fields
+      previous_institution_name: formData.previous_institution_name || null,
+      previous_position: formData.previous_position || null,
+      experience_from_date: formData.experience_from_date || null,
+      experience_to_date: formData.experience_to_date || null,
+      experience_subjects_classes_taught: formData.experience_subjects_classes_taught || null,
+      previous_responsibilities: formData.previous_responsibilities || null,
+      total_experience_years: formData.total_experience_years ? Number(formData.total_experience_years) : null,
+
+      additional_institution_name_exp: formData.additional_institution_name_exp || null,
+      additional_position: formData.additional_position || null,
+      additional_experience_from_date: formData.additional_experience_from_date || null,
+      additional_experience_to_date: formData.additional_experience_to_date || null,
+      additional_experience_subjects_classes: formData.additional_experience_subjects_classes || null,
+      additional_responsibilities: formData.additional_responsibilities || null,
+
+      // Current role tab fields
+      current_role_title: formData.current_role_title || null,
+      current_campus: getCampusId(formData.current_campus),
+      current_subjects: formData.current_subjects || null,
+      current_classes_taught: formData.current_classes_taught || null,
+      current_extra_responsibilities: formData.current_extra_responsibilities || null,
+      role_start_date: formData.role_start_date || null,
+      role_end_date: formData.role_end_date || null,
+      is_currently_active: typeof formData.is_currently_active === 'boolean' ? formData.is_currently_active : null,
+
+      // System tab fields
+      save_status: formData.save_status || 'draft',
+    }
+
+    // Strip null/empty values
+    Object.keys(payload).forEach((k) => {
+      const v = payload[k]
+      if (v === null || v === undefined || v === "") delete payload[k]
+    })
+    return payload
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      // Quick client-side guard for required fields to avoid long waits if any
+      const missing: string[] = []
+      if (!formData.fullName) missing.push("Full name")
+      if (!formData.dob) missing.push("Date of Birth")
+      if (!formData.gender) missing.push("Gender")
+      if (!formData.contactNumber) missing.push("Contact number")
+      if (!formData.email) missing.push("Email")
+      if (!formData.permanentAddress) missing.push("Permanent address")
+      if (missing.length > 0) {
+        toast.error("Please fill required fields", { description: missing.join(", ") })
+        return
+      }
+
+      const payload = buildPayload()
+      console.log("Teacher create payload:", payload)
+
+      // Timeout safety so UI doesn't hang forever if the request takes too long
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timeout")), 15000))
+      await Promise.race([apiPost(API_ENDPOINTS.TEACHERS, payload), timeout])
+      toast.success("Teacher saved", { description: "Record has been created successfully." })
+      onBack()
+    } catch (err: any) {
+      console.error("Failed to save teacher", err)
+      let description = err?.message || "Unexpected error"
+      try {
+        if (typeof err?.response === 'string') {
+          // Try to parse DRF error JSON if present
+          // Error response format is:
+          // {
+          //   "field1": "error message 1",
+          //   "field2": "error message 2",
+          //   ...
+          // }
+          const parsed = JSON.parse(err.response)
+          description = Object.entries(parsed).map(([k, v]) => `${k}: ${(Array.isArray(v)? v.join(' | ') : String(v))}`).join("; ")
+        }
+      } catch (_) {}
+      toast.error("Failed to save teacher", { description })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -28,112 +163,86 @@ export function TeacherPreview({ formData, onBack }: TeacherPreviewProps) {
       </CardHeader>
       <CardContent className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Personal Information */}
-          <Card className="border-[#a3cef1]">
+           <Card className="border-[#a3cef1]">
             <CardHeader>
               <CardTitle className="text-[#274c77]">Personal Information</CardTitle>
               <CardDescription>Basic details</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div><strong>Name:</strong> {formData.fullName || "N/A"}</div>
-                <div><strong>Date of Birth:</strong> {formData.dob || "N/A"}</div>
-                <div><strong>Gender:</strong> {formData.gender || "N/A"}</div>
-                <div><strong>Campus:</strong> {formData.campus || "N/A"}</div>
-                <div><strong>Contact:</strong> {formData.contactNumber || "N/A"}</div>
-                <div><strong>Emergency Contact:</strong> {formData.emergencyContactNumber || "N/A"}</div>
-                <div className="sm:col-span-2"><strong>Email:</strong> {formData.email || "N/A"}</div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                 <div><strong>Full name:</strong> {formData.fullName || "N/A"}</div>
+                 <div><strong>Date of Birth:</strong> {formData.dob || "N/A"}</div>
+                 <div><strong>Gender:</strong> {formData.gender || "N/A"}</div>
+                 <div><strong>Contact number:</strong> {formData.contactNumber || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Email:</strong> {formData.email || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Permanent address:</strong> {formData.permanentAddress || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Current address:</strong> {formData.temporaryAddress || "N/A"}</div>
+                 <div><strong>Marital status:</strong> {formData.maritalStatus || "N/A"}</div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Education */}
-          <Card className="border-[#a3cef1]">
+           <Card className="border-[#a3cef1]">
             <CardHeader>
               <CardTitle className="text-[#274c77]">Education</CardTitle>
               <CardDescription>Qualifications</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div><strong>Institute:</strong> {formData.instituteName || "N/A"}</div>
-                <div><strong>Qualification:</strong> {formData.educationQualification || "N/A"}</div>
-                <div><strong>Specialization:</strong> {formData.fieldSpecialization || "N/A"}</div>
-                <div><strong>Passing Year:</strong> {formData.passingYear || "N/A"}</div>
-                <div><strong>Grade:</strong> {formData.passingYearGrade || "N/A"}</div>
-                <div className="sm:col-span-2"><strong>Details:</strong> {formData.education || "N/A"}</div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                 <div><strong>Education level:</strong> {formData.education_level || "N/A"}</div>
+                 <div><strong>Institution name:</strong> {formData.institution_name || "N/A"}</div>
+                 <div><strong>Year of passing:</strong> {formData.year_of_passing || "N/A"}</div>
+                 <div><strong>Education subjects:</strong> {formData.education_subjects || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Education grade:</strong> {formData.education_grade || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Additional education level:</strong> {formData.additional_education_level || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Additional institution name:</strong> {formData.additional_institution_name || "N/A"}</div>
+                 <div><strong>Additional year of passing:</strong> {formData.additional_year_of_passing || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Additional education subjects:</strong> {formData.additional_education_subjects || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Additional education grade:</strong> {formData.additional_education_grade || "N/A"}</div>
               </div>
             </CardContent>
           </Card>
-
-          {/* Current Role */}
-          <Card className="border-[#a3cef1]">
+           <Card className="border-[#a3cef1]">
             <CardHeader>
               <CardTitle className="text-[#274c77]">Current Role</CardTitle>
               <CardDescription>Assignments & responsibilities</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div className="sm:col-span-2"><strong>Details:</strong> {formData.currentRoleDetails || "N/A"}</div>
-                <div><strong>Shift:</strong> {formData.shift || "N/A"}</div>
-                <div className="sm:col-span-2">
-                  <strong>Class Assigned:</strong>
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    {(Array.isArray(formData.classAssigned) ? formData.classAssigned : String(formData.classAssigned || "").split(',')).filter(Boolean).map((x: string, i: number) => (
-                      <Badge key={i} variant="secondary">{String(x).trim()}</Badge>
-                    ))}
-                    {(!formData.classAssigned || (Array.isArray(formData.classAssigned) && formData.classAssigned.length === 0)) && <span>N/A</span>}
-                  </div>
-                </div>
-                <div className="sm:col-span-2">
-                  <strong>Subjects Assigned:</strong>
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    {(Array.isArray(formData.subjectsAssigned) ? formData.subjectsAssigned : String(formData.subjectsAssigned || "").split(',')).filter(Boolean).map((x: string, i: number) => (
-                      <Badge key={i} variant="secondary">{String(x).trim()}</Badge>
-                    ))}
-                    {(!formData.subjectsAssigned || (Array.isArray(formData.subjectsAssigned) && formData.subjectsAssigned.length === 0)) && <span>N/A</span>}
-                  </div>
-                </div>
-                <div className="sm:col-span-2"><strong>Is Class Teacher:</strong> {typeof formData.isClassTeacher === "boolean" ? (formData.isClassTeacher ? "Yes" : "No") : "N/A"}</div>
-                {formData.isClassTeacher === true && (
-                  <>
-                    <div className="sm:col-span-2">
-                      <strong>Class Teacher Classes:</strong>
-                      <div className="mt-1 flex flex-wrap gap-2">
-                        {(Array.isArray(formData.classTeacherClasses) ? formData.classTeacherClasses : String(formData.classTeacherClasses || "").split(',')).filter(Boolean).map((x: string, i: number) => (
-                          <Badge key={i} variant="secondary">{String(x).trim()}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <strong>Class Teacher Sections:</strong>
-                      <div className="mt-1 flex flex-wrap gap-2">
-                        {(Array.isArray(formData.classTeacherSections) ? formData.classTeacherSections : String(formData.classTeacherSections || "").split(',')).filter(Boolean).map((x: string, i: number) => (
-                          <Badge key={i} variant="secondary">{String(x).trim()}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-                <div className="sm:col-span-2"><strong>Additional Responsibilities:</strong> {formData.currentAdditionalResponsibilities || "N/A"}</div>
-              </div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                 <div className="sm:col-span-2"><strong>Current role title:</strong> {formData.current_role_title || "N/A"}</div>
+                 <div><strong>Current campus:</strong> {formData.current_campus || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Current subjects:</strong> {formData.current_subjects || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Current classes taught:</strong> {formData.current_classes_taught || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Current extra responsibilities:</strong> {formData.current_extra_responsibilities || "N/A"}</div>
+                 <div><strong>Role start date:</strong> {formData.role_start_date || "N/A"}</div>
+                 <div><strong>Role end date:</strong> {formData.role_end_date || "N/A"}</div>
+                 <div><strong>Is currently active:</strong> {typeof formData.is_currently_active === "boolean" ? (formData.is_currently_active ? "Yes" : "No") : (formData.is_currently_active ?? "N/A")}</div>
+                 <div><strong>Save status:</strong> {formData.save_status || "N/A"}</div>
+               </div>
             </CardContent>
           </Card>
 
-          {/* Work Experience */}
-          <Card className="border-[#a3cef1]">
+           <Card className="border-[#a3cef1]">
             <CardHeader>
               <CardTitle className="text-[#274c77]">Work Experience</CardTitle>
               <CardDescription>Last role details</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div className="sm:col-span-2"><strong>Details:</strong> {formData.lastWorkExperience || "N/A"}</div>
-                <div><strong>Organization:</strong> {formData.lastOrganizationName || "N/A"}</div>
-                <div><strong>Position:</strong> {formData.position || "N/A"}</div>
-                <div className="sm:col-span-2"><strong>Subjects / Role Details:</strong> {formData.teacherSubjects || "N/A"}</div>
-                <div><strong>From:</strong> {formData.fromDate || "N/A"}</div>
-                <div><strong>To:</strong> {formData.toDate || "N/A"}</div>
-              </div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                 <div className="sm:col-span-2"><strong>Previous institution name:</strong> {formData.previous_institution_name || "N/A"}</div>
+                 <div><strong>Previous position:</strong> {formData.previous_position || "N/A"}</div>
+                 <div><strong>Experience from date:</strong> {formData.experience_from_date || "N/A"}</div>
+                 <div><strong>Experience to date:</strong> {formData.experience_to_date || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Experience subjects classes taught:</strong> {formData.experience_subjects_classes_taught || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Previous responsibilities:</strong> {formData.previous_responsibilities || "N/A"}</div>
+                 <div><strong>Total experience years:</strong> {formData.total_experience_years || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Additional institution name (exp):</strong> {formData.additional_institution_name_exp || "N/A"}</div>
+                 <div><strong>Additional position:</strong> {formData.additional_position || "N/A"}</div>
+                 <div><strong>Additional experience from date:</strong> {formData.additional_experience_from_date || "N/A"}</div>
+                 <div><strong>Additional experience to date:</strong> {formData.additional_experience_to_date || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Additional experience subjects classes:</strong> {formData.additional_experience_subjects_classes || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Additional responsibilities:</strong> {formData.additional_responsibilities || "N/A"}</div>
+               </div>
             </CardContent>
           </Card>
         </div>
@@ -145,9 +254,9 @@ export function TeacherPreview({ formData, onBack }: TeacherPreviewProps) {
             <ArrowLeft className="h-4 w-4" />
             Back to Edit
           </Button>
-          <Button onClick={handleSave} className="flex items-center gap-2">
+          <Button onClick={handleSave} className="flex items-center gap-2" disabled={saving}>
             <Save className="h-4 w-4" />
-            Save Teacher
+            {saving ? "Saving..." : "Save Teacher"}
           </Button>
         </div>
       </CardContent>

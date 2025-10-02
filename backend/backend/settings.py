@@ -83,14 +83,15 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database Configuration - SQLite for Development, PostgreSQL for Production
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'sis',
-        'USER': 'postgres',
-        'PASSWORD': 'password',
-        'HOST': '192.168.100.4',
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.postgresql',  # ye add karo
+        'NAME': os.getenv('DB_NAME', 'project_db'),
+        'USER': os.getenv('DB_USER', 'project_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'project_pass'),
+        'HOST': os.getenv('DB_HOST', '192.168.100.36'),
+        'PORT': os.getenv('DB_PORT', '5432'),
+    }
 }
-}
+\
 
 
 # Password validation
