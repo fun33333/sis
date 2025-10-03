@@ -43,7 +43,12 @@ INSTALLED_APPS = [
     'campus',
     'teachers',
     'rest_framework',
-    'corsheaders'
+    'corsheaders',
+    'subjects',
+    'classes',
+    'coordinator'
+    
+
 ]
 
 MIDDLEWARE = [
@@ -77,10 +82,9 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Database Configuration - SQLite for Development, PostgreSQL for Production
+
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',  # ye add karo
@@ -91,11 +95,6 @@ DATABASES = {
         'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
-
-
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -112,9 +111,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
 

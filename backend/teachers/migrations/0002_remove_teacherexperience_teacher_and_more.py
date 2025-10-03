@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('campus', '0008_campus_academic_year_end_month_and_more'),
+        ('campus', '0002_alter_campus_fields'),
         ('teachers', '0001_initial'),
     ]
 
