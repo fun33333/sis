@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('auth', '0012_alter_user_first_name_max_length'),
-        ('campus', '0008_campus_academic_year_end_month_and_more'),
+        ('campus', '0001_initial'),
     ]
 
     operations = [
