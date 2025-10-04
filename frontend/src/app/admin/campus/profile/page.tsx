@@ -188,7 +188,7 @@ export default function AdminCampusProfilePage() {
                   <div className="text-primary flex-1">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="p-3 bg-primary rounded-xl backdrop-blur-sm">
-                        <Building className="w-8 h-8" />
+                        <Building className="w-8 h-8 text-white" />
                       </div>
                       <div>
                         <h1 className="text-5xl font-bold mb-1">
@@ -217,7 +217,7 @@ export default function AdminCampusProfilePage() {
                         </div>
                       </div>
                       
-                      <div className="bg-white/15 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                      <div className="bg-primary/15 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-green-500/30 rounded-lg">
                             <GraduationCap className="w-6 h-6" />
@@ -229,7 +229,7 @@ export default function AdminCampusProfilePage() {
                         </div>
                       </div>
                       
-                      <div className="bg-white/15 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                      <div className="bg-primary/15 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-purple-500/30 rounded-lg">
                             <Building className="w-6 h-6" />
