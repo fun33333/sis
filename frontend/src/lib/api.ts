@@ -316,7 +316,7 @@ export async function getAllStudents() {
 
 export async function getAllCampuses() {
   try {
-    return await apiGet(API_ENDPOINTS.CAMPUS_ACTIVE);
+    return await apiGet(API_ENDPOINTS.CAMPUS);  // ✅ Use main endpoint
   } catch (error) {
     console.error('Failed to fetch campuses:', error);
     return [];

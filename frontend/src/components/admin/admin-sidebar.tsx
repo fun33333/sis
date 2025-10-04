@@ -122,7 +122,70 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         ],
       },
     ]
+    : userRole === "superadmin"
+    ? [
+      // Superadmin: View-only access, can only add campus
+      {
+        key: "dashboard",
+        title: "Dashboard",
+        icon: TrendingUp,
+        href: "/admin",
+        subItems: [],
+      },
+      {
+        key: "students",
+        title: "Students",
+        icon: Users,
+        href: "/admin/students",
+        subItems: [
+          { title: "Student List", href: "/admin/students/student-list" },
+        //   { title: "Transfer Module", href: "/admin/students/transfer-modal" },
+        //   { title: "Leaving Certificate", href: "/admin/students/leaving-certificate" },
+        //   { title: "Termination Certificate", href: "/admin/students/termination-certificate" },
+        ],
+      },
+      {
+        key: "teachers",
+        title: "Teachers",
+        icon: GraduationCap,
+        href: "/admin/teachers",
+        subItems: [
+          { title: "Teacher List", href: "/admin/teachers/list" },
+          // { title: "Request / Complain", href: "/admin/teachers/request" },
+          // { title: "Time Table", href: "/admin/teachers/timetable" },
+          // { title: "Attendance", href: "/admin/teachers/attendance" },
+          // { title: "Class Statistics", href: "/admin/teachers/stats" },
+        ],
+      },
+      {
+        key: "campus",
+        title: "Campus",
+        icon: Building2,
+        href: "/admin/campus",
+        subItems: [
+          { title: "Add Campus", href: "/admin/campus/add" },
+          { title: "Campus List", href: "/admin/campus/list" },
+        ],
+      },
+      // // {
+      // //   key: "coordinator",
+      // //   title: "Co-Ordinator",
+      // //   icon: Award,
+      // //   href: "/admin/coordinator",
+      // //   subItems: [
+      // //     { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
+      // //     { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
+      // //     { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
+      // //     { title: "Result Approval", href: "/admin/coordinator/result-approval" },
+      // //     { title: "Class Assign", href: "/admin/coordinator/class-assign" },
+      // //     { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
+      // //     { title: "Time Table", href: "/admin/coordinator/time-table" },
+      // //     { title: "Sections Progress", href: "/admin/coordinator/sections-progress" },
+      // //   ],
+      // },
+    ]
     : [
+      // Default/Principal: Full access
       {
         key: "dashboard",
         title: "Dashboard",

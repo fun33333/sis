@@ -112,22 +112,22 @@ class Teacher(models.Model):
             
             self.teacher_id = f"TCH-{year}-{(last_num + 1):04d}"
         
-        # Auto-generate employee_code if not provided
-        if not self.employee_code and self.current_campus:
-            campus_code = getattr(self.current_campus, "code", "CMP")[:3]
-            last_teacher = Teacher.objects.filter(
-                employee_code__startswith=f"{campus_code}T"
-            ).order_by("-id").first()
+        # # Auto-generate employee_code if not provided
+        # if not self.employee_code and self.current_campus:
+        #     campus_code = getattr(self.current_campus, "campus_code", "CMP")[:3]
+        #     last_teacher = Teacher.objects.filter(
+        #         employee_code__startswith=f"{campus_code}T"
+        #     ).order_by("-id").first()
             
-            if last_teacher and last_teacher.employee_code:
-                try:
-                    last_num = int(last_teacher.employee_code[3:])
-                except:
-                    last_num = 0
-            else:
-                last_num = 0
+        #     if last_teacher and last_teacher.employee_code:
+        #         try:
+        #             last_num = int(last_teacher.employee_code[3:])
+        #         except:
+        #             last_num = 0
+        #     else:
+        #         last_num = 0
             
-            self.employee_code = f"{campus_code}T{(last_num + 1):03d}"
+        #     self.employee_code = f"{campus_code}T{(last_num + 1):03d}"
         
         super().save(*args, **kwargs)
 
