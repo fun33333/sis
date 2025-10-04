@@ -43,7 +43,8 @@ class Teacher(models.Model):
     permanent_address = models.TextField()
     current_address = models.TextField(blank=True, null=True)
     marital_status = models.CharField(max_length=20, choices=MARITAL_STATUS_CHOICES, blank=True, null=True)
-    
+    cnic = models.CharField(max_length=15, unique=True, blank=True, null=True)
+
     # Education Information
     education_level = models.CharField(max_length=100, blank=True, null=True)
     institution_name = models.CharField(max_length=200, blank=True, null=True)
@@ -76,6 +77,7 @@ class Teacher(models.Model):
     additional_responsibilities = models.TextField(blank=True, null=True)
     
     # Current Role Information
+    joining_date = models.DateField(blank=True, null=True)
     current_role_title = models.CharField(max_length=150, blank=True, null=True)
     current_campus = models.ForeignKey(Campus, on_delete=models.CASCADE, related_name="teachers", blank=True, null=True)
     current_subjects = models.CharField(max_length=200, blank=True, null=True)
@@ -93,7 +95,7 @@ class Teacher(models.Model):
     save_status = models.CharField(max_length=10, choices=SAVE_STATUS_CHOICES, default="draft")
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
-
+    
     def save(self, *args, **kwargs):
         # Auto-generate teacher_id if not provided
         if not self.teacher_id:
@@ -112,22 +114,24 @@ class Teacher(models.Model):
             
             self.teacher_id = f"TCH-{year}-{(last_num + 1):04d}"
         
-        # # Auto-generate employee_code if not provided
-        # if not self.employee_code and self.current_campus:
-        #     campus_code = getattr(self.current_campus, "campus_code", "CMP")[:3]
-        #     last_teacher = Teacher.objects.filter(
-        #         employee_code__startswith=f"{campus_code}T"
-        #     ).order_by("-id").first()
-            
-        #     if last_teacher and last_teacher.employee_code:
-        #         try:
-        #             last_num = int(last_teacher.employee_code[3:])
-        #         except:
-        #             last_num = 0
-        #     else:
-        #         last_num = 0
-            
-        #     self.employee_code = f"{campus_code}T{(last_num + 1):03d}"
+        # Auto-generate employee_code if not provided
+        if not self.employee_code and self.current_campus:
+            try:
+                # Get shift from campus or default to morning
+                shift = getattr(self.current_campus, 'shift_available', 'morning')
+                if shift == 'both':
+                    shift = 'morning'  # Default to morning for both
+                
+                # Get year from joining date or current year
+                year = self.joining_date.year if self.joining_date else 2025
+                
+                # Generate employee code using IDGenerator
+                from utils.id_generator import IDGenerator
+                self.employee_code = IDGenerator.generate_unique_employee_code(
+                    self.current_campus, shift, year, 'teacher'
+                )
+            except Exception as e:
+                print(f"Error generating employee code: {str(e)}")
         
         super().save(*args, **kwargs)
 

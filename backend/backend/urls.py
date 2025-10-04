@@ -1,3 +1,4 @@
+# backend/backend/urls.py
 """
 URL configuration for backend project.
 
@@ -25,9 +26,11 @@ urlpatterns = [
     path("api/", include("students.urls")),
     path("api/", include("campus.urls")),
     path("api/", include("teachers.urls")),
+    path("api/", include("coordinator.urls")),
+    path("api/", include("principals.urls")),
+    # Removed services.urls - not needed for utility apps
 ]
 
 # Serve media files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-            

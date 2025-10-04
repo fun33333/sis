@@ -1,6 +1,5 @@
 from django.db import models
 from campus.models import Campus
-from classes.models import Level
 
 # Choices
 GENDER_CHOICES = [
@@ -9,7 +8,7 @@ GENDER_CHOICES = [
     ("other", "Other"),
 ]
 
-class Coordinator(models.Model):
+class Principal(models.Model):
     # Personal Information
     full_name = models.CharField(max_length=150)
     dob = models.DateField()
@@ -27,7 +26,6 @@ class Coordinator(models.Model):
     
     # Work Assignment
     campus = models.ForeignKey(Campus, on_delete=models.CASCADE)
-    level = models.ForeignKey(Level, on_delete=models.CASCADE)
     joining_date = models.DateField()
     is_currently_active = models.BooleanField(default=True)
     

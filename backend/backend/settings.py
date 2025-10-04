@@ -46,9 +46,9 @@ INSTALLED_APPS = [
     'corsheaders',
     'subjects',
     'classes',
-    'coordinator'
-    
-
+    'coordinator',
+    'principals',
+    'services',
 ]
 
 MIDDLEWARE = [

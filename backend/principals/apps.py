@@ -1,8 +1,8 @@
 from django.apps import AppConfig
 
-class CoordinatorConfig(AppConfig):
+class PrincipalsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'coordinator'
+    name = 'principals'
     
     def ready(self):
-        import coordinator.signals  # Import signals
+        import principals.signals  # Import signals
