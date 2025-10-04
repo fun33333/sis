@@ -6,15 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search, Users, Mail, Phone, MapPin, GraduationCap, Calendar, BookOpen, Eye, Edit, User } from "lucide-react"
-import { getAllStudents, getAllCampuses, apiPatch } from "@/lib/api"
+import { Search, Users, Mail, Phone, MapPin, GraduationCap, Calendar, BookOpen, Eye, User } from "lucide-react"
+import { getAllStudents } from "@/lib/api"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { toast } from "sonner"
 import { getCurrentUserRole } from "@/lib/permissions"
 
 export default function StudentListPage() {
@@ -31,14 +26,8 @@ export default function StudentListPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [campusFilter, setCampusFilter] = useState<string>("all")
   const [gradeFilter, setGradeFilter] = useState<string>("all")
-  const pageSize = 30
+  const pageSize = 500
 
-  // Edit form states
-  const [isEditOpen, setIsEditOpen] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [editFormData, setEditFormData] = useState<any>({})
-  const [selectedStudent, setSelectedStudent] = useState<any>(null)
-  const [campuses, setCampuses] = useState<any[]>([])
   
   // Role-based access control
   const [userRole, setUserRole] = useState<string>("")
@@ -52,30 +41,7 @@ export default function StudentListPage() {
       setLoading(true)
       setError(null)
       try {
-        const [studentsData, campusesData] = await Promise.all([
-          getAllStudents(),
-          getAllCampuses().catch(err => {
-            console.error('Campus API Error:', err)
-            return []
-          })
-        ])
-        
-        // Handle different response structures for campuses
-        let actualCampusData = campusesData
-        if (campusesData && typeof campusesData === 'object' && 'results' in campusesData && Array.isArray((campusesData as any).results)) {
-          actualCampusData = (campusesData as any).results
-        } else if (Array.isArray(campusesData)) {
-          actualCampusData = campusesData
-        }
-        setCampuses(Array.isArray(actualCampusData) ? actualCampusData : [])
-
-        // Create campus mapping
-        const campusMap = new Map()
-        if (Array.isArray(actualCampusData)) {
-          actualCampusData.forEach((campus: any) => {
-            campusMap.set(campus.id, campus.campus_name || campus.name)
-          })
-        }
+        const studentsData = await getAllStudents()
 
         // Map student data to the expected format
         const mappedStudents = Array.isArray(studentsData) ? studentsData.map((student: any) => ({
@@ -85,7 +51,7 @@ export default function StudentListPage() {
           campus: student.campus ? 
             (typeof student.campus === 'object' ? 
               student.campus.campus_name || student.campus.name : 
-              campusMap.get(student.campus)
+              'Unknown Campus'
             ) : 'Unknown Campus',
           current_grade: student.current_grade || 'Not Assigned',
           section: student.section || 'Not Assigned',
@@ -206,76 +172,6 @@ export default function StudentListPage() {
     return grades.sort()
   }
 
-  // Edit form functions
-  const openEditForm = (student: any) => {
-    setSelectedStudent(student)
-    setEditFormData({
-      name: student.name || '',
-      gr_no: student.gr_no || '',
-      current_grade: student.current_grade || '',
-      section: student.section || '',
-      shift: student.shift || '',
-      current_state: student.current_state || '',
-      father_name: student.father_name || '',
-      mother_name: student.mother_name || '',
-      father_contact: student.father_contact || '',
-      mother_contact: student.mother_contact || '',
-      emergency_contact: student.emergency_contact || '',
-      dob: student.dob ? student.dob.split('T')[0] : '',
-      gender: student.gender || '',
-      address: student.address || '',
-      enrollment_year: student.enrollment_year || '',
-      campus: student.campus || ''
-    })
-    setIsEditOpen(true)
-  }
-
-  const handleInputChange = (field: string, value: any) => {
-    setEditFormData((prev: any) => ({
-      ...prev,
-      [field]: value
-    }))
-  }
-
-  const handleSave = async () => {
-    if (!selectedStudent) return
-
-    setIsSaving(true)
-    try {
-      const updateData = {
-        name: editFormData.name,
-        gr_no: editFormData.gr_no,
-        current_grade: editFormData.current_grade,
-        section: editFormData.section,
-        shift: editFormData.shift,
-        current_state: editFormData.current_state,
-        father_name: editFormData.father_name,
-        mother_name: editFormData.mother_name,
-        father_contact: editFormData.father_contact,
-        mother_contact: editFormData.mother_contact,
-        emergency_contact: editFormData.emergency_contact,
-        dob: editFormData.dob,
-        gender: editFormData.gender,
-        address: editFormData.address,
-        enrollment_year: editFormData.enrollment_year ? parseInt(editFormData.enrollment_year) : null
-      }
-
-      await apiPatch(`/api/students/${selectedStudent.id}/`, updateData)
-      
-      // Update local state
-      setStudents((prev: any[]) => 
-        prev.map(s => s.id === selectedStudent.id ? { ...s, ...updateData } : s)
-      )
-      
-      toast.success("Student updated successfully!")
-      setIsEditOpen(false)
-    } catch (err: any) {
-      console.error("Error updating student:", err)
-      toast.error(err.message || "Failed to update student")
-    } finally {
-      setIsSaving(false)
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -469,16 +365,6 @@ export default function StudentListPage() {
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
-                            {canEdit && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openEditForm(student)}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -536,216 +422,6 @@ export default function StudentListPage() {
         </CardContent>
       </Card>
 
-      {/* Edit Student Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Edit className="w-5 h-5" />
-              Edit Student Profile
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            {/* Personal Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Full Name *</Label>
-                  <Input
-                    id="name"
-                    value={editFormData.name || ''}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="Enter full name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="gr_no">GR Number</Label>
-                  <Input
-                    id="gr_no"
-                    value={editFormData.gr_no || ''}
-                    onChange={(e) => handleInputChange('gr_no', e.target.value)}
-                    placeholder="Enter GR number"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="gender">Gender</Label>
-                  <Select value={editFormData.gender || ''} onValueChange={(value) => handleInputChange('gender', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="dob">Date of Birth</Label>
-                  <Input
-                    id="dob"
-                    type="date"
-                    value={editFormData.dob || ''}
-                    onChange={(e) => handleInputChange('dob', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="enrollment_year">Enrollment Year</Label>
-                  <Input
-                    id="enrollment_year"
-                    type="number"
-                    value={editFormData.enrollment_year || ''}
-                    onChange={(e) => handleInputChange('enrollment_year', e.target.value)}
-                    placeholder="Enter enrollment year"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="current_state">Status</Label>
-                  <Select value={editFormData.current_state || ''} onValueChange={(value) => handleInputChange('current_state', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Textarea
-                  id="address"
-                  value={editFormData.address || ''}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  placeholder="Enter address"
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            {/* Academic Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">Academic Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="current_grade">Current Grade</Label>
-                  <Input
-                    id="current_grade"
-                    value={editFormData.current_grade || ''}
-                    onChange={(e) => handleInputChange('current_grade', e.target.value)}
-                    placeholder="Enter current grade"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="section">Section</Label>
-                  <Input
-                    id="section"
-                    value={editFormData.section || ''}
-                    onChange={(e) => handleInputChange('section', e.target.value)}
-                    placeholder="Enter section"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="shift">Shift</Label>
-                  <Select value={editFormData.shift || ''} onValueChange={(value) => handleInputChange('shift', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select shift" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="morning">Morning</SelectItem>
-                      <SelectItem value="afternoon">Afternoon</SelectItem>
-                      <SelectItem value="evening">Evening</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* Parent Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">Parent Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="father_name">Father Name</Label>
-                  <Input
-                    id="father_name"
-                    value={editFormData.father_name || ''}
-                    onChange={(e) => handleInputChange('father_name', e.target.value)}
-                    placeholder="Enter father name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="father_contact">Father Contact</Label>
-                  <Input
-                    id="father_contact"
-                    value={editFormData.father_contact || ''}
-                    onChange={(e) => handleInputChange('father_contact', e.target.value)}
-                    placeholder="Enter father contact"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="mother_name">Mother Name</Label>
-                  <Input
-                    id="mother_name"
-                    value={editFormData.mother_name || ''}
-                    onChange={(e) => handleInputChange('mother_name', e.target.value)}
-                    placeholder="Enter mother name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="mother_contact">Mother Contact</Label>
-                  <Input
-                    id="mother_contact"
-                    value={editFormData.mother_contact || ''}
-                    onChange={(e) => handleInputChange('mother_contact', e.target.value)}
-                    placeholder="Enter mother contact"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="emergency_contact">Emergency Contact</Label>
-                  <Input
-                    id="emergency_contact"
-                    value={editFormData.emergency_contact || ''}
-                    onChange={(e) => handleInputChange('emergency_contact', e.target.value)}
-                    placeholder="Enter emergency contact"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button
-                variant="outline"
-                onClick={() => setIsEditOpen(false)}
-                disabled={isSaving}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {isSaving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Save Changes
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
