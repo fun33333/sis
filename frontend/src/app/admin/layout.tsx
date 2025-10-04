@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
+import { UserProfilePopup } from "@/components/admin/user-profile-popup"
 import ProtectedRoute from "@/components/ProtectedRoute"
 
 export default function AdminLayout({
@@ -24,7 +25,7 @@ export default function AdminLayout({
       >
         <div className="flex items-center justify-between mb-8">
           <div></div>
-          
+          <UserProfilePopup />
         </div>
         <ProtectedRoute>
           <div className="bg-white rounded-3xl shadow-xl p-8">{children}</div>

@@ -8,24 +8,33 @@ import { Button } from "@/components/ui/button"
 import { apiGet, getAllCampuses } from "@/lib/api"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { useEffect } from "react";
-
-
-
-
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Plus } from "lucide-react"
+import { getCurrentUserRole } from "@/lib/permissions"
 
 export default function CampusListPage() {
-
   useEffect(() => {
     document.title = "Campus List | IAK SMS";
   }, []);
 
+  const router = useRouter()
   const [query, setQuery] = React.useState("")
   const [campuses, setCampuses] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  
+  // Role-based access control
+  const [userRole, setUserRole] = React.useState<string>("")
+  const canAddCampus = userRole === "superadmin" || userRole === "principal"
+  
+  React.useEffect(() => {
+    setUserRole(getCurrentUserRole())
+  }, [])
 
-  const filtered = (Array.isArray(campuses) ? campuses : []).filter((c: any) => (c?.name || "").toLowerCase().includes(query.toLowerCase()))
+  const filtered = (Array.isArray(campuses) ? campuses : []).filter((c: any) =>
+    (c?.campus_name || c?.name || "").toLowerCase().includes(query.toLowerCase())
+  )
 
   // metrics from API data only (fallbacks to 0 for avg score)
 
@@ -64,6 +73,16 @@ export default function CampusListPage() {
             className="px-3 py-2 border rounded-md w-64 focus:border-primary"
             aria-label="Search campuses"
           />
+          {canAddCampus && (
+            <Button 
+              onClick={() => router.push("/admin/campus/add")}
+              style={{ backgroundColor: '#274c77' }}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Campus
+            </Button>
+          )}
         </div>
       </div>
 
@@ -100,8 +119,11 @@ export default function CampusListPage() {
                     </div>
 
                     <div className="col-span-5">
-                      <div className="font-medium">{c.name}</div>
-                      <div className="text-xs text-muted-foreground mt-1">Code: {c.code || `C${String(i + 1).padStart(2, "0")}`}{c.campus_address ? ` • ${c.campus_address}` : ''}</div>
+                      <div className="font-medium">{c.campus_name || c.name || 'Unknown Campus'}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Code: {c.campus_code || c.code || `C${String(i + 1).padStart(2, "0")}`}
+                        {c.address_full || c.address ? ` • ${c.address_full || c.address}` : ''}
+                      </div>
                     </div>
 
                     <div className="col-span-2 text-center">

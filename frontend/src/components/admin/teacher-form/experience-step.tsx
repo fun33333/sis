@@ -46,7 +46,23 @@ export function ExperienceStep({ formData, invalidFields, onInputChange }: Exper
           </div>
           <div>
             <Label htmlFor="total_experience_years">Total experience years</Label>
-            <Input id="total_experience_years" type="number" value={formData.total_experience_years || ""} onChange={(e) => onInputChange("total_experience_years", e.target.value)} />
+                <Input 
+                id="total_experience_years" 
+                type="number" 
+                step="0.01"
+                min="0"
+                max="99.99"  // Realistic max experience
+                placeholder="e.g., 5.5 years"
+                value={formData.total_experience_years || ""} 
+                onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                if (value > 99.99) {
+                // Show warning but don't block
+                console.warn("Experience seems high, please verify");
+                }
+                onInputChange("total_experience_years", e.target.value);
+                }} 
+                />
           </div>
 
           <div className="md:col-span-2">
