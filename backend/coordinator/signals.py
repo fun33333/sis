@@ -6,7 +6,7 @@ from services.user_creation_service import UserCreationService
 @receiver(post_save, sender=Coordinator)
 def create_coordinator_user(sender, instance, created, **kwargs):
     """Auto-create user when coordinator is created"""
-    if created and not instance.employee_code:
+    if created and not instance.employee_code:  # None ya empty string check karo
         try:
             user, message = UserCreationService.create_user_from_entity(instance, 'coordinator')
             if not user:

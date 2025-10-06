@@ -12,9 +12,9 @@ class UserCreationService:
     def validate_entity_data(entity, entity_type):
         """Validate required fields for entity"""
         required_fields = {
-            'teacher': ['full_name', 'email', 'contact_number', 'campus', 'joining_date'],  # cnic remove kiya
-            'coordinator': ['full_name', 'email', 'contact_number', 'campus', 'level', 'joining_date'],  # cnic remove kiya
-            'principal': ['full_name', 'email', 'contact_number', 'campus', 'joining_date']  # cnic remove kiya
+            'teacher': ['full_name', 'email', 'contact_number'],  # joining_date remove karo
+            'coordinator': ['full_name', 'email', 'contact_number', 'campus', 'level', 'joining_date'],
+            'principal': ['full_name', 'email', 'contact_number', 'campus', 'joining_date']
         }
         
         for field in required_fields.get(entity_type, []):
@@ -28,16 +28,37 @@ class UserCreationService:
     def generate_employee_code(entity, entity_type):
         """Generate employee code for entity"""
         try:
-            # Get shift from campus or default to morning
-            shift = getattr(entity.campus, 'shift_available', 'morning')
+            # Get campus field based on entity type
+            if entity_type == 'teacher':
+                campus = entity.current_campus
+            else:
+                campus = entity.campus
+                
+            if not campus:
+                raise ValueError("Campus is required for employee code generation")
+                
+            # Get shift from teacher's shift field or campus shift
+            if entity_type == 'teacher' and hasattr(entity, 'shift') and entity.shift:
+                shift = entity.shift
+            else:
+                shift = getattr(campus, 'shift_available', 'morning')
+                
             if shift == 'both':
                 shift = 'morning'  # Default to morning for both
             
             # Get year from joining date or current year
-            year = entity.joining_date.year if hasattr(entity, 'joining_date') and entity.joining_date else 2025
+            if hasattr(entity, 'joining_date') and entity.joining_date:
+                if isinstance(entity.joining_date, str):
+                    from datetime import datetime
+                    joining_date = datetime.strptime(entity.joining_date, '%Y-%m-%d').date()
+                    year = joining_date.year
+                else:
+                    year = entity.joining_date.year
+            else:
+                year = 2025  # Default year if no joining_date
             
             return IDGenerator.generate_unique_employee_code(
-                entity.campus, shift, year, entity_type
+                campus, shift, year, entity_type
             )
         except Exception as e:
             raise ValueError(f"Failed to generate employee code: {str(e)}")
@@ -58,6 +79,12 @@ class UserCreationService:
             # Generate employee code
             employee_code = UserCreationService.generate_employee_code(entity, entity_type)
             
+            # Get campus field based on entity type
+            if entity_type == 'teacher':
+                campus = entity.current_campus
+            else:
+                campus = entity.campus
+            
             # Create user with transaction
             with transaction.atomic():
                 user = User.objects.create(
@@ -66,7 +93,7 @@ class UserCreationService:
                     first_name=entity.full_name.split()[0] if entity.full_name else '',
                     last_name=' '.join(entity.full_name.split()[1:]) if len(entity.full_name.split()) > 1 else '',
                     role=entity_type,
-                    campus=entity.campus,
+                    campus=campus,  # Use the correct campus field
                     phone_number=entity.contact_number,
                     password=make_password('12345'),  # Default password
                     is_verified=True  # Auto-verify since created by admin

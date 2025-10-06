@@ -11,13 +11,29 @@ class Level(models.Model):
     """
     name = models.CharField(max_length=50, unique=True)
     short_code = models.CharField(max_length=10, blank=True, null=True)
-    grades = models.ManyToManyField("Grade", blank=True, related_name="levels")
-    code = models.CharField(max_length=10, unique=True, blank=True, null=True, editable=False)  # Auto code
+    code = models.CharField(max_length=10, unique=True, blank=True, null=True, editable=False)
+    
+    # Campus connection
+    campus = models.ForeignKey(
+        'campus.Campus',
+        on_delete=models.CASCADE,
+        related_name='levels',
+        help_text="Campus this level belongs to"
+    )
+    
+    # Coordinator (1 per campus per level) - FIXED
+    coordinator = models.OneToOneField(
+        'coordinator.Coordinator',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_level_coordinator',
+        help_text="Coordinator for this level"
+    )
 
     def save(self, *args, **kwargs):
         if not self.code:
-            # Generate code from short_code or name
-            base = self.short_code or "".join(self.name.split()).upper()[:5]  # Max 5 chars
+            base = self.short_code or "".join(self.name.split()).upper()[:5]
             suffix = 1
             new_code = f"{base}{suffix}"
             while Level.objects.filter(code=new_code).exists():
@@ -36,6 +52,14 @@ class Grade(models.Model):
     """
     name = models.CharField(max_length=50, unique=True)
     short_code = models.CharField(max_length=10, blank=True, null=True)
+    
+    # Level connection
+    level = models.ForeignKey(
+        Level,
+        on_delete=models.CASCADE,
+        related_name='grade_set',
+        help_text="Level this grade belongs to"
+    )
 
     def __str__(self):
         return self.name
@@ -51,7 +75,11 @@ class ClassRoom(models.Model):
     grade = models.ForeignKey(Grade, related_name="classrooms", on_delete=models.CASCADE)
     section = models.CharField(max_length=3, choices=SECTION_CHOICES)
     class_teacher = models.ForeignKey(
-        TEACHER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
+        TEACHER_MODEL, 
+        null=True, 
+        blank=True, 
+        on_delete=models.SET_NULL,
+        related_name='assigned_classroom_teacher'
     )
     capacity = models.PositiveIntegerField(default=30)
     code = models.CharField(max_length=30, unique=True, editable=False)
@@ -79,3 +107,12 @@ class ClassRoom(models.Model):
                 suffix = get_random_string(4).upper()
                 self.code = f"{grade_code}-{section}-{suffix}"
         super().save(*args, **kwargs)
+    
+    # Properties for easy access
+    @property
+    def level(self):
+        return self.grade.level if self.grade else None
+    
+    @property
+    def campus(self):
+        return self.grade.level.campus if self.grade and self.grade.level else None

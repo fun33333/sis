@@ -1,3 +1,4 @@
+# students/models.py me ye complete code replace karo
 from django.db import models
 from django.utils import timezone
 
@@ -58,6 +59,8 @@ class Student(models.Model):
         choices=(("active", "Active"), ("inactive", "Not Active")),
         default="active"
     )
+    
+    # KEEP: Campus, grade, section details
     campus = models.ForeignKey("campus.Campus", on_delete=models.SET_NULL, null=True, blank=True)
     current_grade = models.CharField(max_length=50, null=True, blank=True)
     section = models.CharField(max_length=10, null=True, blank=True)
@@ -69,6 +72,7 @@ class Student(models.Model):
 
     # --- ID Generation Fields ---
     student_id = models.CharField(max_length=20, unique=True, null=True, blank=True)  # C03-M-25-00456
+    student_code = models.CharField(max_length=20, unique=True, editable=False, null=True, blank=True)
     enrollment_year = models.IntegerField(null=True, blank=True)  # Year when student joined
     student_number = models.IntegerField(null=True, blank=True)  # Sequential number for the year
     shift = models.CharField(max_length=10, null=True, blank=True)  # M=Morning, E=Evening
@@ -78,8 +82,35 @@ class Student(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Classroom Assignment - PRIMARY CONNECTION
+    classroom = models.ForeignKey(
+        'classes.ClassRoom',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='students',
+        help_text="Classroom where student is enrolled"
+    )
+    
+    # Properties for easy access
+    @property
+    def campus_from_classroom(self):
+        return self.classroom.campus if self.classroom else self.campus
+    
+    @property
+    def level(self):
+        return self.classroom.level if self.classroom else None
+    
+    @property
+    def grade_from_classroom(self):
+        return self.classroom.grade if self.classroom else None
+    
+    @property
+    def class_teacher(self):
+        return self.classroom.class_teacher if self.classroom else None
+
     def __str__(self):
-        return f"{self.name} ({self.student_id or self.gr_no or 'No ID'})"
+        return f"{self.name} ({self.student_code or self.student_id or self.gr_no or 'No ID'})"
     
     def generate_student_id(self):
         """
@@ -97,10 +128,23 @@ class Student(models.Model):
         return generate_student_id(campus_code, shift_code, year, self.student_number)
     
     def save(self, *args, **kwargs):
+        # Generate student_code if classroom assigned
+        if not self.student_code and self.classroom:
+            try:
+                from utils.id_generator import IDGenerator
+                self.student_code = IDGenerator.generate_unique_student_code(
+                    self.classroom, self.enrollment_year or 2025
+                )
+            except Exception as e:
+                print(f"Error generating student code: {str(e)}")
+        
         # Generate student_id if not exists
         if not self.student_id and all([self.campus, self.shift, self.enrollment_year, self.student_number]):
             self.student_id = self.generate_student_id()
         
         super().save(*args, **kwargs)
 
-#done
+    class Meta:
+        verbose_name = "Student"
+        verbose_name_plural = "Students"
+        ordering = ['-created_at']

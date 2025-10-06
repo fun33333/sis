@@ -91,7 +91,7 @@ DATABASES = {
         'NAME': os.getenv('DB_NAME', 'project_db'),
         'USER': os.getenv('DB_USER', 'project_user'),
         'PASSWORD': os.getenv('DB_PASSWORD', 'project_pass'),
-        'HOST': os.getenv('DB_HOST', '192.168.100.36'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
         'CONN_MAX_AGE': 0,  # Disable connection pooling
         'OPTIONS': {

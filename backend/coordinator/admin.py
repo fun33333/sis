@@ -1,5 +1,6 @@
 # backend/coordinator/admin.py
 from django.contrib import admin
+from django.core.exceptions import ValidationError
 from .models import Coordinator
 
 @admin.register(Coordinator)
@@ -18,3 +19,9 @@ class CoordinatorAdmin(admin.ModelAdmin):
     search_fields = ("full_name", "email", "contact_number", "cnic")  # Changed from "phone"
     ordering = ("-created_at",)
     autocomplete_fields = ("campus",)  # Level ko simple dropdown me rakha
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email and Coordinator.objects.filter(email=email).exclude(pk=self.pk).exists():
+            raise ValidationError("A coordinator with this email already exists.")
+        return email

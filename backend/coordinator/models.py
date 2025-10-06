@@ -27,12 +27,19 @@ class Coordinator(models.Model):
     
     # Work Assignment
     campus = models.ForeignKey(Campus, on_delete=models.CASCADE)
-    level = models.ForeignKey(Level, on_delete=models.CASCADE)
+    level = models.ForeignKey(
+        'classes.Level', 
+        on_delete=models.CASCADE,
+        related_name='coordinator_set'
+    )
     joining_date = models.DateField()
     is_currently_active = models.BooleanField(default=True)
     
+    # Add permission to assign class teachers
+    can_assign_class_teachers = models.BooleanField(default=True, help_text="Can this coordinator assign class teachers?")
+    
     # System Fields
-    employee_code = models.CharField(max_length=20, unique=True, editable=False, blank=True, null=True, default='')
+    employee_code = models.CharField(max_length=20, unique=True, editable=False, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

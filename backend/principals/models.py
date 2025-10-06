@@ -36,3 +36,15 @@ class Principal(models.Model):
     
     def __str__(self):
         return f"{self.full_name} ({self.employee_code})"
+
+    class Meta:
+        verbose_name = "Principal"
+        verbose_name_plural = "Principals"
+        ordering = ['-created_at']
+        constraints = [
+            # Ensure only one principal per campus
+            models.UniqueConstraint(
+                fields=['campus'],
+                name='unique_principal_per_campus'
+            )
+        ]

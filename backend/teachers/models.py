@@ -80,6 +80,19 @@ class Teacher(models.Model):
     joining_date = models.DateField(blank=True, null=True)
     current_role_title = models.CharField(max_length=150, blank=True, null=True)
     current_campus = models.ForeignKey(Campus, on_delete=models.CASCADE, related_name="teachers", blank=True, null=True)
+    
+    # Shift Information - NEW FIELD
+    shift = models.CharField(
+        max_length=20, 
+        choices=[
+            ('morning', 'Morning'),
+            ('afternoon', 'Afternoon'),
+            ('evening', 'Evening'),
+        ],
+        default='morning',
+        help_text="Teacher's working shift"
+    )
+    
     current_subjects = models.CharField(max_length=200, blank=True, null=True)
     current_classes_taught = models.CharField(max_length=200, blank=True, null=True)
     current_extra_responsibilities = models.TextField(blank=True, null=True)
@@ -96,34 +109,34 @@ class Teacher(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
     
+    # Class Teacher Information - FIXED
+    is_class_teacher = models.BooleanField(default=False, help_text="Is this teacher a class teacher?")
+    assigned_classroom = models.OneToOneField(
+        'classes.ClassRoom', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='class_teacher_teacher',  # FIXED: Changed related_name
+        help_text="Classroom assigned to this class teacher"
+    )
+    
     def save(self, *args, **kwargs):
-        # Auto-generate teacher_id if not provided
-        if not self.teacher_id:
-            year = self.date_created.year if self.date_created else 2025
-            last_teacher = Teacher.objects.filter(
-                teacher_id__startswith=f"TCH-{year}"
-            ).order_by("-id").first()
-            
-            if last_teacher and last_teacher.teacher_id:
-                try:
-                    last_num = int(last_teacher.teacher_id.split("-")[-1])
-                except:
-                    last_num = 0
-            else:
-                last_num = 0
-            
-            self.teacher_id = f"TCH-{year}-{(last_num + 1):04d}"
-        
-        # Auto-generate employee_code if not provided
+        # Auto-generate employee_code (teacher_code) if not provided
         if not self.employee_code and self.current_campus:
             try:
-                # Get shift from campus or default to morning
-                shift = getattr(self.current_campus, 'shift_available', 'morning')
-                if shift == 'both':
-                    shift = 'morning'  # Default to morning for both
+                # Use teacher's shift field instead of campus shift
+                shift = self.shift if self.shift else 'morning'
                 
                 # Get year from joining date or current year
-                year = self.joining_date.year if self.joining_date else 2025
+                if self.joining_date:
+                    if isinstance(self.joining_date, str):
+                        from datetime import datetime
+                        joining_date = datetime.strptime(self.joining_date, '%Y-%m-%d').date()
+                        year = joining_date.year
+                    else:
+                        year = self.joining_date.year
+                else:
+                    year = 2025
                 
                 # Generate employee code using IDGenerator
                 from utils.id_generator import IDGenerator
@@ -133,15 +146,20 @@ class Teacher(models.Model):
             except Exception as e:
                 print(f"Error generating employee code: {str(e)}")
         
+        # FIX: Auto-set class teacher status when classroom is assigned
+        if self.assigned_classroom and not self.is_class_teacher:
+            self.is_class_teacher = True
+            print(f"Setting {self.full_name} as class teacher")
+        elif not self.assigned_classroom and self.is_class_teacher:
+            self.is_class_teacher = False
+            print(f"Removing class teacher status from {self.full_name}")
+        
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.full_name} ({self.teacher_id or 'No ID'})"
+        return f"{self.full_name} ({self.employee_code or 'No Code'})"
 
     class Meta:
         verbose_name = "Teacher"
         verbose_name_plural = "Teachers"
-        ordering = ['-date_created']
-
-
-# 
+        ordering = ['-date_created'] 
