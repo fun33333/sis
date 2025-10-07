@@ -28,7 +28,11 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
 
   const pathname = usePathname()
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+  
   useEffect(() => {
+    setIsClient(true);
+    
     // Sync role if localStorage changes (e.g., login/logout in another tab)
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "sis_user") {
@@ -75,6 +79,17 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
     }
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
+
+  // Don't render until client-side hydration is complete
+  if (!isClient) {
+    return (
+      <aside className="h-screen fixed left-0 top-0 w-18 px-2 py-4 z-20" style={{ background: "#a3cef1" }}>
+        <div className="flex h-full flex-col justify-center items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        </div>
+      </aside>
+    );
+  }
 
   // Restrict menu based on user role
   const menuItems = userRole === "teacher"
@@ -164,6 +179,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         subItems: [
           { title: "Add Campus", href: "/admin/campus/add" },
           { title: "Campus List", href: "/admin/campus/list" },
+          // Hide Add Class, Add Grade, Add Level for superadmin - only principal can access
         ],
       },
       // // {
@@ -225,8 +241,12 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         icon: Building2,
         href: "/admin/campus",
         subItems: [
-          { title: "Add Campus", href: "/admin/campus/add" },
+          // Hide Add Campus for principal - they can only view their campus
+          ...(userRole !== "principal" ? [{ title: "Add Campus", href: "/admin/campus/add" }] : []),
           { title: "Campus List", href: "/admin/campus/list" },
+          { title: "Add Class", href: "/admin/campus/add-class" },
+          { title: "Add Grade", href: "/admin/campus/add-grade" },
+          { title: "Add Level", href: "/admin/campus/add-level" },
         ],
       },
       {

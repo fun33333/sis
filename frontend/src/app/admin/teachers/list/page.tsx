@@ -10,7 +10,7 @@ import { Search, Users, Mail, Phone, MapPin, GraduationCap, Calendar, BookOpen, 
 import { getAllTeachers, getAllCampuses } from "@/lib/api"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { getCurrentUserRole } from "@/lib/permissions"
+import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions"
 
 export default function TeacherListPage() {
   useEffect(() => {
@@ -30,11 +30,20 @@ export default function TeacherListPage() {
   
   // Role-based access control
   const [userRole, setUserRole] = useState<string>("")
+  const [userCampus, setUserCampus] = useState<string | null>(null)
+  const [isClient, setIsClient] = useState(false)
   const canEdit = userRole !== "superadmin"
 
   useEffect(() => {
-    // Get user role
+    setIsClient(true)
+    // Get user role and campus
     setUserRole(getCurrentUserRole())
+    
+    // Get user campus for principal filtering
+    const user = getCurrentUser() as any
+    if (user?.campus?.campus_name) {
+      setUserCampus(user.campus.campus_name)
+    }
     
     async function fetchTeachers() {
       setLoading(true)
@@ -119,8 +128,10 @@ export default function TeacherListPage() {
       (statusFilter === "active" && teacher.is_active) ||
       (statusFilter === "inactive" && !teacher.is_active)
 
-    const matchesCampus = campusFilter === "all" || 
-      teacher.campus.toLowerCase().includes(campusFilter.toLowerCase())
+    // Principal campus filtering - only show teachers from principal's campus
+    const matchesCampus = userRole === "principal" 
+      ? (userCampus ? teacher.campus.toLowerCase().includes(userCampus.toLowerCase()) : true)
+      : (campusFilter === "all" || teacher.campus.toLowerCase().includes(campusFilter.toLowerCase()))
 
     const matchesSubject = subjectFilter === "all" || 
       teacher.subject.toLowerCase().includes(subjectFilter.toLowerCase())
@@ -196,6 +207,16 @@ export default function TeacherListPage() {
     return subjects.sort()
   }
 
+  if (!isClient) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -246,22 +267,25 @@ export default function TeacherListPage() {
                  </select>
                </div>
                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Campus</label>
-                  <select
-                    value={campusFilter}
-                    onChange={(e) => setCampusFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="all">All Campuses</option>
-                    {getUniqueCampuses().map(campus => (
-                      <option key={campus} value={campus}>{campus}</option>
-                    ))}
-                    {getUniqueCampuses().length === 0 && (
-                      <option value="unknown">Unknown Campus</option>
-                    )}
-                  </select>
-                </div>
+                {/* Hide campus filter for principal - they only see their campus data */}
+                {userRole !== "principal" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Campus</label>
+                    <select
+                      value={campusFilter}
+                      onChange={(e) => setCampusFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">All Campuses</option>
+                      {getUniqueCampuses().map(campus => (
+                        <option key={campus} value={campus}>{campus}</option>
+                      ))}
+                      {getUniqueCampuses().length === 0 && (
+                        <option value="unknown">Unknown Campus</option>
+                      )}
+                    </select>
+                  </div>
+                )}
                
                <div>
                  <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>

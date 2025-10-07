@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/", include("teachers.urls")),
     path("api/", include("coordinator.urls")),
     path("api/", include("principals.urls")),
+    path("api/", include("classes.urls")),
     # Removed services.urls - not needed for utility apps
 ]
 
