@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.crypto import get_random_string
+from django.core.exceptions import ValidationError
 
 # Teacher model assumed in 'teachers' app
 TEACHER_MODEL = "teachers.Teacher"
@@ -10,7 +11,6 @@ class Level(models.Model):
     School levels: Pre-Primary, Primary, Secondary, etc.
     """
     name = models.CharField(max_length=50, unique=True)
-    short_code = models.CharField(max_length=10, blank=True, null=True)
     code = models.CharField(max_length=10, unique=True, blank=True, null=True, editable=False)
     
     # Campus connection
@@ -33,13 +33,20 @@ class Level(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            base = self.short_code or "".join(self.name.split()).upper()[:5]
+            # Generate code as: C01-LevelCode (Campus number only)
+            campus_id = self.campus.id if self.campus else 1
+            campus_code = f"C{campus_id:02d}"  # C01, C02, C03, etc.
+            level_name = self.name.replace(" ", "").upper()
+            level_code = level_name[:3]  # First 3 letters only
+            
+            self.code = f"{campus_code}-{level_code}"
+            
+            # Ensure uniqueness
+            original_code = self.code
             suffix = 1
-            new_code = f"{base}{suffix}"
-            while Level.objects.filter(code=new_code).exists():
+            while Level.objects.filter(code=self.code).exists():
+                self.code = f"{original_code}{suffix}"
                 suffix += 1
-                new_code = f"{base}{suffix}"
-            self.code = new_code
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -51,7 +58,7 @@ class Grade(models.Model):
     Top-level grade (e.g., Grade 1, Grade 2)
     """
     name = models.CharField(max_length=50, unique=True)
-    short_code = models.CharField(max_length=10, blank=True, null=True)
+    code = models.CharField(max_length=20, unique=True, blank=True, null=True, editable=False)
     
     # Level connection
     level = models.ForeignKey(
@@ -60,6 +67,44 @@ class Grade(models.Model):
         related_name='grade_set',
         help_text="Level this grade belongs to"
     )
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            # Generate code as: C01-LevelCode-GradeNumber (Campus number only)
+            campus_id = self.level.campus.id if self.level and self.level.campus else 1
+            campus_code = f"C{campus_id:02d}"  # C01, C02, C03, etc.
+            level_code = self.level.code if self.level and self.level.code else "LVL"
+            grade_name = self.name.replace("Grade", "").strip()
+            
+            # Try to extract number from grade name
+            import re
+            numbers = re.findall(r'\d+', grade_name)
+            if numbers:
+                grade_num = numbers[0].zfill(2)  # Pad with zero if needed
+            else:
+                # If no number found, try to extract from name patterns
+                if "nursery" in grade_name.lower():
+                    grade_num = "00"
+                elif "kg" in grade_name.lower():
+                    # Extract KG number
+                    kg_match = re.search(r'kg[-\s]*(\d+)', grade_name.lower())
+                    if kg_match:
+                        grade_num = f"0{kg_match.group(1)}"
+                    else:
+                        grade_num = "01"
+                else:
+                    grade_num = "01"
+            
+            self.code = f"{campus_code}-{level_code}-G{grade_num}"
+            
+            # Ensure uniqueness
+            original_code = self.code
+            suffix = 1
+            while Grade.objects.filter(code=self.code).exists():
+                self.code = f"{original_code}-{suffix}"
+                suffix += 1
+        
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -74,12 +119,14 @@ class ClassRoom(models.Model):
 
     grade = models.ForeignKey(Grade, related_name="classrooms", on_delete=models.CASCADE)
     section = models.CharField(max_length=3, choices=SECTION_CHOICES)
-    class_teacher = models.ForeignKey(
+    # FIXED: Changed to OneToOneField to ensure one teacher per classroom
+    class_teacher = models.OneToOneField(
         TEACHER_MODEL, 
         null=True, 
         blank=True, 
         on_delete=models.SET_NULL,
-        related_name='assigned_classroom_teacher'
+        related_name='assigned_classroom_teacher',
+        help_text="Class teacher for this classroom (one teacher per classroom only)"
     )
     capacity = models.PositiveIntegerField(default=30)
     code = models.CharField(max_length=30, unique=True, editable=False)
@@ -95,17 +142,67 @@ class ClassRoom(models.Model):
         return f"{self.grade.name} - {self.section}"
 
     def get_display_code_components(self):
-        grade_code = self.grade.short_code or "".join(self.grade.name.split()).upper()
+        # Use grade code if available, otherwise generate from name
+        if self.grade and self.grade.code:
+            grade_code = self.grade.code
+        else:
+            grade_code = self.grade.short_code or "".join(self.grade.name.split()).upper()
         return grade_code, self.section
 
+    def clean(self):
+        """
+        Validate that teacher is not already assigned to another classroom
+        """
+        if self.class_teacher:
+            # Check if this teacher is already assigned to another classroom
+            existing_classroom = ClassRoom.objects.filter(
+                class_teacher=self.class_teacher
+            ).exclude(pk=self.pk).first()
+            
+            if existing_classroom:
+                raise ValidationError(
+                    f"Teacher {self.class_teacher.full_name} is already assigned to {existing_classroom}. "
+                    "One teacher can only be assigned to one classroom."
+                )
+
     def save(self, *args, **kwargs):
+        # Run validation
+        self.clean()
+        
         if not self.code:
-            grade_code, section = self.get_display_code_components()
-            suffix = get_random_string(4).upper()
-            self.code = f"{grade_code}-{section}-{suffix}"
+            # Generate code as: C01-LevelCode-GradeNumber-Section (Campus number only)
+            campus_id = self.grade.level.campus.id if self.grade and self.grade.level and self.grade.level.campus else 1
+            campus_code = f"C{campus_id:02d}"  # C01, C02, C03, etc.
+            level_code = self.grade.level.code if self.grade and self.grade.level and self.grade.level.code else "LVL"
+            grade_name = self.grade.name.replace("Grade", "").strip()
+            
+            # Extract grade number
+            import re
+            numbers = re.findall(r'\d+', grade_name)
+            if numbers:
+                grade_num = numbers[0].zfill(2)
+            else:
+                # If no number found, try to extract from name patterns
+                if "nursery" in grade_name.lower():
+                    grade_num = "00"
+                elif "kg" in grade_name.lower():
+                    # Extract KG number
+                    kg_match = re.search(r'kg[-\s]*(\d+)', grade_name.lower())
+                    if kg_match:
+                        grade_num = f"0{kg_match.group(1)}"
+                    else:
+                        grade_num = "01"
+                else:
+                    grade_num = "01"
+            
+            self.code = f"{campus_code}-{level_code}-G{grade_num}-{self.section}"
+            
+            # Ensure uniqueness
+            original_code = self.code
+            suffix = 1
             while ClassRoom.objects.filter(code=self.code).exists():
-                suffix = get_random_string(4).upper()
-                self.code = f"{grade_code}-{section}-{suffix}"
+                self.code = f"{original_code}-{suffix:02d}"
+                suffix += 1
         super().save(*args, **kwargs)
     
     # Properties for easy access
