@@ -39,12 +39,15 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const email = id.trim();
-      const emailOk = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(email);
-      if (!emailOk) {
-        setError("Please enter a valid email address");
+      
+      // All roles now use employee code format
+      const employeeCodeOk = /^[A-Z0-9-]+$/.test(email);
+      if (!employeeCodeOk) {
+        setError("Please enter a valid employee code (e.g., C01-M-25-T-0068)");
         setLoading(false);
         return;
       }
+      
       const data = await loginWithEmailPassword(email, password);
       const userRole = String(data?.user?.role || "").toLowerCase();
       if (role === "teacher" && !userRole.includes("teach")) {
@@ -127,21 +130,21 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* ID/Email Input */}
+                {/* ID/Employee Code Input */}
                 <div className="w-full mb-2">
                   <label htmlFor="login-email" className="block mb-1 text-[#274c77] font-semibold">
                     {role === "teacher"
-                      ? "Teacher Email"
+                      ? "Teacher Employee Code"
                       : role === "coordinator"
-                      ? "Coordinator Email"
+                      ? "Coordinator Employee Code"
                       : role === "principal"
-                      ? "Principal Email"
-                      : "Super Admin Email"}
+                      ? "Principal Employee Code"
+                      : "Super Admin Employee Code"}
                   </label>
                 </div>
                 <div className="relative w-full h-14 mb-6">
                   <input
-                    type="email"
+                    type="text"
                     id="login-email"
                     required
                     value={id}
@@ -149,12 +152,12 @@ export default function LoginPage() {
                     className="w-full h-full border-2 border-[#a3cef1] rounded-xl pl-14 pr-12 text-[#274c77] text-lg font-medium focus:outline-none focus:ring-2 focus:ring-[#6096ba] shadow transition-all duration-200 placeholder:font-normal placeholder:text-[#6096ba]"
                     placeholder={
                       role === "teacher"
-                        ? "teacher@example.com"
+                        ? "C01-M-25-T-0000"
                         : role === "coordinator"
-                        ? "coordinator@example.com"
+                        ? "C01-M-25-C-0000"
                         : role === "principal"
-                        ? "principal@example.com"
-                        : "superadmin@example.com"
+                        ? "C01-M-25-P-0000"
+                        : "C01-M-25-A-0000"
                     }
                   />
                   <span className="absolute left-5 top-1/2 transform -translate-y-1/2 text-[#6096ba] text-xl">
@@ -171,15 +174,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     className="w-full h-full border-2 border-[#a3cef1] rounded-xl pl-14 pr-12 text-[#274c77] text-lg font-medium focus:outline-none focus:ring-2 focus:ring-[#6096ba] shadow transition-all duration-200 placeholder:font-normal placeholder:text-[#6096ba]"
-                    placeholder={
-                      role === "teacher"
-                        ? "Teacher Password"
-                        : role === "coordinator"
-                        ? "Coordinator Password"
-                        : role === "principal"
-                        ? "Principal Password"
-                        : "Super Admin Password"
-                    }
+                    placeholder="Password (12345)"
                   />
                   <span className="absolute left-5 top-1/2 transform -translate-y-1/2 text-[#6096ba] text-xl">
                     <FaLock />

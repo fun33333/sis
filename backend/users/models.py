@@ -28,8 +28,8 @@ class User(AbstractUser):
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'role']
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email', 'role']
     
     def __str__(self):
         return f"{self.get_full_name()} ({self.get_role_display()})"

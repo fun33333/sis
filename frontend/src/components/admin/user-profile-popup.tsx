@@ -33,7 +33,6 @@ interface UserProfile {
   role_display: string
   campus?: {
     id: number
-    name: string
     campus_name: string
     campus_code: string
   }
@@ -103,7 +102,7 @@ export function UserProfilePopup() {
       }
 
       // Fetch detailed user profile from API
-      const profileData = await apiGet("/api/users/profile/") as UserProfile
+      const profileData = await apiGet("/api/profile/") as UserProfile
       setUserProfile(profileData)
 
       // If user is a teacher, fetch additional teacher data
@@ -282,7 +281,7 @@ export function UserProfilePopup() {
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-gray-500">Campus</p>
                           <p className="text-sm font-medium truncate">
-                            {userProfile?.campus?.campus_name || userProfile?.campus?.name || 'Not Assigned'}
+                            {userProfile?.campus?.campus_name || 'Not Assigned'}
                           </p>
                         </div>
                       </div>
@@ -343,30 +342,6 @@ export function UserProfilePopup() {
 
               {/* Actions */}
               <div className="border-t bg-gray-50 p-4 space-y-2">
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start text-sm"
-                  onClick={() => {
-                    setIsOpen(false)
-                    router.push('/admin/profile')
-                  }}
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  View Full Profile
-                </Button>
-                
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start text-sm"
-                  onClick={() => {
-                    setIsOpen(false)
-                    // TODO: Add settings page
-                  }}
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
-                
                 <Button 
                   variant="ghost" 
                   className="w-full justify-start text-sm text-red-600 hover:text-red-700 hover:bg-red-50"

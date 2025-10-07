@@ -39,6 +39,8 @@ class UserLoginView(generics.GenericAPIView):
         email = serializer.validated_data['email']
         password = serializer.validated_data['password']
         
+        # Now username field is the primary authentication field
+        # Input can be either email or employee code (username)
         user = authenticate(request, username=email, password=password)
         
         if user and user.is_active:
