@@ -353,6 +353,16 @@ export async function getAllTeachers() {
   }
 }
 
+export async function getTeacherById(teacherId: string | number) {
+  try {
+    const teacher = await apiGet(`${API_ENDPOINTS.TEACHERS}${teacherId}/`);
+    return teacher;
+  } catch (error) {
+    console.error('Failed to fetch teacher by ID:', error);
+    return null;
+  }
+}
+
 
 // Users API
 export async function getUsers(role?: string) {
@@ -381,6 +391,28 @@ export async function getCoordinatorDashboardStats(coordinatorId: number) {
   } catch (error) {
     console.error('Failed to fetch coordinator dashboard stats:', error);
     return { stats: { total_teachers: 0, total_students: 0, total_classes: 0, pending_requests: 0 } };
+  }
+}
+
+export async function findCoordinatorByEmail(email: string) {
+  try {
+    const response = await apiGet(API_ENDPOINTS.COORDINATORS);
+    
+    // Handle paginated response
+    let coordinators: any[] = [];
+    if (Array.isArray(response)) {
+      coordinators = response;
+    } else if (response && typeof response === 'object' && Array.isArray((response as any).results)) {
+      coordinators = (response as any).results;
+    } else {
+      coordinators = [];
+    }
+    
+    const coordinator = coordinators.find((c: any) => c.email === email);
+    return coordinator ? coordinator.id : null;
+  } catch (error) {
+    console.error('Failed to find coordinator by email:', error);
+    return null;
   }
 }
 

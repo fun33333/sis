@@ -36,7 +36,7 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
                 'current_classes_taught': teacher.current_classes_taught,
                 'shift': teacher.shift,
                 'is_class_teacher': teacher.is_class_teacher,
-                'assigned_classroom': teacher.assigned_classroom.name if teacher.assigned_classroom else None,
+                'assigned_classroom': f"{teacher.assigned_classroom.grade.name} - {teacher.assigned_classroom.section}" if teacher.assigned_classroom else None,
                 'joining_date': teacher.joining_date,
                 'total_experience_years': teacher.total_experience_years,
                 'is_currently_active': teacher.is_currently_active,
