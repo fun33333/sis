@@ -1,5 +1,4 @@
 from django.db import models
-from django.core.exceptions import ValidationError
 from campus.models import Campus
 
 # Choices
@@ -82,6 +81,16 @@ class Teacher(models.Model):
     current_role_title = models.CharField(max_length=150, blank=True, null=True)
     current_campus = models.ForeignKey(Campus, on_delete=models.CASCADE, related_name="teachers", blank=True, null=True)
     
+    # Coordinator Assignment - NEW FIELD
+    assigned_coordinator = models.ForeignKey(
+        'coordinator.Coordinator',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_teachers',
+        help_text="Coordinator assigned to this teacher based on grade/level"
+    )
+    
     # Shift Information - NEW FIELD
     shift = models.CharField(
         max_length=20, 
@@ -118,28 +127,10 @@ class Teacher(models.Model):
         null=True, 
         blank=True,
         related_name='class_teacher_teacher',  # FIXED: Changed related_name
-        help_text="Classroom assigned to this class teacher (one classroom per teacher only)"
+        help_text="Classroom assigned to this class teacher"
     )
     
-    def clean(self):
-        """
-        Validate that teacher is not assigned to multiple classrooms
-        """
-        if self.assigned_classroom:
-            # Check if this classroom already has a different teacher
-            existing_teacher = Teacher.objects.filter(
-                assigned_classroom=self.assigned_classroom
-            ).exclude(pk=self.pk).first()
-            
-            if existing_teacher:
-                raise ValidationError(
-                    f"Classroom {self.assigned_classroom} is already assigned to {existing_teacher.full_name}. "
-                    "One classroom can only have one teacher."
-                )
-    
     def save(self, *args, **kwargs):
-        # Run validation
-        self.clean()
         # Auto-generate employee_code (teacher_code) if not provided
         if not self.employee_code and self.current_campus:
             try:
@@ -172,6 +163,64 @@ class Teacher(models.Model):
         elif not self.assigned_classroom and self.is_class_teacher:
             self.is_class_teacher = False
             print(f"Removing class teacher status from {self.full_name}")
+        
+        # Auto-assign coordinator based on grade/level
+        if not self.assigned_coordinator and self.current_campus and self.current_classes_taught:
+            try:
+                from classes.models import Level, Grade
+                from coordinator.models import Coordinator
+                
+                # Extract grade from current_classes_taught (e.g., "Grade 5A" -> "Grade 5")
+                classes_text = self.current_classes_taught.lower()
+                grade_name = None
+                
+                # Try to extract grade from classes taught
+                import re
+                grade_match = re.search(r'grade\s*[-]?\s*(\d+)', classes_text)
+                if grade_match:
+                    grade_number = grade_match.group(1)
+                    # Map grade to correct database format
+                    if int(grade_number) <= 6:
+                        grade_name = f"Grade {grade_number}"
+                    else:
+                        grade_name = f"Grade-{grade_number}"
+                else:
+                    # Check for Pre-Primary classes
+                    if any(term in classes_text for term in ['nursery', 'kg-1', 'kg-2', 'kg1', 'kg2']):
+                        if 'nursery' in classes_text:
+                            grade_name = 'Nursery'
+                        elif 'kg-1' in classes_text or 'kg1' in classes_text:
+                            grade_name = 'KG-1'
+                        elif 'kg-2' in classes_text or 'kg2' in classes_text:
+                            grade_name = 'KG-2'
+                
+                if grade_name:
+                    # Find the grade
+                    grade = Grade.objects.filter(
+                        name__icontains=grade_name,
+                        level__campus=self.current_campus
+                    ).first()
+                    
+                    if grade and grade.level:
+                        # Find coordinator for this level
+                        coordinator = Coordinator.objects.filter(
+                            level=grade.level,
+                            campus=self.current_campus,
+                            is_currently_active=True
+                        ).first()
+                        
+                        if coordinator:
+                            self.assigned_coordinator = coordinator
+                            print(f"Auto-assigned coordinator {coordinator.full_name} to teacher {self.full_name}")
+                        else:
+                            print(f"No active coordinator found for level {grade.level.name} in campus {self.current_campus.campus_name}")
+                    else:
+                        print(f"Grade {grade_name} or level not found for campus {self.current_campus.campus_name}")
+                else:
+                    print(f"Could not extract grade from classes: {self.current_classes_taught}")
+                    
+            except Exception as e:
+                print(f"Error auto-assigning coordinator: {str(e)}")
         
         super().save(*args, **kwargs)
 

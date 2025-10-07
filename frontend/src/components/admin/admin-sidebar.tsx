@@ -117,8 +117,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Class Assign", href: "/admin/coordinator/class-assign" },
           { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
           { title: "Time Table", href: "/admin/coordinator/time-table" },
-          { title: "Sections Progress", href: "/admin/coordinator/sections-progress" },
-          { title: "Add Coordinator", href: "/admin/coordinator/add" },
+          { title: "Sections Analytics", href: "/admin/coordinator/sections-progress" },
         ],
       },
     ]
