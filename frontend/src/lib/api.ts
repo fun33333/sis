@@ -18,6 +18,13 @@ export const API_ENDPOINTS = {
   AUTH_LOGIN: "/api/auth/login/",
   AUTH_REFRESH: "/api/auth/refresh/",
   COORDINATORS: "/api/coordinators/",
+  LEVELS: "/api/levels/",
+  GRADES: "/api/grades/",
+  CLASSROOMS: "/api/classrooms/",
+  LEVEL_CHOICES: "/api/levels/choices/",
+  GRADE_CHOICES: "/api/grades/choices/",
+  CLASSROOM_CHOICES: "/api/classrooms/choices/",
+  CLASSROOM_SECTIONS: "/api/classrooms/sections/",
 } as const;
 
 
@@ -394,6 +401,9 @@ export async function getCoordinatorDashboardStats(coordinatorId: number) {
   }
 }
 
+<<<<<<< HEAD
+// Classes API functions
+=======
 export async function findCoordinatorByEmail(email: string) {
   try {
     const response = await apiGet(API_ENDPOINTS.COORDINATORS);
@@ -416,5 +426,106 @@ export async function findCoordinatorByEmail(email: string) {
   }
 }
 
+>>>>>>> f6d7b1692105971a2e74d072cde03fa573152e5d
 
+export async function createLevel(levelData: any) {
+  try {
+    return await apiPost(API_ENDPOINTS.LEVELS, levelData);
+  } catch (error) {
+    console.error('Failed to create level:', error);
+    throw error;
+  }
+}
+
+export async function createGrade(gradeData: any) {
+  try {
+    return await apiPost(API_ENDPOINTS.GRADES, gradeData);
+  } catch (error) {
+    console.error('Failed to create grade:', error);
+    throw error;
+  }
+}
+
+export async function createClassroom(classroomData: any) {
+  try {
+    return await apiPost(API_ENDPOINTS.CLASSROOMS, classroomData);
+  } catch (error) {
+    console.error('Failed to create classroom:', error);
+    throw error;
+  }
+}
+
+export async function getLevelChoices() {
+  try {
+    return await apiGet(API_ENDPOINTS.LEVEL_CHOICES);
+  } catch (error) {
+    console.error('Failed to fetch level choices:', error);
+    return { campuses: [], coordinators: [] };
+  }
+}
+
+export async function getGradeChoices() {
+  try {
+    return await apiGet(API_ENDPOINTS.GRADE_CHOICES);
+  } catch (error) {
+    console.error('Failed to fetch grade choices:', error);
+    return { levels: [] };
+  }
+}
+
+export async function getClassroomChoices() {
+  try {
+    return await apiGet(API_ENDPOINTS.CLASSROOM_CHOICES);
+  } catch (error) {
+    console.error('Failed to fetch classroom choices:', error);
+    return { grades: [], teachers: [], sections: [] };
+  }
+}
+
+export async function getClassroomSections() {
+  try {
+    return await apiGet(API_ENDPOINTS.CLASSROOM_SECTIONS);
+  } catch (error) {
+    console.error('Failed to fetch classroom sections:', error);
+    return [];
+  }
+}
+
+// List functions for displaying data
+
+export async function getLevels() {
+  try {
+    console.log('Fetching levels from:', API_ENDPOINTS.LEVELS);
+    const response = await apiGet(API_ENDPOINTS.LEVELS);
+    console.log('Levels raw response:', response);
+    return response;
+  } catch (error) {
+    console.error('Failed to fetch levels:', error);
+    return [];
+  }
+}
+
+export async function getGrades() {
+  try {
+    console.log('Fetching grades from:', API_ENDPOINTS.GRADES);
+    const response = await apiGet(API_ENDPOINTS.GRADES);
+    console.log('Grades raw response:', response);
+    return response;
+  } catch (error) {
+    console.error('Failed to fetch grades:', error);
+    return [];
+  }
+}
+
+export async function getClassrooms() {
+  try {
+    console.log('Fetching classrooms from:', API_ENDPOINTS.CLASSROOMS);
+    const response = await apiGet(API_ENDPOINTS.CLASSROOMS);
+    console.log('Classrooms raw response:', response);
+    return response;
+  } catch (error) {
+    console.error('Failed to fetch classrooms:', error);
+    return [];
+  }
+}
 
