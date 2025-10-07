@@ -409,7 +409,7 @@ export async function findCoordinatorByEmail(email: string) {
     }
     
     const coordinator = coordinators.find((c: any) => c.email === email);
-    return coordinator ? coordinator.id : null;
+    return coordinator || null;
   } catch (error) {
     console.error('Failed to find coordinator by email:', error);
     return null;
