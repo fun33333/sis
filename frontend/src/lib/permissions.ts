@@ -5,6 +5,9 @@
 export type UserRole = 'superadmin' | 'coordinator' | 'teacher' | 'principal' | string;
 
 export interface User {
+  username: string;
+  first_name: string;
+  last_name: string;
   role: string;
   email?: string;
   name?: string;

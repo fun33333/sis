@@ -1,6 +1,15 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import User
+from campus.models import Campus
+
+class CampusSerializer(serializers.ModelSerializer):
+    """
+    Campus serializer for nested serialization
+    """
+    class Meta:
+        model = Campus
+        fields = ['id', 'campus_name', 'campus_code']
 
 class UserSerializer(serializers.ModelSerializer):
     """
@@ -8,6 +17,7 @@ class UserSerializer(serializers.ModelSerializer):
     """
     role_display = serializers.CharField(source='get_role_display', read_only=True)
     campus_name = serializers.CharField(source='campus.name', read_only=True)
+    campus = CampusSerializer(read_only=True)
     
     class Meta:
         model = User
@@ -58,12 +68,13 @@ class UserLoginSerializer(serializers.Serializer):
     """
     User login serializer
     """
-    email = serializers.EmailField()
+    email = serializers.CharField()  # Changed from EmailField to CharField
     password = serializers.CharField()
     
     def validate_email(self, value):
-        if not User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("User with this email does not exist")
+        # Check if user exists with either email or username (employee code)
+        if not User.objects.filter(email=value).exists() and not User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("User with this email or employee code does not exist")
         return value
 
 class UserUpdateSerializer(serializers.ModelSerializer):
