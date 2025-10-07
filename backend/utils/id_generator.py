@@ -4,6 +4,7 @@ from teachers.models import Teacher
 from coordinator.models import Coordinator
 from principals.models import Principal
 
+
 class IDGenerator:
     @staticmethod
     def get_shift_code(shift):
@@ -11,10 +12,12 @@ class IDGenerator:
         shift_map = {
             'morning': 'M',
             'afternoon': 'A', 
-            'evening': 'E'
+            'evening': 'E',
+            'both': 'B',        # Morning + Afternoon
+            'all': 'ALL'        # All shifts
         }
         return shift_map.get(shift.lower(), 'M')
-    
+
     @staticmethod
     def get_role_code(role):
         """Convert role to code"""
@@ -32,7 +35,7 @@ class IDGenerator:
     
     @staticmethod
     def generate_employee_code(campus_id, shift, year, role, entity_id):
-        """Generate employee code: C01-M-25-C-0001"""
+        """Generate employee code: C01-M-25-P-0001"""
         campus_code = IDGenerator.get_campus_code_from_id(campus_id)
         shift_code = IDGenerator.get_shift_code(shift)
         role_code = IDGenerator.get_role_code(role)
@@ -42,36 +45,57 @@ class IDGenerator:
     
     @staticmethod
     def get_next_employee_number(campus_id, shift, year, role):
-        """Get next available employee number for given criteria"""
-        campus_code = IDGenerator.get_campus_code_from_id(campus_id)
-        shift_code = IDGenerator.get_shift_code(shift)
-        role_code = IDGenerator.get_role_code(role)
-        year_short = str(year)[-2:]
-        
-        # Check all models for existing codes
-        pattern = f"{campus_code}-{shift_code}-{year_short}-{role_code}-"
-        
-        # Check teachers
-        teacher_codes = Teacher.objects.filter(employee_code__startswith=pattern).values_list('employee_code', flat=True)
-        # Check coordinators  
-        coordinator_codes = Coordinator.objects.filter(employee_code__startswith=pattern).values_list('employee_code', flat=True)
-        # Check principals
-        principal_codes = Principal.objects.filter(employee_code__startswith=pattern).values_list('employee_code', flat=True)
-        
-        # Combine all codes
-        all_codes = list(teacher_codes) + list(coordinator_codes) + list(principal_codes)
-        
-        # Extract numbers and find next available
-        numbers = []
-        for code in all_codes:
-            try:
-                num = int(code.split('-')[-1])
-                numbers.append(num)
-            except (ValueError, IndexError):
-                continue
-        
-        return max(numbers) + 1 if numbers else 1
-    
+        """Get next available employee number for given campus, shift, year, role"""
+        try:
+            # Get all existing employee codes for this combination
+            existing_codes = []
+            
+            # Check teachers
+            teachers = Teacher.objects.filter(
+                current_campus_id=campus_id,
+                shift=shift,
+                employee_code__isnull=False
+            ).values_list('employee_code', flat=True)
+            existing_codes.extend(teachers)
+            
+            # Check coordinators
+            coordinators = Coordinator.objects.filter(
+                campus_id=campus_id,
+                shift=shift,
+                employee_code__isnull=False
+            ).values_list('employee_code', flat=True)
+            existing_codes.extend(coordinators)
+            
+            # Check principals
+            principals = Principal.objects.filter(
+                campus_id=campus_id,
+                shift=shift,
+                employee_code__isnull=False
+            ).values_list('employee_code', flat=True)
+            existing_codes.extend(principals)
+            
+            # Extract numbers from existing codes
+            numbers = []
+            for code in existing_codes:
+                if code and '-' in code:
+                    try:
+                        # Extract last part (number) from code like C01-M-25-P-0001
+                        number_part = code.split('-')[-1]
+                        if number_part.isdigit():
+                            numbers.append(int(number_part))
+                    except (ValueError, IndexError):
+                        continue
+            
+            # Return next available number
+            if not numbers:
+                return 1
+            
+            return max(numbers) + 1
+            
+        except Exception as e:
+            print(f"Error getting next employee number: {str(e)}")
+            return 1
+
     @staticmethod
     def generate_unique_employee_code(campus, shift, year, role):
         """Generate unique employee code with validation"""
@@ -104,34 +128,4 @@ class IDGenerator:
 @staticmethod
 def generate_unique_student_code(classroom, year):
     """Generate unique student code for classroom"""
-    try:
-        campus = classroom.campus
-        grade = classroom.grade
-        
-        # Get campus code
-        campus_code = IDGenerator.get_campus_code_from_id(campus.id)
-        
-        # Get grade code
-        grade_code = grade.short_code or f"G{grade.id:02d}"
-        
-        # Get year
-        year_short = str(year)[-2:]
-        
-        # Get next student number for this classroom
-        next_number = IDGenerator.get_next_student_number(classroom, year)
-        
-        # Format: C01-G1-25-0001
-        return f"{campus_code}-{grade_code}-{year_short}-{next_number:04d}"
-        
-    except Exception as e:
-        raise ValueError(f"Failed to generate student code: {str(e)}")
-
-@staticmethod
-def get_next_student_number(classroom, year):
-    """Get next student number for classroom"""
-    try:
-        # Count existing students in this classroom
-        existing_count = classroom.students.count()
-        return existing_count + 1
-    except Exception as e:
-        return 1
+    pass
