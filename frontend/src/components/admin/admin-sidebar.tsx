@@ -117,8 +117,6 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Class Assign", href: "/admin/coordinator/class-assign" },
           { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
           { title: "Time Table", href: "/admin/coordinator/time-table" },
-          { title: "Sections Progress", href: "/admin/coordinator/sections-progress" },
-          { title: "Add Coordinator", href: "/admin/coordinator/add" },
         ],
       },
     ]
@@ -238,14 +236,12 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         subItems: [
           { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
           { title: "Add Coordinator", href: "/admin/coordinator/add" },
-
           { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
           { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
           { title: "Result Approval", href: "/admin/coordinator/result-approval" },
           { title: "Class Assign", href: "/admin/coordinator/class-assign" },
           { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
           { title: "Time Table", href: "/admin/coordinator/time-table" },
-          { title: "Sections Progress", href: "/admin/coordinator/sections-progress" },
         ],
       },
     ];

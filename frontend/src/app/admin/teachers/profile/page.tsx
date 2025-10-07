@@ -23,7 +23,7 @@ import {
   CheckCircle,
   XCircle
 } from "lucide-react"
-import { getAllTeachers } from "@/lib/api"
+import { getTeacherById } from "@/lib/api"
 
 export default function TeacherProfilePage() {
   const router = useRouter()
@@ -51,12 +51,7 @@ export default function TeacherProfilePage() {
       setError(null)
       
       try {
-        const teachersData = await getAllTeachers()
-        
-        // Find the specific teacher
-        const foundTeacher = Array.isArray(teachersData) 
-          ? teachersData.find((t: any) => t.id.toString() === teacherId.toString())
-          : null
+        const foundTeacher = await getTeacherById(teacherId)
 
         if (!foundTeacher) {
           setError("Teacher not found")
