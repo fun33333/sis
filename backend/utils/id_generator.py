@@ -58,10 +58,9 @@ class IDGenerator:
             ).values_list('employee_code', flat=True)
             existing_codes.extend(teachers)
             
-            # Check coordinators
+            # Check coordinators (no shift field, use default 'morning')
             coordinators = Coordinator.objects.filter(
                 campus_id=campus_id,
-                shift=shift,
                 employee_code__isnull=False
             ).values_list('employee_code', flat=True)
             existing_codes.extend(coordinators)
