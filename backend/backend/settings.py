@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'subjects',
-    'classes',
+    'classes.apps.ClassesConfig', 
     'coordinator',
     'principals',
     'services',

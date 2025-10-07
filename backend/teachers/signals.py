@@ -30,3 +30,28 @@ def update_class_teacher_status(sender, instance, **kwargs):
         instance.is_class_teacher = True
     elif not instance.assigned_classroom and instance.is_class_teacher:
         instance.is_class_teacher = False
+
+# NEW: Signal to sync classroom assignment when teacher is updated
+@receiver(post_save, sender=Teacher)
+def sync_teacher_classroom_assignment(sender, instance, created, **kwargs):
+    """
+    Jab teacher ko classroom assign karte hain, to classroom ki class_teacher field bhi update karo
+    """
+    if instance.assigned_classroom:
+        # Classroom mein teacher assign karo
+        classroom = instance.assigned_classroom
+        if classroom.class_teacher != instance:
+            classroom.class_teacher = instance
+            classroom.save(update_fields=['class_teacher'])
+            print(f"✅ Synced: Classroom {classroom} assigned teacher {instance.full_name}")
+    else:
+        # Agar teacher se classroom remove kiya gaya hai
+        # Pehle check karo ke koi classroom is teacher se assigned hai ya nahi
+        try:
+            from classes.models import ClassRoom
+            classroom = ClassRoom.objects.get(class_teacher=instance)
+            classroom.class_teacher = None
+            classroom.save(update_fields=['class_teacher'])
+            print(f"✅ Synced: Classroom {classroom} removed teacher {instance.full_name}")
+        except ClassRoom.DoesNotExist:
+            pass  # Koi classroom assigned nahi tha
