@@ -12,7 +12,26 @@ type Request = {
 };
 
 export default function TeacherRequestPage() {
-  const currentUser = { name: "Ali Raza", id: "12345" };
+  // Get real user data from localStorage
+  const getCurrentUser = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        const userStr = window.localStorage.getItem('sis_user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          return {
+            name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+            id: user.username || 'Unknown'
+          };
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+    return { name: "Unknown User", id: "Unknown" };
+  };
+  
+  const currentUser = getCurrentUser();
   const [showModal, setShowModal] = useState(false);
   const [requests, setRequests] = useState<Request[]>([]);
   const [form, setForm] = useState({
@@ -122,10 +141,7 @@ export default function TeacherRequestPage() {
               >
                 ×
               </button>
-              <div className="flex justify-between items-center mb-6">
-                <div className="text-xl font-bold bg-[#e3eaf2] px-6 py-2 rounded-lg">
-                  Form
-                </div>
+              <div className="flex justify-end items-right mb-6">
                 <div className="text-base font-semibold bg-[#e3eaf2] px-6 py-2 rounded-lg">
                   {new Date().toLocaleDateString()}
                 </div>
@@ -163,9 +179,8 @@ export default function TeacherRequestPage() {
                     }
                   >
                     <option value="">
-                      Select Subject Head/Coordinator
+                      Select Coordinator
                     </option>
-                    <option value="head">Subject Head</option>
                     <option value="coordinator">Coordinator</option>
                   </select>
                 </div>
