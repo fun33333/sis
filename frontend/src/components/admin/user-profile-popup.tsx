@@ -64,7 +64,13 @@ export function UserProfilePopup() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [teacherData, setTeacherData] = useState<TeacherData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isClient, setIsClient] = useState(false)
   const popupRef = useRef<HTMLDivElement>(null)
+
+  // Ensure client-side only rendering
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // Close popup when clicking outside
   useEffect(() => {
@@ -198,6 +204,16 @@ export function UserProfilePopup() {
   }, [])
 
   if (!isClient || !currentUser) return null
+
+  // Don't render until client-side
+  if (!isClient) {
+    return (
+      <div className="flex items-center gap-3 p-2 rounded-lg">
+        <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
+        <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="relative" ref={popupRef}>

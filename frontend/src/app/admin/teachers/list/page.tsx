@@ -7,16 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Search, Users, Mail, Phone, MapPin, GraduationCap, Calendar, BookOpen, Eye, Edit } from "lucide-react"
-import { getAllTeachers, getAllCampuses } from "@/lib/api"
+import { getAllTeachers, getAllCampuses, findCoordinatorByEmail, getCoordinatorTeachers } from "@/lib/api"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions"
 
-export default function TeacherListPage() {
-  useEffect(() => {
-    document.title = "Teacher List | IAK SMS";
-  }, []);
-
+function TeacherListContent() {
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [teachers, setTeachers] = useState<any[]>([])
@@ -35,9 +31,15 @@ export default function TeacherListPage() {
   const canEdit = userRole !== "superadmin"
 
   useEffect(() => {
+<<<<<<< HEAD
     setIsClient(true)
     // Get user role and campus
     setUserRole(getCurrentUserRole())
+=======
+    // Get user role
+    const role = getCurrentUserRole()
+    setUserRole(role)
+>>>>>>> f6d7b1692105971a2e74d072cde03fa573152e5d
     
     // Get user campus for principal filtering
     const user = getCurrentUser() as any
@@ -49,13 +51,41 @@ export default function TeacherListPage() {
       setLoading(true)
       setError(null)
       try {
-        const [teachersData, campusesData] = await Promise.all([
-          getAllTeachers(),
-          getAllCampuses().catch(err => {
+        let teachersData: any[] = []
+        
+        // Check if user is coordinator
+        if (role === 'coordinator') {
+          // Check if we're on client side
+          if (typeof window === 'undefined') {
+            setError("Please wait, loading...");
+            return;
+          }
+          
+          // Get coordinator ID from localStorage
+          const user = localStorage.getItem("sis_user");
+          if (user) {
+            const userData = JSON.parse(user);
+            const coordinatorId = await findCoordinatorByEmail(userData.email);
+            if (coordinatorId) {
+              const data = await getCoordinatorTeachers(coordinatorId) as any;
+              teachersData = data.teachers || [];
+            } else {
+              setError("Coordinator not found for this user");
+              return;
+            }
+          } else {
+            setError("User not logged in");
+            return;
+          }
+        } else {
+          // For other roles, get all teachers
+          teachersData = await getAllTeachers();
+        }
+        
+        const campusesData = await getAllCampuses().catch(err => {
             console.error('Campus API Error:', err)
             return []
           })
-        ])
         
         
         // Also fix campus mapping to use campus_name instead of name
@@ -499,4 +529,38 @@ export default function TeacherListPage() {
       </Card>
     </div>
   )
+}
+
+export default function TeacherListPage() {
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+    document.title = "Teacher List | IAK SMS";
+  }, [])
+
+  if (!isClient) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Teacher List
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-500">Loading...</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return <TeacherListContent />
 }

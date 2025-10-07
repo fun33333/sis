@@ -1,9 +1,12 @@
 from rest_framework import serializers
 from .models import Level, Grade, ClassRoom
+<<<<<<< HEAD
 from campus.models import Campus
 from coordinator.models import Coordinator
 from teachers.models import Teacher
 
+=======
+>>>>>>> f6d7b1692105971a2e74d072cde03fa573152e5d
 
 class LevelSerializer(serializers.ModelSerializer):
     campus_name = serializers.CharField(source='campus.campus_name', read_only=True)
@@ -11,6 +14,7 @@ class LevelSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Level
+<<<<<<< HEAD
         fields = ['id', 'name', 'short_code', 'code', 'campus', 'campus_name', 'coordinator', 'coordinator_name']
         read_only_fields = ['code']
 
@@ -20,10 +24,22 @@ class LevelSerializer(serializers.ModelSerializer):
 
 class GradeSerializer(serializers.ModelSerializer):
     level_name = serializers.CharField(source='level.name', read_only=True)
+=======
+        fields = [
+            'id', 'name', 'code', 'campus', 'campus_name', 
+            'coordinator', 'coordinator_name'
+        ]
+        read_only_fields = ['id', 'code']
+
+class GradeSerializer(serializers.ModelSerializer):
+    level_name = serializers.CharField(source='level.name', read_only=True)
+    level_code = serializers.CharField(source='level.code', read_only=True)
+>>>>>>> f6d7b1692105971a2e74d072cde03fa573152e5d
     campus_name = serializers.CharField(source='level.campus.campus_name', read_only=True)
     
     class Meta:
         model = Grade
+<<<<<<< HEAD
         fields = ['id', 'name', 'short_code', 'level', 'level_name', 'campus_name']
 
     def create(self, validated_data):
@@ -58,3 +74,28 @@ class ClassRoomChoicesSerializer(serializers.Serializer):
     grades = serializers.ListField()
     teachers = serializers.ListField()
     sections = serializers.ListField()
+=======
+        fields = [
+            'id', 'name', 'code', 'level', 'level_name', 
+            'level_code', 'campus_name'
+        ]
+        read_only_fields = ['id', 'code']
+
+class ClassRoomSerializer(serializers.ModelSerializer):
+    grade_name = serializers.CharField(source='grade.name', read_only=True)
+    grade_code = serializers.CharField(source='grade.code', read_only=True)
+    level_name = serializers.CharField(source='grade.level.name', read_only=True)
+    level_code = serializers.CharField(source='grade.level.code', read_only=True)
+    campus_name = serializers.CharField(source='grade.level.campus.campus_name', read_only=True)
+    class_teacher_name = serializers.CharField(source='class_teacher.full_name', read_only=True)
+    class_teacher_code = serializers.CharField(source='class_teacher.employee_code', read_only=True)
+    
+    class Meta:
+        model = ClassRoom
+        fields = [
+            'id', 'grade', 'grade_name', 'grade_code', 'section', 'class_teacher', 
+            'class_teacher_name', 'class_teacher_code', 'capacity', 'code', 
+            'level_name', 'level_code', 'campus_name', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'code', 'created_at', 'updated_at']
+>>>>>>> f6d7b1692105971a2e74d072cde03fa573152e5d

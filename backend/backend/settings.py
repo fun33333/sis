@@ -93,7 +93,7 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD', 'project_pass'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
-        'CONN_MAX_AGE': 0,  # Disable connection pooling
+        'CONN_MAX_AGE': 0,  
         'OPTIONS': {
             'connect_timeout': 10,
         },
@@ -212,4 +212,3 @@ CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 SUPERUSER_USERNAME = os.getenv('SUPERUSER_USERNAME', 'admin')
 SUPERUSER_PASSWORD = os.getenv('SUPERUSER_PASSWORD', 'admin123')
 SUPERUSER_EMAIL = os.getenv('SUPERUSER_EMAIL', 'admin@example.com')
-

@@ -7,14 +7,10 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Users, Search, Eye, Edit } from "lucide-react"
-import { getAllTeachers, getAllCampuses, getCoordinatorTeachers } from "@/lib/api"
+import { getCoordinatorTeachers, findCoordinatorByEmail } from "@/lib/api"
 import { useRouter } from "next/navigation"
 
-export default function CoordinatorTeacherListPage() {
-  useEffect(() => {
-    document.title = "Teacher List - Coordinator | IAK SMS";
-  }, []);
-
+function CoordinatorTeacherListContent() {
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [teachers, setTeachers] = useState<any[]>([])
@@ -26,32 +22,42 @@ export default function CoordinatorTeacherListPage() {
       setLoading(true)
       setError(null)
       try {
-        // Get coordinator ID from localStorage
-        const user = localStorage.getItem("sis_user");
-        if (user) {
-          const userData = JSON.parse(user);
-          const coordinatorId = 1; // This should come from user data
+        // Check if we're on client side
+        if (typeof window === 'undefined') {
+          setError("Please wait, loading...");
+          return;
+        }
+        
+         // Get coordinator ID from localStorage
+         const user = localStorage.getItem("sis_user");
+         if (user) {
+           const userData = JSON.parse(user);
+           
+           // Find coordinator by email
+           const coordinatorId = await findCoordinatorByEmail(userData.email);
+           if (!coordinatorId) {
+             setError("Coordinator not found for this user");
+             return;
+           }
           
-          // Fetch teachers for this coordinator's campus
-          const data = await getCoordinatorTeachers(coordinatorId);
+          // Fetch teachers for this coordinator
+          const data = await getCoordinatorTeachers(coordinatorId) as any;
           const teachersData = data.teachers || [];
           
-          // Map teacher data to the expected format
-          const mappedTeachers = teachersData.map((teacher: any) => ({
-            id: teacher.id,
-            name: teacher.full_name || 'Unknown',
-            subject: teacher.current_subjects || 'Not Assigned',
-            campus: 'Your Campus', // Since these are from coordinator's campus
-            status: teacher.is_currently_active ? 'Active' : 'Inactive',
-            classes: teacher.current_classes_taught || 'Not Assigned',
-            email: teacher.email || 'Not provided',
-            phone: teacher.contact_number || 'Not provided',
-            joining_date: teacher.joining_date || 'Not provided',
-            experience: teacher.total_experience_years ? `${teacher.total_experience_years} years` : 'Not provided',
-            employee_code: teacher.employee_code,
-            shift: teacher.shift,
-            is_class_teacher: teacher.is_class_teacher
-          }))
+           // Map teacher data to the expected format
+           const mappedTeachers = teachersData.map((teacher: any) => ({
+             id: teacher.id,
+             name: teacher.full_name || 'Unknown',
+             subject: teacher.current_subjects || 'Not Assigned',
+             classes: teacher.current_classes_taught || 'Not Assigned',
+             email: teacher.email || 'Not provided',
+             phone: teacher.contact_number || 'Not provided',
+             joining_date: teacher.joining_date || 'Not provided',
+             experience: teacher.total_experience_years ? `${teacher.total_experience_years} years` : 'Not provided',
+             employee_code: teacher.employee_code,
+             shift: teacher.shift,
+             is_class_teacher: teacher.is_class_teacher
+           }))
           
           setTeachers(mappedTeachers)
         } else {
@@ -67,12 +73,11 @@ export default function CoordinatorTeacherListPage() {
     fetchTeachers()
   }, [])
 
-  const filteredTeachers = teachers.filter(teacher =>
-    teacher.name.toLowerCase().includes(search.toLowerCase()) ||
-    teacher.subject.toLowerCase().includes(search.toLowerCase()) ||
-    teacher.campus.toLowerCase().includes(search.toLowerCase()) ||
-    teacher.email.toLowerCase().includes(search.toLowerCase())
-  )
+   const filteredTeachers = teachers.filter(teacher =>
+     teacher.name.toLowerCase().includes(search.toLowerCase()) ||
+     teacher.subject.toLowerCase().includes(search.toLowerCase()) ||
+     teacher.email.toLowerCase().includes(search.toLowerCase())
+   )
 
   return (
     <div className="space-y-6">
@@ -125,17 +130,15 @@ export default function CoordinatorTeacherListPage() {
             </div>
           ) : (
             <Table>
-              <TableHeader>
-                <TableRow style={{ backgroundColor: '#274c77' }}>
-                  <TableHead className="text-white">Name</TableHead>
-                  <TableHead className="text-white">Subject</TableHead>
-                  <TableHead className="text-white">Campus</TableHead>
-                  <TableHead className="text-white">Email</TableHead>
-                  <TableHead className="text-white">Classes</TableHead>
-                  <TableHead className="text-white">Status</TableHead>
-                  <TableHead className="text-white">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+               <TableHeader>
+                 <TableRow style={{ backgroundColor: '#274c77' }}>
+                   <TableHead className="text-white">Name</TableHead>
+                   <TableHead className="text-white">Subject</TableHead>
+                   <TableHead className="text-white">Email</TableHead>
+                   <TableHead className="text-white">Classes</TableHead>
+                   <TableHead className="text-white">Actions</TableHead>
+                 </TableRow>
+               </TableHeader>
               <TableBody>
                 {filteredTeachers.map((teacher, index) => (
                   <TableRow 
@@ -143,22 +146,11 @@ export default function CoordinatorTeacherListPage() {
                     className={`hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : ''}`}
                     style={{ backgroundColor: index % 2 === 0 ? '#e7ecef' : 'white' }}
                   >
-                    <TableCell className="font-medium">{teacher.name}</TableCell>
-                    <TableCell>{teacher.subject}</TableCell>
-                    <TableCell>{teacher.campus}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{teacher.email}</TableCell>
-                    <TableCell>{teacher.classes}</TableCell>
-                    <TableCell>
-                      <Badge 
-                        style={{ 
-                          backgroundColor: teacher.status === 'Active' ? '#6096ba' : '#8b8c89',
-                          color: 'white'
-                        }}
-                      >
-                        {teacher.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
+                     <TableCell className="font-medium">{teacher.name}</TableCell>
+                     <TableCell>{teacher.subject}</TableCell>
+                     <TableCell className="text-sm text-gray-600">{teacher.email}</TableCell>
+                     <TableCell>{teacher.classes}</TableCell>
+                     <TableCell>
                       <div className="flex space-x-2">
                         <Button 
                           size="sm" 
@@ -188,4 +180,38 @@ export default function CoordinatorTeacherListPage() {
       </Card>
     </div>
   )
+}
+
+export default function CoordinatorTeacherListPage() {
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+    document.title = "Teacher List - Coordinator | IAK SMS";
+  }, [])
+
+  if (!isClient) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Teacher List
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-500">Loading...</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return <CoordinatorTeacherListContent />
 }

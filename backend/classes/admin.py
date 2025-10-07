@@ -4,9 +4,9 @@ from .models import ClassRoom, Grade, Level
 # ----------------------
 @admin.register(Level)
 class LevelAdmin(admin.ModelAdmin):
-    list_display = ("name", "short_code", "code", "campus", "coordinator")
+    list_display = ("name", "code", "campus", "coordinator")
     list_filter = ("campus",)
-    search_fields = ("name", "short_code", "code")
+    search_fields = ("name", "code")
     # REMOVED: filter_horizontal = ("grades",)  # This field doesn't exist anymore
 
 # ----------------------
@@ -30,9 +30,9 @@ class GradeCoordinatorFilter(admin.SimpleListFilter):
 
 @admin.register(Grade)
 class GradeAdmin(admin.ModelAdmin):
-    list_display = ("name", "short_code", "level", "campus_display")
+    list_display = ("name", "code", "level", "campus_display")
     list_filter = ("level", "level__campus")
-    search_fields = ("name", "short_code")
+    search_fields = ("name", "code")
     
     def campus_display(self, obj):
         return obj.level.campus.campus_name if obj.level and obj.level.campus else '-'
