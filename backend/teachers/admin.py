@@ -11,16 +11,15 @@ class TeacherAdmin(admin.ModelAdmin):
         "is_class_teacher",
         "assigned_classroom",
         "current_campus",
-        "get_coordinator_info",
         "shift",
         "employee_code",
     )
-    list_filter = ("is_class_teacher", "shift", "current_campus", "assigned_classroom", "assigned_coordinator")
-    search_fields = ("full_name", "email", "contact_number", "employee_code", "assigned_coordinator__full_name")
+    list_filter = ("is_class_teacher", "shift", "current_campus", "assigned_classroom")
+    search_fields = ("full_name", "email", "contact_number", "employee_code")
     ordering = ("-date_created",)
     
     # FIX: Exclude non-editable fields
-    readonly_fields = ("employee_code", "teacher_id", "assigned_coordinator", "date_created", "date_updated")
+    readonly_fields = ("employee_code", "teacher_id", "date_created", "date_updated")
         
     # teachers/admin.py me ye fieldsets use karo
     fieldsets = (
@@ -56,7 +55,7 @@ class TeacherAdmin(admin.ModelAdmin):
             'fields': (
                 'joining_date', 'current_role_title', 'current_campus', 'shift',
                 'current_subjects', 'current_classes_taught', 'current_extra_responsibilities',
-                'assigned_coordinator', 'role_start_date', 'role_end_date', 'is_currently_active'
+                'role_start_date', 'role_end_date', 'is_currently_active'
             )
         }),
         ('Class Teacher Information', {
@@ -68,14 +67,6 @@ class TeacherAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-
-    def get_coordinator_info(self, obj):
-        """Display coordinator information with level"""
-        if obj.assigned_coordinator:
-            return f"{obj.assigned_coordinator.full_name} ({obj.assigned_coordinator.level.name})"
-        return "Not Assigned"
-    get_coordinator_info.short_description = "Coordinator"
-    get_coordinator_info.admin_order_field = "assigned_coordinator__full_name"
 
     def clean(self):
         cleaned_data = super().clean()
