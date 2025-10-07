@@ -17,7 +17,7 @@ type Teacher = {
 
 export default function LoginPage() {
   const [showForgot, setShowForgot] = useState(false);
-  const [role, setRole] = useState<"coordinator" | "teacher" | "principal" | "superadmin">("teacher");
+  const [detectedRole, setDetectedRole] = useState<string>("");
   const [animate, setAnimate] = useState(false);
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
@@ -31,6 +31,38 @@ export default function LoginPage() {
     const timer = setTimeout(() => setAnimate(true), 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Function to detect role from employee code
+  const detectRoleFromCode = (code: string): string => {
+    if (!code) return "";
+    
+    // Employee code patterns:
+    // Teacher: C01-M-25-T-0000
+    // Coordinator: C01-M-25-C-0000  
+    // Principal: C01-M-25-P-0000
+    // Superadmin: C01-M-25-S-0000
+    
+    const parts = code.split('-');
+    if (parts.length >= 4) {
+      const roleCode = parts[3].charAt(0).toUpperCase();
+      switch (roleCode) {
+        case 'T': return 'Teacher';
+        case 'C': return 'Coordinator';
+        case 'P': return 'Principal';
+        case 'S': return 'Super Admin';
+        default: return '';
+      }
+    }
+    return '';
+  };
+
+  // Handle employee code input change
+  const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.trim().toUpperCase();
+    setId(value);
+    const role = detectRoleFromCode(value);
+    setDetectedRole(role);
+  };
 
   // Login handler: all roles use backend email/password
   const handleLogin = async (e: React.FormEvent) => {
@@ -50,24 +82,17 @@ export default function LoginPage() {
       
       const data = await loginWithEmailPassword(email, password);
       const userRole = String(data?.user?.role || "").toLowerCase();
-      if (role === "teacher" && !userRole.includes("teach")) {
-        setError("This account is not a Teacher");
-        setLoading(false);
-        return;
+      
+      // Redirect based on role
+      if (userRole.includes("coord")) {
+        router.push("/admin/coordinator/sections-progress");
+      } else if (userRole.includes("teach")) {
+        router.push("/admin/teachers/request");
+      } else if (userRole.includes("princ")) {
+        router.push("/admin");
+      } else {
+        router.push("/admin");
       }
-      if (role === "coordinator" && !userRole.includes("coord")) {
-        setError("This account is not a Coordinator");
-        setLoading(false);
-        return;
-      }
-      if (role === "principal" && !userRole.includes("princ")) {
-        // Allow if backend marks principal explicitly
-        setError("This account is not a Principal");
-        setLoading(false);
-        return;
-      }
-      // superadmin check optional; skip or ensure admin
-      router.push("/admin");
     } catch (err: any) {
       setError(err?.response || err?.message || "Login failed");
     }
@@ -110,36 +135,19 @@ export default function LoginPage() {
           <form onSubmit={handleLogin}>
             {!showForgot ? (
               <>
-                {/* Role Selection Dropdown */}
-                <div className="w-full mb-6">
-                  <div className="relative">
-                    <select
-                      value={role}
-                      onChange={e => setRole(e.target.value as any)}
-                      className="w-full h-12 rounded-xl px-5 text-base text-[#274c77] font-semibold shadow focus:outline-none focus:ring-2 focus:ring-[#6096ba] border-2 border-[#a3cef1] appearance-none transition-all duration-200"
-                      style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
-                    >
-                      <option value="teacher">Teacher</option>
-                      <option value="coordinator">Coordinator</option>
-                      <option value="principal">Principal</option>
-                      <option value="superadmin">Super Admin</option>
-                    </select>
-                    <span className="pointer-events-none absolute right-4 top-1/2 transform -translate-y-1/2 text-[#274c77] text-lg">
-                      ▼
-                    </span>
+                {/* Role Detection Display */}
+                {detectedRole && (
+                  <div className="w-full mb-6">
+                    <div className="w-full h-12 rounded-xl px-5 text-base text-[#274c77] font-semibold shadow border-2 border-[#6096ba] bg-[#a3cef1] flex items-center justify-center">
+                      <span className="text-lg">🎯 {detectedRole}</span>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* ID/Employee Code Input */}
                 <div className="w-full mb-2">
                   <label htmlFor="login-email" className="block mb-1 text-[#274c77] font-semibold">
-                    {role === "teacher"
-                      ? "Teacher Employee Code"
-                      : role === "coordinator"
-                      ? "Coordinator Employee Code"
-                      : role === "principal"
-                      ? "Principal Employee Code"
-                      : "Super Admin Employee Code"}
+                    Employee Code
                   </label>
                 </div>
                 <div className="relative w-full h-14 mb-6">
@@ -148,17 +156,9 @@ export default function LoginPage() {
                     id="login-email"
                     required
                     value={id}
-                    onChange={e => setId(e.target.value)}
+                    onChange={handleIdChange}
                     className="w-full h-full border-2 border-[#a3cef1] rounded-xl pl-14 pr-12 text-[#274c77] text-lg font-medium focus:outline-none focus:ring-2 focus:ring-[#6096ba] shadow transition-all duration-200 placeholder:font-normal placeholder:text-[#6096ba]"
-                    placeholder={
-                      role === "teacher"
-                        ? "C01-M-25-T-0000"
-                        : role === "coordinator"
-                        ? "C01-M-25-C-0000"
-                        : role === "principal"
-                        ? "C01-M-25-P-0000"
-                        : "C01-M-25-A-0000"
-                    }
+                    placeholder="C01-M-25-T-0000"
                   />
                   <span className="absolute left-5 top-1/2 transform -translate-y-1/2 text-[#6096ba] text-xl">
                     <FaEnvelope />
@@ -187,7 +187,7 @@ export default function LoginPage() {
                   className="w-full h-11 bg-[#a3cef1] border-none rounded-full shadow-sm cursor-pointer text-base text-black font-semibold mt-3 hover:bg-[#87b9e3] transition-colors"
                   disabled={loading}
                 >
-                  {loading ? "Logging in..." : `Login as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
+                  {loading ? "Logging in..." : detectedRole ? `Login as ${detectedRole}` : "Login"}
                 </button>
                 {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
 

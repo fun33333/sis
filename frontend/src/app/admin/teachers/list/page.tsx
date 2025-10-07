@@ -79,6 +79,7 @@ export default function TeacherListPage() {
             name: teacher.full_name || 'Unknown',
             subject: teacher.current_subjects || 'Not Assigned',
             campus: campusName,
+            assigned_coordinator: teacher.assigned_coordinator || null,
             email: teacher.email || 'Not provided',
             phone: teacher.contact_number || 'Not provided',
             experience: teacher.total_experience_years || 'Not provided',
@@ -304,12 +305,13 @@ export default function TeacherListPage() {
             </div>
           ) : (
              <div className="overflow-x-auto">
-               <Table className="w-full min-w-[800px]">
+               <Table className="w-full min-w-[920px]">
                  <TableHeader>
                    <TableRow className="bg-[#274c77] text-white hover:bg-[#274c77]">
                      <TableHead className="text-white min-w-[200px]">Teacher</TableHead>
                      <TableHead className="text-white min-w-[150px]">Subject & Classes</TableHead>
                      <TableHead className="text-white min-w-[120px]">Campus</TableHead>
+                     <TableHead className="text-white min-w-[120px]">Coordinator</TableHead>
                      <TableHead className="text-white min-w-[180px]">Contact</TableHead>
                      <TableHead className="text-white min-w-[100px]">Experience</TableHead>
                      <TableHead className="text-white min-w-[80px]">Status</TableHead>
@@ -351,6 +353,22 @@ export default function TeacherListPage() {
                            <div className="flex items-center gap-2 text-sm">
                              <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
                              <span className="truncate max-w-[100px]">{teacher.campus}</span>
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <div className="text-sm">
+                             {teacher.assigned_coordinator ? (
+                               <div className="flex items-center gap-2">
+                                 <div className="h-6 w-6 bg-blue-100 text-blue-600 font-semibold rounded-full flex items-center justify-center text-xs">
+                                   {teacher.assigned_coordinator.full_name?.charAt(0) || 'C'}
+                                 </div>
+                                 <span className="truncate max-w-[100px] font-medium">
+                                   {teacher.assigned_coordinator.full_name}
+                                 </span>
+                               </div>
+                             ) : (
+                               <span className="text-gray-400 text-xs">Not Assigned</span>
+                             )}
                            </div>
                          </TableCell>
                          <TableCell>

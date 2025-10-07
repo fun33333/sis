@@ -118,7 +118,6 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
           { title: "Time Table", href: "/admin/coordinator/time-table" },
           { title: "Sections Progress", href: "/admin/coordinator/sections-progress" },
-          { title: "Add Coordinator", href: "/admin/coordinator/add" },
         ],
       },
     ]

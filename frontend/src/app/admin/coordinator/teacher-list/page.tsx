@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Users, Search, Eye, Edit } from "lucide-react"
-import { getAllTeachers, getAllCampuses } from "@/lib/api"
+import { getAllTeachers, getAllCampuses, getCoordinatorTeachers } from "@/lib/api"
 import { useRouter } from "next/navigation"
 
 export default function CoordinatorTeacherListPage() {
@@ -26,34 +26,37 @@ export default function CoordinatorTeacherListPage() {
       setLoading(true)
       setError(null)
       try {
-        const [teachersData, campusesData] = await Promise.all([
-          getAllTeachers(),
-          getAllCampuses()
-        ])
-        
-        // Create campus mapping
-        const campusMap = new Map()
-        if (Array.isArray(campusesData)) {
-          campusesData.forEach((campus: any) => {
-            campusMap.set(campus.id, campus.name)
-          })
+        // Get coordinator ID from localStorage
+        const user = localStorage.getItem("sis_user");
+        if (user) {
+          const userData = JSON.parse(user);
+          const coordinatorId = 1; // This should come from user data
+          
+          // Fetch teachers for this coordinator's campus
+          const data = await getCoordinatorTeachers(coordinatorId);
+          const teachersData = data.teachers || [];
+          
+          // Map teacher data to the expected format
+          const mappedTeachers = teachersData.map((teacher: any) => ({
+            id: teacher.id,
+            name: teacher.full_name || 'Unknown',
+            subject: teacher.current_subjects || 'Not Assigned',
+            campus: 'Your Campus', // Since these are from coordinator's campus
+            status: teacher.is_currently_active ? 'Active' : 'Inactive',
+            classes: teacher.current_classes_taught || 'Not Assigned',
+            email: teacher.email || 'Not provided',
+            phone: teacher.contact_number || 'Not provided',
+            joining_date: teacher.joining_date || 'Not provided',
+            experience: teacher.total_experience_years ? `${teacher.total_experience_years} years` : 'Not provided',
+            employee_code: teacher.employee_code,
+            shift: teacher.shift,
+            is_class_teacher: teacher.is_class_teacher
+          }))
+          
+          setTeachers(mappedTeachers)
+        } else {
+          setError("User not logged in")
         }
-        
-        // Map teacher data to the expected format
-        const mappedTeachers = Array.isArray(teachersData) ? teachersData.map((teacher: any) => ({
-          id: teacher.id,
-          name: `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim() || teacher.username || 'Unknown',
-          subject: teacher.subject || 'Not Assigned',
-          campus: campusMap.get(teacher.campus) || 'Unknown Campus',
-          status: teacher.is_active ? 'Active' : 'Inactive',
-          classes: teacher.classes || 'Not Assigned',
-          email: teacher.email || 'Not provided',
-          phone: teacher.phone || 'Not provided',
-          joining_date: teacher.joining_date || 'Not provided',
-          experience: teacher.experience || 'Not provided'
-        })) : []
-        
-        setTeachers(mappedTeachers)
       } catch (err: any) {
         console.error("Error fetching teachers:", err)
         setError(err.message || "Failed to load teachers")

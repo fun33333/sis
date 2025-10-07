@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
   USERS: "/api/users/",
   AUTH_LOGIN: "/api/auth/login/",
   AUTH_REFRESH: "/api/auth/refresh/",
+  COORDINATORS: "/api/coordinators/",
 } as const;
 
 
@@ -361,6 +362,25 @@ export async function getUsers(role?: string) {
   } catch (error) {
     console.error('Failed to fetch users:', error);
     return [];
+  }
+}
+
+// Coordinator API
+export async function getCoordinatorTeachers(coordinatorId: number) {
+  try {
+    return await apiGet(`${API_ENDPOINTS.COORDINATORS}${coordinatorId}/teachers/`);
+  } catch (error) {
+    console.error('Failed to fetch coordinator teachers:', error);
+    return { teachers: [], total_teachers: 0 };
+  }
+}
+
+export async function getCoordinatorDashboardStats(coordinatorId: number) {
+  try {
+    return await apiGet(`${API_ENDPOINTS.COORDINATORS}${coordinatorId}/dashboard_stats/`);
+  } catch (error) {
+    console.error('Failed to fetch coordinator dashboard stats:', error);
+    return { stats: { total_teachers: 0, total_students: 0, total_classes: 0, pending_requests: 0 } };
   }
 }
 
