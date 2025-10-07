@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
-import sqlite3
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -50,6 +49,7 @@ INSTALLED_APPS = [
     'coordinator',
     'principals',
     'services',
+    'student_status'
 ]
 
 MIDDLEWARE = [
@@ -94,20 +94,42 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 #         'PASSWORD': os.getenv('DB_PASSWORD', 'project_pass'),
 #         'HOST': os.getenv('DB_HOST', 'localhost'),
 #         'PORT': os.getenv('DB_PORT', '5432'),
-#         'CONN_MAX_AGE': 0,  # Disable connection pooling
+#         'CONN_MAX_AGE': 0,  
 #         'OPTIONS': {
 #             'connect_timeout': 10,
 #         },
 #     }
 # }
 
+# Areeba Fatima's Database 👇🏻
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql', 
+#         'NAME': 'sis',
+#         'USER': 'postgres',
+#         'PASSWORD': 'password',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#         'CONN_MAX_AGE': 0,  
+#         'OPTIONS': {
+#             'connect_timeout': 10,
+#         },
+#     }
+# }
+
+
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'sis-db',         
+        'USER': 'postgres',          # Default user
+        'PASSWORD': 'password',    
+        'HOST': 'localhost',      # Default host
+        'PORT': '5432',
+        "CONN_MAX_AGE": 0,
     }
 }
-
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -222,4 +244,3 @@ CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 SUPERUSER_USERNAME = os.getenv('SUPERUSER_USERNAME', 'admin')
 SUPERUSER_PASSWORD = os.getenv('SUPERUSER_PASSWORD', 'admin123')
 SUPERUSER_EMAIL = os.getenv('SUPERUSER_EMAIL', 'admin@example.com')
-

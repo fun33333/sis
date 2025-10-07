@@ -1,5 +1,4 @@
 from django.db import models
-from django.core.exceptions import ValidationError
 from campus.models import Campus
 
 # Choices
@@ -128,28 +127,10 @@ class Teacher(models.Model):
         null=True, 
         blank=True,
         related_name='class_teacher_teacher',  # FIXED: Changed related_name
-        help_text="Classroom assigned to this class teacher (one classroom per teacher only)"
+        help_text="Classroom assigned to this class teacher"
     )
     
-    def clean(self):
-        """
-        Validate that teacher is not assigned to multiple classrooms
-        """
-        if self.assigned_classroom:
-            # Check if this classroom already has a different teacher
-            existing_teacher = Teacher.objects.filter(
-                assigned_classroom=self.assigned_classroom
-            ).exclude(pk=self.pk).first()
-            
-            if existing_teacher:
-                raise ValidationError(
-                    f"Classroom {self.assigned_classroom} is already assigned to {existing_teacher.full_name}. "
-                    "One classroom can only have one teacher."
-                )
-    
     def save(self, *args, **kwargs):
-        # Run validation
-        self.clean()
         # Auto-generate employee_code (teacher_code) if not provided
         if not self.employee_code and self.current_campus:
             try:

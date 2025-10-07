@@ -43,5 +43,36 @@ class Coordinator(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    def get_assigned_teachers(self):
+        """
+        Get all teachers assigned to this coordinator through level -> grades -> classrooms
+        """
+        from teachers.models import Teacher
+        from classes.models import ClassRoom
+        
+        # Get all classrooms under this coordinator's level
+        classrooms = ClassRoom.objects.filter(
+            grade__level=self.level
+        ).select_related('class_teacher')
+        
+        # Get teachers from those classrooms
+        teachers = []
+        for classroom in classrooms:
+            if classroom.class_teacher:
+                teachers.append(classroom.class_teacher)
+        
+        return teachers
+    
+    def get_assigned_teachers_count(self):
+        """Get count of assigned teachers"""
+        return len(self.get_assigned_teachers())
+    
+    def get_assigned_classrooms(self):
+        """Get all classrooms under this coordinator's level"""
+        from classes.models import ClassRoom
+        return ClassRoom.objects.filter(
+            grade__level=self.level
+        ).select_related('grade', 'class_teacher')
+
     def __str__(self):
         return f"{self.full_name} ({self.employee_code})"

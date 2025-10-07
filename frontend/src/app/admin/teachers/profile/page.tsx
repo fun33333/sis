@@ -61,9 +61,9 @@ export default function TeacherProfilePage() {
 
         // Find the campus
         let foundCampus = null
-        if (foundTeacher.current_campus) {
-          if (typeof foundTeacher.current_campus === 'object') {
-            foundCampus = foundTeacher.current_campus
+        if ((foundTeacher as any).current_campus) {
+          if (typeof (foundTeacher as any).current_campus === 'object') {
+            foundCampus = (foundTeacher as any).current_campus
           }
         }
 
@@ -94,10 +94,14 @@ export default function TeacherProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading teacher profile...</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+        <div className="text-center">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-white/30 border-t-white mx-auto"></div>
+            <div className="absolute inset-0 rounded-full h-16 w-16 border-4 border-transparent border-t-white/60 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+          </div>
+          <p className="mt-6 text-white text-lg font-medium">Loading teacher profile...</p>
+          <p className="mt-2 text-white/70">Please wait while we fetch the details</p>
         </div>
       </div>
     )
@@ -105,16 +109,21 @@ export default function TeacherProfilePage() {
 
   if (error || !teacher) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+        <Card className="w-full max-w-md bg-white/95 backdrop-blur-lg shadow-2xl border-0">
           <CardContent className="p-8 text-center">
-            <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Error</h2>
-            <p className="text-gray-600 mb-4">{error || "Teacher not found"}</p>
-            <Button onClick={() => router.back()} variant="outline">
-              <ArrowLeft className="w-4 h-4 mr-2" />
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <XCircle className="w-12 h-12 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Oops! Something went wrong</h2>
+            <p className="text-gray-600 mb-6 text-lg">{error || "Teacher not found"}</p>
+            <Button 
+              onClick={() => router.back()} 
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
               Go Back
-              </Button>
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -122,27 +131,27 @@ export default function TeacherProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white/10 backdrop-blur-lg border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between py-4">
             <div className="flex items-center">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => router.back()}
-                className="mr-4"
+                className="mr-4 text-white hover:bg-white/20"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Teacher Profile</h1>
-                <p className="text-sm text-gray-500">Detailed information about {teacher.full_name || 'Unknown Teacher'}</p>
+                <h1 className="text-2xl font-bold text-white">Teacher Profile</h1>
+                <p className="text-sm text-white/80">Detailed information about {teacher.full_name || 'Unknown Teacher'}</p>
               </div>
             </div>
             <div className="flex gap-3">
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-white text-purple-600 hover:bg-white/90 shadow-lg">
                 <FileText className="w-4 h-4 mr-2" />
                 Generate Report
               </Button>
@@ -157,14 +166,14 @@ export default function TeacherProfilePage() {
           {/* Left Column - Main Info */}
           <div className="lg:col-span-2 space-y-6">
             {/* Personal Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
+            <Card className="bg-white/95 backdrop-blur-lg shadow-2xl border-0 hover:shadow-3xl transition-all duration-300">
+              <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <User className="w-6 h-6" />
                   Personal Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-500">Full Name</label>
@@ -211,14 +220,14 @@ export default function TeacherProfilePage() {
             </Card>
 
             {/* Address Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
+            <Card className="bg-white/95 backdrop-blur-lg shadow-2xl border-0 hover:shadow-3xl transition-all duration-300">
+              <CardHeader className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-t-lg">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <MapPin className="w-6 h-6" />
                   Address Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-6">
                 <div>
                   <label className="text-sm font-medium text-gray-500">Permanent Address</label>
                   <p className="text-gray-900">{renderValue(teacher.permanent_address)}</p>
@@ -231,14 +240,14 @@ export default function TeacherProfilePage() {
             </Card>
 
             {/* Education Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5" />
+            <Card className="bg-white/95 backdrop-blur-lg shadow-2xl border-0 hover:shadow-3xl transition-all duration-300">
+              <CardHeader className="bg-gradient-to-r from-orange-500 to-pink-600 text-white rounded-t-lg">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <GraduationCap className="w-6 h-6" />
                   Education Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-500">Education Level</label>
@@ -269,14 +278,14 @@ export default function TeacherProfilePage() {
             </Card>
 
             {/* Experience Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5" />
+            <Card className="bg-white/95 backdrop-blur-lg shadow-2xl border-0 hover:shadow-3xl transition-all duration-300">
+              <CardHeader className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-t-lg">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <BookOpen className="w-6 h-6" />
                   Experience Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-500">Previous Institution</label>
@@ -307,14 +316,14 @@ export default function TeacherProfilePage() {
             </Card>
 
             {/* Current Role Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building className="w-5 h-5" />
+            <Card className="bg-white/95 backdrop-blur-lg shadow-2xl border-0 hover:shadow-3xl transition-all duration-300">
+              <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-t-lg">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Building className="w-6 h-6" />
                   Current Role Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-500">Joining Date</label>
@@ -354,71 +363,83 @@ export default function TeacherProfilePage() {
           {/* Right Column - Quick Stats */}
           <div className="space-y-6">
             {/* Teacher Avatar */}
-            <Card>
-              <CardContent className="p-6 text-center">
-                <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl font-bold text-blue-600">
-                    {getInitials(teacher.full_name || 'Unknown')}
-                  </span>
+            <Card className="bg-white/95 backdrop-blur-lg shadow-2xl border-0 hover:shadow-3xl transition-all duration-300">
+              <CardContent className="p-8 text-center">
+                <div className="relative w-32 h-32 mx-auto mb-6">
+                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-2xl transform hover:scale-110 transition-transform duration-300">
+                    <span className="text-4xl font-bold text-white">
+                      {getInitials(teacher.full_name || 'Unknown')}
+                    </span>
+                  </div>
+                  <div className="absolute bottom-0 right-0 w-10 h-10 bg-green-500 rounded-full border-4 border-white flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">{teacher.full_name}</h3>
-                <p className="text-sm text-gray-500">{teacher.current_role_title}</p>
-                <p className="text-sm text-gray-500">{campus?.campus_name || campus?.name}</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">{teacher.full_name}</h3>
+                <p className="text-sm font-medium text-purple-600 mb-1">{teacher.current_role_title}</p>
+                <p className="text-sm text-gray-500 flex items-center justify-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  {campus?.campus_name || campus?.name}
+                </p>
               </CardContent>
             </Card>
 
             {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
+            <Card className="bg-white/95 backdrop-blur-lg shadow-2xl border-0 hover:shadow-3xl transition-all duration-300">
+              <CardHeader className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-t-lg">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Clock className="w-6 h-6" />
                   Quick Stats
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{renderValue(teacher.total_experience_years)}</div>
-                  <div className="text-sm text-gray-500">Years Experience</div>
+              <CardContent className="space-y-6 p-6">
+                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl">
+                  <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{renderValue(teacher.total_experience_years)}</div>
+                  <div className="text-sm font-medium text-gray-600 mt-2">Years Experience</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{renderValue(teacher.current_subjects)}</div>
-                  <div className="text-sm text-gray-500">Current Subjects</div>
+                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-teal-50 rounded-xl">
+                  <div className="text-lg font-bold text-green-600">{renderValue(teacher.current_subjects)}</div>
+                  <div className="text-sm font-medium text-gray-600 mt-2">Current Subjects</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">{renderValue(teacher.current_classes_taught)}</div>
-                  <div className="text-sm text-gray-500">Classes Taught</div>
+                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
+                  <div className="text-lg font-bold text-purple-600">{renderValue(teacher.current_classes_taught)}</div>
+                  <div className="text-sm font-medium text-gray-600 mt-2">Classes Taught</div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Status Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5" />
+            <Card className="bg-white/95 backdrop-blur-lg shadow-2xl border-0 hover:shadow-3xl transition-all duration-300">
+              <CardHeader className="bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-t-lg">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <CheckCircle className="w-6 h-6" />
                   Status
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Current Status</label>
-                  <div className="mt-1">
-                    <Badge variant={teacher.is_currently_active ? 'default' : 'secondary'}>
-                      {renderValue(teacher.is_currently_active)}
+              <CardContent className="space-y-4 p-6">
+                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
+                  <label className="text-sm font-medium text-gray-600">Current Status</label>
+                  <div className="mt-2">
+                    <Badge 
+                      className={`${teacher.is_currently_active ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-500'} text-white px-4 py-1`}
+                    >
+                      {teacher.is_currently_active ? '✓ Active' : 'Inactive'}
                     </Badge>
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Joining Date</label>
-                  <p className="text-gray-900">{renderValue(teacher.joining_date)}</p>
+                  <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Joining Date
+                  </label>
+                  <p className="text-gray-900 font-medium mt-1">{renderValue(teacher.joining_date)}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Date Created</label>
-                  <p className="text-gray-900">{renderValue(teacher.created_at)}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Last Updated</label>
-                  <p className="text-gray-900">{renderValue(teacher.updated_at)}</p>
+                  <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Last Updated
+                  </label>
+                  <p className="text-gray-900 font-medium mt-1">{renderValue(teacher.updated_at)}</p>
                 </div>
               </CardContent>
             </Card>

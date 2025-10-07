@@ -30,7 +30,7 @@ export default function SectionsProgressPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = "Analytics - Coordinator | IAK SMS";
+    document.title = "Sections Progress - Coordinator | IAK SMS";
     
     // Get coordinator ID from localStorage
     const user = localStorage.getItem("sis_user");
@@ -52,13 +52,7 @@ export default function SectionsProgressPage() {
   const fetchTeachers = async (coordinatorId: number) => {
     try {
       const data = await getCoordinatorTeachers(coordinatorId);
-      // Bhai, type unknown hai, pehle type check kar lete hain warna React bhi confuse ho jayega 😅
-      if (data && typeof data === "object" && "teachers" in data && Array.isArray((data as any).teachers)) {
-        setTeachers((data as any).teachers);
-      } else {
-        setTeachers([]);
-        console.warn("Yaar, teachers ki list nahi mili ya data ka format ajeeb hai! 🤔");
-      }
+      setTeachers(data.teachers || []);
     } catch (error) {
       console.error("Error fetching teachers:", error);
     } finally {
@@ -101,7 +95,7 @@ export default function SectionsProgressPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#274c77' }}>Analytics</h1>
+          <h1 className="text-2xl font-bold" style={{ color: '#274c77' }}>Sections Progress</h1>
           <p className="text-gray-600">Loading teacher data...</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -122,7 +116,7 @@ export default function SectionsProgressPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold" style={{ color: '#274c77' }}>Analytics</h1>
+        <h1 className="text-2xl font-bold" style={{ color: '#274c77' }}>Sections Progress</h1>
         <p className="text-gray-600">Monitor academic progress and performance across all sections</p>
         <p className="text-sm text-gray-500 mt-1">Showing {teachers.length} teachers from your campus</p>
       </div>
