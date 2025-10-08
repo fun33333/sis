@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'teachers',
     'rest_framework',
     'corsheaders',
-    'subjects',
+    # 'subjects',
     'classes.apps.ClassesConfig', 
     'coordinator',
     'principals',
