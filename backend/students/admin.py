@@ -1,3 +1,5 @@
+# admin.py
+
 from django.contrib import admin
 from django.utils import timezone
 from .models import Student
@@ -30,3 +32,4 @@ class StudentAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # Optional: prevent deletion of student records
         return False
+

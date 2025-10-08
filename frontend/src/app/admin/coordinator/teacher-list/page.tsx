@@ -34,14 +34,14 @@ function CoordinatorTeacherListContent() {
            const userData = JSON.parse(user);
            
            // Find coordinator by email
-           const coordinatorId = await findCoordinatorByEmail(userData.email);
-           if (!coordinatorId) {
+           const coordinator = await findCoordinatorByEmail(userData.email);
+           if (!coordinator) {
              setError("Coordinator not found for this user");
              return;
            }
           
           // Fetch teachers for this coordinator
-          const data = await getCoordinatorTeachers(coordinatorId) as any;
+          const data = await getCoordinatorTeachers(coordinator.id) as any;
           const teachersData = data.teachers || [];
           
            // Map teacher data to the expected format

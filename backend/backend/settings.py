@@ -49,7 +49,6 @@ INSTALLED_APPS = [
     'coordinator',
     'principals',
     'services',
-    'student_status'
 ]
 
 MIDDLEWARE = [
@@ -82,10 +81,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-
-
-
-
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',  # ye add karo
@@ -94,42 +89,20 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 #         'PASSWORD': os.getenv('DB_PASSWORD', 'project_pass'),
 #         'HOST': os.getenv('DB_HOST', 'localhost'),
 #         'PORT': os.getenv('DB_PORT', '5432'),
-#         'CONN_MAX_AGE': 0,  
+#         'CONN_MAX_AGE': 0,  # Disable connection pooling
 #         'OPTIONS': {
 #             'connect_timeout': 10,
 #         },
 #     }
 # }
-
-# Areeba Fatima's Database 👇🏻
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql', 
-#         'NAME': 'sis',
-#         'USER': 'postgres',
-#         'PASSWORD': 'password',
-#         'HOST': 'localhost',
-#         'PORT': '5432',
-#         'CONN_MAX_AGE': 0,  
-#         'OPTIONS': {
-#             'connect_timeout': 10,
-#         },
-#     }
-# }
-
-
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'sis-db',         
-        'USER': 'postgres',          # Default user
-        'PASSWORD': 'password',    
-        'HOST': 'localhost',      # Default host
-        'PORT': '5432',
-        "CONN_MAX_AGE": 0,
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'db.sqlite3',
     }
 }
+
 
 
 AUTH_PASSWORD_VALIDATORS = [

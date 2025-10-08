@@ -30,8 +30,7 @@ function TeacherListContent() {
 
   useEffect(() => {
     // Get user role
-    const role = getCurrentUserRole()
-    setUserRole(role)
+    setUserRole(getCurrentUserRole())
     
     async function fetchTeachers() {
       setLoading(true)

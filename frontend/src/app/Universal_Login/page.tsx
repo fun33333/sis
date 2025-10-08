@@ -85,7 +85,7 @@ export default function LoginPage() {
       
       // Redirect based on role
       if (userRole.includes("coord")) {
-        router.push("/admin/coordinator/sections-progress");
+        router.push("/admin/coordinator");
       } else if (userRole.includes("teach")) {
         router.push("/admin/teachers/request");
       } else if (userRole.includes("princ")) {

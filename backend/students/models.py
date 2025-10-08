@@ -1,3 +1,5 @@
+# models.py
+
 from django.db import models
 from django.utils import timezone
 
@@ -109,7 +111,7 @@ class Student(models.Model):
     def class_teacher(self):
         return self.classroom.class_teacher if self.classroom else None
 
-    def __str__(self):
+    def _str_(self):
         return f"{self.name} ({self.student_code or self.student_id or self.gr_no or 'No ID'})"
 
     def save(self, *args, **kwargs):

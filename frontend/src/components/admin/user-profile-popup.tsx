@@ -91,10 +91,10 @@ export function UserProfilePopup() {
 
   // Load user data when popup opens
   useEffect(() => {
-    if (isOpen && !userProfile) {
+    if (isClient && isOpen && !userProfile) {
       fetchUserProfile()
     }
-  }, [isOpen, userProfile])
+  }, [isClient, isOpen, userProfile])
 
   const fetchUserProfile = async () => {
     try {

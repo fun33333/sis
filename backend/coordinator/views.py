@@ -70,10 +70,9 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
             current_state='active'
         ).count()
         
-        # Get classes count from coordinator's campus
-        classes_count = ClassRoom.objects.filter(
-            campus=coordinator.campus
-        ).count()
+        # Get classes count - ClassRoom model doesn't have campus field
+        # So we'll get all classes for now, or implement a different logic
+        classes_count = ClassRoom.objects.count()
         
         # Get pending requests (if any)
         pending_requests = 0  # This would need to be implemented based on your request system
