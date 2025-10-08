@@ -10,7 +10,7 @@ import { Search, Users, Mail, Phone, MapPin, GraduationCap, Calendar, BookOpen, 
 import { getAllStudents } from "@/lib/api"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions"
+import { getCurrentUserRole } from "@/lib/permissions"
 
 export default function StudentListPage() {
   useEffect(() => {
@@ -31,20 +31,11 @@ export default function StudentListPage() {
   
   // Role-based access control
   const [userRole, setUserRole] = useState<string>("")
-  const [userCampus, setUserCampus] = useState<string | null>(null)
-  const [isClient, setIsClient] = useState(false)
   const canEdit = userRole !== "superadmin"
 
   useEffect(() => {
-    setIsClient(true)
-    // Get user role and campus
+    // Get user role
     setUserRole(getCurrentUserRole())
-    
-    // Get user campus for principal filtering
-    const user = getCurrentUser() as any
-    if (user?.campus?.campus_name) {
-      setUserCampus(user.campus.campus_name)
-    }
     
     async function fetchStudents() {
       setLoading(true)
@@ -105,10 +96,8 @@ export default function StudentListPage() {
       (statusFilter === "active" && student.current_state.toLowerCase() === "active") ||
       (statusFilter === "inactive" && student.current_state.toLowerCase() !== "active")
 
-    // Principal campus filtering - only show students from principal's campus
-    const matchesCampus = userRole === "principal" 
-      ? (userCampus ? student.campus.toLowerCase().includes(userCampus.toLowerCase()) : true)
-      : (campusFilter === "all" || student.campus.toLowerCase().includes(campusFilter.toLowerCase()))
+    const matchesCampus = campusFilter === "all" || 
+      student.campus.toLowerCase().includes(campusFilter.toLowerCase())
 
     const matchesGrade = gradeFilter === "all" || 
       student.current_grade.toLowerCase().includes(gradeFilter.toLowerCase())
@@ -184,16 +173,6 @@ export default function StudentListPage() {
   }
 
 
-  if (!isClient) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -229,9 +208,8 @@ export default function StudentListPage() {
               />
             </div>
             
-            {/* Filters - Hide for teachers */}
-            {userRole !== "teacher" && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                 <select
@@ -245,22 +223,19 @@ export default function StudentListPage() {
                 </select>
               </div>
               
-                {/* Hide campus filter for principal - they only see their campus data */}
-                {userRole !== "principal" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Campus</label>
-                    <select
-                      value={campusFilter}
-                      onChange={(e) => setCampusFilter(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="all">All Campuses</option>
-                      {getUniqueCampuses().map(campus => (
-                        <option key={campus} value={campus}>{campus}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Campus</label>
+                <select
+                  value={campusFilter}
+                  onChange={(e) => setCampusFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Campuses</option>
+                  {getUniqueCampuses().map(campus => (
+                    <option key={campus} value={campus}>{campus}</option>
+                  ))}
+                </select>
+              </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Grade</label>
@@ -275,8 +250,7 @@ export default function StudentListPage() {
                   ))}
                 </select>
               </div>
-              </div>
-            )}
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -195,15 +195,8 @@ export function UserProfilePopup() {
     router.push("/Universal_Login")
   }
 
-  const [currentUser, setCurrentUser] = useState<any>(null)
-  const [isClient, setIsClient] = useState(false)
-
-  useEffect(() => {
-    setIsClient(true)
-    setCurrentUser(getCurrentUser())
-  }, [])
-
-  if (!isClient || !currentUser) return null
+  const currentUser = getCurrentUser()
+  if (!currentUser) return null
 
   // Don't render until client-side
   if (!isClient) {
