@@ -200,12 +200,7 @@ export function UserProfilePopup() {
 
   // Don't render until client-side
   if (!isClient) {
-    return (
-      <div className="flex items-center gap-3 p-2 rounded-lg">
-        <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
-        <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
-      </div>
-    )
+    return null
   }
 
   return (

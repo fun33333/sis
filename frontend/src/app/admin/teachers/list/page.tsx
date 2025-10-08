@@ -20,13 +20,73 @@ function TeacherListContent() {
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [campusFilter, setCampusFilter] = useState<string>("all")
-  const [subjectFilter, setSubjectFilter] = useState<string>("all")
+  const [gradeFilter, setGradeFilter] = useState<string>("all")
+  const [levelFilter, setLevelFilter] = useState<string>("all")
   const pageSize = 30
   
   // Role-based access control
   const [userRole, setUserRole] = useState<string>("")
   const canEdit = userRole !== "superadmin"
+
+  // Move getLevelFromGrade function BEFORE filteredTeachers
+  const getLevelFromGrade = (grade: string) => {
+    const gradeLower = grade.toLowerCase()
+
+    // Pre-Primary levels
+    if (gradeLower.includes('kg') || gradeLower.includes('nursery') || gradeLower.includes('prep') || gradeLower.includes('playgroup')) {
+      return 'pre-primary'
+    }
+
+    // Primary levels (Grade 1-5)
+    if (gradeLower.includes('grade 1') || gradeLower.includes('grade 2') || gradeLower.includes('grade 3') ||
+      gradeLower.includes('grade 4') || gradeLower.includes('grade 5') || gradeLower.includes('class 1') ||
+      gradeLower.includes('class 2') || gradeLower.includes('class 3') || gradeLower.includes('class 4') ||
+      gradeLower.includes('class 5') || gradeLower.includes('1st') || gradeLower.includes('2nd') ||
+      gradeLower.includes('3rd') || gradeLower.includes('4th') || gradeLower.includes('5th')) {
+      return 'primary'
+    }
+
+    // Secondary levels (Grade 6-12)
+    if (gradeLower.includes('grade 6') || gradeLower.includes('grade 7') || gradeLower.includes('grade 8') ||
+      gradeLower.includes('grade 9') || gradeLower.includes('grade 10') || gradeLower.includes('grade 11') ||
+      gradeLower.includes('grade 12') || gradeLower.includes('class 6') || gradeLower.includes('class 7') ||
+      gradeLower.includes('class 8') || gradeLower.includes('class 9') || gradeLower.includes('class 10') ||
+      gradeLower.includes('class 11') || gradeLower.includes('class 12') || gradeLower.includes('6th') ||
+      gradeLower.includes('7th') || gradeLower.includes('8th') || gradeLower.includes('9th') ||
+      gradeLower.includes('10th') || gradeLower.includes('11th') || gradeLower.includes('12th')) {
+      return 'secondary'
+    }
+
+    return 'primary' // Default to primary if no match
+  }
+
+  // Get grades based on selected level
+  const getFilteredGrades = () => {
+    const allGrades = [
+      'Nursery', 'KG-1', 'KG-2',
+      'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5',
+      'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'
+    ]
+
+    if (levelFilter === "all") {
+      return allGrades
+    } else if (levelFilter === "pre-primary") {
+      return ['Nursery', 'KG-1', 'KG-2']
+    } else if (levelFilter === "primary") {
+      return ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5']
+    } else if (levelFilter === "secondary") {
+      return ['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10']
+    }
+    
+    return allGrades
+  }
+
+  // Reset grade filter when level changes
+  useEffect(() => {
+    if (levelFilter !== "all") {
+      setGradeFilter("all")
+    }
+  }, [levelFilter])
 
   useEffect(() => {
     // Get user role
@@ -39,7 +99,7 @@ function TeacherListContent() {
         let teachersData: any[] = []
         
         // Check if user is coordinator
-        if (role === 'coordinator') {
+        if (userRole === 'coordinator') {
           // Check if we're on client side
           if (typeof window === 'undefined') {
             setError("Please wait, loading...");
@@ -126,7 +186,7 @@ function TeacherListContent() {
       }
     }
     fetchTeachers()
-  }, [])
+  }, [userRole])
 
   const filteredTeachers = teachers.filter(teacher => {
     const searchTerm = search.toLowerCase()
@@ -143,19 +203,27 @@ function TeacherListContent() {
       (statusFilter === "active" && teacher.is_active) ||
       (statusFilter === "inactive" && !teacher.is_active)
 
-    const matchesCampus = campusFilter === "all" || 
-      teacher.campus.toLowerCase().includes(campusFilter.toLowerCase())
+    const matchesGrade = gradeFilter === "all" || 
+      (teacher.classes && teacher.classes !== 'Not Assigned' && 
+       teacher.classes.toLowerCase().includes(gradeFilter.toLowerCase())) ||
+      (teacher.subject && teacher.subject !== 'Not Assigned' && 
+       teacher.subject.toLowerCase().includes(gradeFilter.toLowerCase()))
 
-    const matchesSubject = subjectFilter === "all" || 
-      teacher.subject.toLowerCase().includes(subjectFilter.toLowerCase())
+    const matchesLevel = levelFilter === "all" || 
+      (teacher.classes && getLevelFromGrade(teacher.classes) === levelFilter)
 
-    return matchesSearch && matchesStatus && matchesCampus && matchesSubject
+    // Debug logging for grade filter
+    if (gradeFilter !== "all") {
+      console.log(`Teacher: ${teacher.name}, Classes: ${teacher.classes}, Subject: ${teacher.subject}, Grade Filter: ${gradeFilter}, Matches: ${matchesGrade}`)
+    }
+
+    return matchesSearch && matchesStatus && matchesGrade && matchesLevel
   })
 
   // Reset to first page when search or filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, statusFilter, campusFilter, subjectFilter])
+  }, [search, statusFilter, gradeFilter, levelFilter])
 
   const totalRecords = filteredTeachers.length
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalRecords / pageSize)), [totalRecords])
@@ -206,18 +274,13 @@ function TeacherListContent() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
-  const getUniqueCampuses = () => {
-    const campuses = [...new Set(teachers.map(t => t.campus).filter(Boolean))]
-    // Add fallback campuses if no data is available
-    if (campuses.length === 0) {
-      return ['Campus 1', 'Campus 2', 'Campus 3', 'Main Campus', 'Branch Campus']
-    }
-    return campuses.sort()
-  }
-
-  const getUniqueSubjects = () => {
-    const subjects = [...new Set(teachers.map(t => t.subject).filter(Boolean))]
-    return subjects.sort()
+  const getUniqueLevels = () => {
+    return [
+      { value: "all", label: "All Levels" },
+      { value: "pre-primary", label: "Pre-Primary" },
+      { value: "primary", label: "Primary" },
+      { value: "secondary", label: "Secondary" }
+    ]
   }
 
   return (
@@ -229,9 +292,6 @@ function TeacherListContent() {
            {!loading && !error && (
              <div className="text-sm text-gray-500 mt-1">
                <p>Total Teachers: {teachers.length} | Showing: {filteredTeachers.length}</p>
-               {getUniqueCampuses().length === 0 && (
-                 <p className="text-yellow-600">⚠️ Campus data not available - using fallback options</p>
-               )}
              </div>
            )}
         </div>
@@ -270,33 +330,29 @@ function TeacherListContent() {
                  </select>
                </div>
                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Campus</label>
-                  <select
-                    value={campusFilter}
-                    onChange={(e) => setCampusFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="all">All Campuses</option>
-                    {getUniqueCampuses().map(campus => (
-                      <option key={campus} value={campus}>{campus}</option>
-                    ))}
-                    {getUniqueCampuses().length === 0 && (
-                      <option value="unknown">Unknown Campus</option>
-                    )}
-                  </select>
-                </div>
-               
                <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                 <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
                  <select
-                   value={subjectFilter}
-                   onChange={(e) => setSubjectFilter(e.target.value)}
+                   value={levelFilter}
+                   onChange={(e) => setLevelFilter(e.target.value)}
                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                  >
-                   <option value="all">All Subjects</option>
-                   {getUniqueSubjects().map(subject => (
-                     <option key={subject} value={subject}>{subject}</option>
+                   {getUniqueLevels().map(level => (
+                     <option key={level.value} value={level.value}>{level.label}</option>
+                   ))}
+                 </select>
+               </div>
+               
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-2">Grade</label>
+                 <select
+                   value={gradeFilter}
+                   onChange={(e) => setGradeFilter(e.target.value)}
+                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 >
+                   <option value="all">All Grades</option>
+                   {getFilteredGrades().map(grade => (
+                     <option key={grade} value={grade}>{grade}</option>
                    ))}
                  </select>
                </div>

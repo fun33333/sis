@@ -45,6 +45,8 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
             ? "teacher"
             : roleNorm.includes("admin")
             ? "superadmin"
+            : roleNorm.includes("princ")
+            ? "principal"
             : roleNorm;
           setUserRole(normalized);
         } catch {
@@ -65,6 +67,8 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           ? "teacher"
           : roleNorm.includes("admin")
           ? "superadmin"
+          : roleNorm.includes("princ")
+          ? "principal"
           : roleNorm;
         setUserRole(normalized);
       } else {
@@ -111,6 +115,72 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         href: "/admin/coordinator",
         subItems: [
           { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
+          { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
+          { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
+          { title: "Result Approval", href: "/admin/coordinator/result-approval" },
+          { title: "Class Assign", href: "/admin/coordinator/class-assign" },
+          { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
+          { title: "Time Table", href: "/admin/coordinator/time-table" },
+        ],
+      },
+    ]
+    : userRole === "principal"
+    ? [
+      // Principal: Campus-specific access
+      {
+        key: "dashboard",
+        title: "Dashboard",
+        icon: TrendingUp,
+        href: "/admin",
+        subItems: [],
+      },
+      {
+        key: "students",
+        title: "Students",
+        icon: Users,
+        href: "/admin/students",
+        subItems: [
+          { title: "Add Student", href: "/admin/students/add" },
+          { title: "Student List", href: "/admin/students/student-list" },
+          { title: "Transfer Module", href: "/admin/students/transfer-modal" },
+          { title: "Leaving Certificate", href: "/admin/students/leaving-certificate" },
+          { title: "Termination Certificate", href: "/admin/students/termination-certificate" },
+        ],
+      },
+      {
+        key: "teachers",
+        title: "Teachers",
+        icon: GraduationCap,
+        href: "/admin/teachers",
+        subItems: [
+          { title: "Teacher List", href: "/admin/teachers/list" },
+          { title: "Add Teacher", href: "/admin/teachers/add" },
+          { title: "Request / Complain", href: "/admin/teachers/request" },
+          { title: "Time Table", href: "/admin/teachers/timetable" },
+          { title: "Attendance", href: "/admin/teachers/attendance" },
+          { title: "Class Statistics", href: "/admin/teachers/stats" },
+        ],
+      },
+      {
+        key: "campus",
+        title: "Campus",
+        icon: Building2,
+        href: "/admin/campus",
+        subItems: [
+          { title: "Campus List", href: "/admin/campus/list" },
+          { title: "Add Class", href: "/admin/campus/add-class" },
+          { title: "Add Grade", href: "/admin/campus/add-grade" },
+          { title: "Add Level", href: "/admin/campus/add-level" },
+        ],
+      },
+      {
+        key: "coordinator",
+        title: "Co-Ordinator",
+        icon: Award,
+        href: "/admin/coordinator",
+        subItems: [
+          { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
+          { title: "Add Coordinator", href: "/admin/coordinator/add" },
           { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
           { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
           { title: "Result Approval", href: "/admin/coordinator/result-approval" },

@@ -26,7 +26,7 @@ export default function CampusListPage() {
   
   // Role-based access control
   const [userRole, setUserRole] = React.useState<string>("")
-  const canAddCampus = userRole === "superadmin" || userRole === "principal"
+  const canAddCampus = userRole === "superadmin"
   
   React.useEffect(() => {
     setUserRole(getCurrentUserRole())

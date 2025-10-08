@@ -394,5 +394,73 @@ export async function getCoordinatorDashboardStats(coordinatorId: number) {
   }
 }
 
+export async function findCoordinatorByEmail(email: string) {
+  try {
+    const coordinators = await apiGet(API_ENDPOINTS.COORDINATORS);
+    if (Array.isArray(coordinators)) {
+      return coordinators.find((coord: any) => coord.email === email);
+    }
+    return null;
+  } catch (error) {
+    console.error('Failed to find coordinator by email:', error);
+    return null;
+  }
+}
+
+// Principal-specific API functions
+export async function getPrincipalCampusData(campusId: number) {
+  try {
+    return await apiGet(`${API_ENDPOINTS.CAMPUS}${campusId}/`);
+  } catch (error) {
+    console.error('Failed to fetch principal campus data:', error);
+    return null;
+  }
+}
+
+export async function getCampusStudents(campusId: number) {
+  try {
+    return await apiGet(`${API_ENDPOINTS.STUDENTS}?campus=${campusId}`);
+  } catch (error) {
+    console.error('Failed to fetch campus students:', error);
+    return [];
+  }
+}
+
+export async function getCampusTeachers(campusId: number) {
+  try {
+    return await apiGet(`${API_ENDPOINTS.TEACHERS}?campus=${campusId}`);
+  } catch (error) {
+    console.error('Failed to fetch campus teachers:', error);
+    return [];
+  }
+}
+
+export async function getCampusDashboardStats(campusId: number) {
+  try {
+    const [students, teachers, campus] = await Promise.all([
+      getCampusStudents(campusId),
+      getCampusTeachers(campusId),
+      getPrincipalCampusData(campusId)
+    ]);
+    
+    return {
+      campus,
+      totalStudents: Array.isArray(students) ? students.length : 0,
+      totalTeachers: Array.isArray(teachers) ? teachers.length : 0,
+      students: Array.isArray(students) ? students : [],
+      teachers: Array.isArray(teachers) ? teachers : []
+    };
+  } catch (error) {
+    console.error('Failed to fetch campus dashboard stats:', error);
+    return {
+      campus: null,
+      totalStudents: 0,
+      totalTeachers: 0,
+      students: [],
+      teachers: []
+    };
+  }
+}
+
 
 

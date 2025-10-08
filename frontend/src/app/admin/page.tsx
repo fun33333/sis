@@ -21,6 +21,23 @@ if (typeof window !== 'undefined') {
 }
 
 export default function MainDashboardPage() {
+  // Get current user role
+  const [userRole, setUserRole] = useState<string>("")
+  
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userStr = window.localStorage.getItem("sis_user");
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          const role = user.role?.toLowerCase();
+          setUserRole(role || "");
+        } catch {
+          setUserRole("");
+        }
+      }
+    }
+  }, []);
   // Utility to convert students to CSV
   function studentsToCSV(students: DashboardStudent[]) {
     if (!students.length) return '';
@@ -92,9 +109,15 @@ export default function MainDashboardPage() {
       if (userStr) {
         try {
           const user = JSON.parse(userStr);
-          if (user.role === "teacher") {
-            router.replace("/admin/students/student-list");
+          const role = user.role?.toLowerCase();
+          
+          // Role-based routing
+          if (role?.includes("teacher")) {
+            router.replace("/admin/teachers/request");
+          } else if (role?.includes("coord")) {
+            router.replace("/admin/coordinator");
           }
+          // Principal and Super admin stay on main dashboard
         } catch {}
       }
     }
@@ -110,6 +133,7 @@ export default function MainDashboardPage() {
   const [students, setStudents] = useState<DashboardStudent[]>([])
   const [loading, setLoading] = useState(true)
   const [showLoader, setShowLoader] = useState(true)
+  const [principalCampusId, setPrincipalCampusId] = useState<number | null>(null)
 
   useEffect(() => {
     document.title = "Dashboard | IAK SMS"
@@ -118,6 +142,21 @@ export default function MainDashboardPage() {
     async function fetchData() {
       setLoading(true)
       try {
+        // Get Principal's campus ID if user is Principal
+        let campusId = null;
+        if (userRole?.includes("principal")) {
+          const userStr = window.localStorage.getItem("sis_user");
+          if (userStr) {
+            try {
+              const user = JSON.parse(userStr);
+              campusId = (user as any).campus_id;
+              setPrincipalCampusId(campusId);
+            } catch (err) {
+              console.error("Error getting Principal campus ID:", err);
+            }
+          }
+        }
+        
         // Try to fetch from API first
         const [apiStudents, apiStats, caps] = await Promise.all([
           getAllStudents(),
@@ -137,7 +176,15 @@ export default function MainDashboardPage() {
           campusArray.map((c: any) => [String(c.id), String(c.code || '')])
         )
 
-        const mapped: DashboardStudent[] = studentsArray.map((item: any, idx: number) => {
+        // Filter students by campus if Principal
+        let filteredStudents = studentsArray;
+        if (userRole?.includes("principal") && campusId) {
+          filteredStudents = studentsArray.filter((student: any) => {
+            return student.current_campus === campusId || student.campus_id === campusId;
+          });
+        }
+
+        const mapped: DashboardStudent[] = filteredStudents.map((item: any, idx: number) => {
             const createdAt = typeof item?.created_at === "string" ? item.created_at : ""
             const year = createdAt ? Number(createdAt.split("-")[0]) : new Date().getFullYear()
             const genderRaw = (item?.gender ?? "").toString().trim()
@@ -308,7 +355,10 @@ export default function MainDashboardPage() {
           <CardContent className="!bg-[#E7ECEF]">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               <MultiSelectFilter title="Academic Year" options={dynamicAcademicYears} selectedValues={filters.academicYears} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, academicYears: val as number[] }))} placeholder="All years" />
-              <MultiSelectFilter title="Campus" options={dynamicCampuses} selectedValues={filters.campuses} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, campuses: val as string[] }))} placeholder="All campuses" />
+              {/* Hide Campus filter for Principal - they only see their own campus */}
+              {!userRole?.includes("principal") && (
+                <MultiSelectFilter title="Campus" options={dynamicCampuses} selectedValues={filters.campuses} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, campuses: val as string[] }))} placeholder="All campuses" />
+              )}
               <MultiSelectFilter title="Grade" options={dynamicGrades} selectedValues={filters.grades} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, grades: val as string[] }))} placeholder="All grades" />
               <MultiSelectFilter title="Gender" options={dynamicGenders} selectedValues={filters.genders} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, genders: val as ("Male" | "Female" | "Other")[] }))} placeholder="All genders" />
               <MultiSelectFilter title="Mother Tongue" options={dynamicMotherTongues} selectedValues={filters.motherTongues} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, motherTongues: val as string[] }))} placeholder="All mother tongues" />
@@ -318,14 +368,45 @@ export default function MainDashboardPage() {
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-          <KpiCard title="Total Students" value={metrics.totalStudents} description="Active enrollments" icon={Users} bgColor="#E7ECEF" textColor="text-[#274c77]" />
-          <KpiCard title="Avg Attendance" value={`${metrics.averageAttendance}%`} description="Overall attendance rate" icon={Calendar} bgColor="#8B8C89" textColor="text-white" />
-          <KpiCard title="Avg Score" value={metrics.averageScore} description="Academic performance" icon={GraduationCap} bgColor="#6096BA" textColor="text-white" />
-          <KpiCard title="Retention Rate" value={`${metrics.retentionRate}%`} description="Student retention" icon={TrendingUp} bgColor="#A3CEF1" textColor="text-[#274c77]" />
+          <KpiCard 
+            title="Total Students" 
+            value={metrics.totalStudents} 
+            description={userRole?.includes("principal") ? "Students in your campus" : "Active enrollments"} 
+            icon={Users} 
+            bgColor="#E7ECEF" 
+            textColor="text-[#274c77]" 
+          />
+          <KpiCard 
+            title="Avg Attendance" 
+            value={`${metrics.averageAttendance}%`} 
+            description={userRole?.includes("principal") ? "Campus attendance rate" : "Overall attendance rate"} 
+            icon={Calendar} 
+            bgColor="#8B8C89" 
+            textColor="text-white" 
+          />
+          <KpiCard 
+            title="Avg Score" 
+            value={metrics.averageScore} 
+            description={userRole?.includes("principal") ? "Campus academic performance" : "Academic performance"} 
+            icon={GraduationCap} 
+            bgColor="#6096BA" 
+            textColor="text-white" 
+          />
+          <KpiCard 
+            title="Retention Rate" 
+            value={`${metrics.retentionRate}%`} 
+            description={userRole?.includes("principal") ? "Campus student retention" : "Student retention"} 
+            icon={TrendingUp} 
+            bgColor="#A3CEF1" 
+            textColor="text-[#274c77]" 
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-          <CampusPerformanceChart data={chartData.campusPerformance} valueKind={filteredStudents.some(s => (s.averageScore || 0) > 0) ? "average" : "count"} />
+          {/* Hide Campus Performance Chart for Principal - they only see their own campus */}
+          {!userRole?.includes("principal") && (
+            <CampusPerformanceChart data={chartData.campusPerformance} valueKind={filteredStudents.some(s => (s.averageScore || 0) > 0) ? "average" : "count"} />
+          )}
           <GenderDistributionChart data={chartData.genderDistribution} />
           <ReligionChart data={chartData.religionDistribution} />
         </div>
