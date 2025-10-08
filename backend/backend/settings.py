@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'coordinator',
     'principals',
     'services',
+    'student_status',
 ]
 
 MIDDLEWARE = [
@@ -81,18 +82,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': 'db.sqlite3',
+#     }
+# }
 
 
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',  # ye add karo
-        'NAME': os.getenv('DB_NAME', 'project_db'),
-        'USER': os.getenv('DB_USER', 'project_user'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'project_pass'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+        'NAME': 'sis',
+        'USER': 'postgres',
+        'PASSWORD': 'root8@',
+        'HOST': 'localhost',
+        'PORT': '5432',
         'CONN_MAX_AGE': 0,  
         'OPTIONS': {
             'connect_timeout': 10,
