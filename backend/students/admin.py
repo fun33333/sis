@@ -10,7 +10,10 @@ class StudentAdmin(admin.ModelAdmin):
     list_display = (
         "name", 
         "get_campus_name", 
+        "current_grade",
+        "section",
         "classroom", 
+        "get_class_teacher",
         "current_state", 
         "is_deleted",
         "terminated_on", 
@@ -32,6 +35,15 @@ class StudentAdmin(admin.ModelAdmin):
     
     get_campus_name.short_description = "Campus"
     get_campus_name.admin_order_field = "campus__campus_name"
+    
+    def get_class_teacher(self, obj):
+        """Display the class teacher for this student"""
+        if obj.classroom and obj.classroom.class_teacher:
+            return f"{obj.classroom.class_teacher.full_name} ({obj.classroom.class_teacher.employee_code})"
+        return "No Teacher Assigned"
+    
+    get_class_teacher.short_description = "Class Teacher"
+    get_class_teacher.admin_order_field = "classroom__class_teacher__name"
 
     # --- Custom Actions ---
     def mark_as_terminated(self, request, queryset):

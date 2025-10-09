@@ -34,14 +34,9 @@ class Level(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            # Generate code using campus_id field instead of database ID
-            if self.campus and self.campus.campus_id:
-                # Use campus_id field (e.g., C01, C02, etc.)
-                campus_code = self.campus.campus_id
-            else:
-                # Fallback to database ID if campus_id not set
-                campus_id = self.campus.id if self.campus else 1
-                campus_code = f"C{campus_id:02d}"
+            # Generate campus code: C01, C02, C03, etc.
+            campus_id = self.campus.id if self.campus else 1
+            campus_code = f"C{campus_id:02d}"
             
             # Map level names to codes: L1, L2, L3
             level_name = self.name.lower()
@@ -54,13 +49,14 @@ class Level(models.Model):
             else:
                 level_code = "L1"  # Default
             
+            # Generate level code: C01-L1, C01-L2, C01-L3
             self.code = f"{campus_code}-{level_code}"
             
             # Ensure uniqueness
             original_code = self.code
             suffix = 1
             while Level.objects.filter(code=self.code).exists():
-                self.code = f"{original_code}-{suffix}"
+                self.code = f"{original_code}-{suffix:02d}"
                 suffix += 1
         super().save(*args, **kwargs)
 
@@ -88,13 +84,9 @@ class Grade(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            # Generate code using campus_id field instead of database ID
-            if self.level and self.level.campus and self.level.campus.campus_id:
-                campus_code = self.level.campus.campus_id
-            else:
-                # Fallback to database ID if campus_id not set
-                campus_id = self.level.campus.id if self.level and self.level.campus else 1
-                campus_code = f"C{campus_id:02d}"
+            # Generate campus code: C01, C02, C03, etc.
+            campus_id = self.level.campus.id if self.level and self.level.campus else 1
+            campus_code = f"C{campus_id:02d}"
             
             # Level code mapping: Pre-Primary=L1, Primary=L2, Secondary=L3
             level_name = self.level.name.lower() if self.level else "unknown"
@@ -107,6 +99,7 @@ class Grade(models.Model):
             else:
                 level_code = "L1"  # Default
             
+            # Grade mapping
             grade_name = self.name.replace("Grade", "").strip()
             
             # Try to extract number from grade name
@@ -128,9 +121,10 @@ class Grade(models.Model):
                 else:
                     grade_num = "01"
             
+            # Generate grade code: C01-L1-G00, C01-L1-G01, C01-L1-G02
             self.code = f"{campus_code}-{level_code}-G{grade_num}"
             
-            # Ensure uniqueness - check if this exact code already exists
+            # Ensure uniqueness
             original_code = self.code
             suffix = 1
             while Grade.objects.filter(code=self.code).exists():
@@ -197,7 +191,7 @@ class ClassRoom(models.Model):
         if self.grade and self.grade.code:
             grade_code = self.grade.code
         else:
-            grade_code = self.grade.short_code or "".join(self.grade.name.split()).upper()
+            grade_code = "".join(self.grade.name.split()).upper()
         return grade_code, self.section
 
     def clean(self):
@@ -221,13 +215,9 @@ class ClassRoom(models.Model):
         self.clean()
         
         if not self.code:
-            # Generate code using campus_id field instead of database ID
-            if self.grade and self.grade.level and self.grade.level.campus and self.grade.level.campus.campus_id:
-                campus_code = self.grade.level.campus.campus_id
-            else:
-                # Fallback to database ID if campus_id not set
-                campus_id = self.grade.level.campus.id if self.grade and self.grade.level and self.grade.level.campus else 1
-                campus_code = f"C{campus_id:02d}"
+            # Generate campus code: C01, C02, C03, etc.
+            campus_id = self.grade.level.campus.id if self.grade and self.grade.level and self.grade.level.campus else 1
+            campus_code = f"C{campus_id:02d}"
             
             # Get shift code from classroom shift field
             shift_map = {
@@ -271,7 +261,8 @@ class ClassRoom(models.Model):
                 else:
                     grade_num = "01"
             
-            self.code = f"{campus_code}-{shift_code}-{level_code}-G{grade_num}-{self.section}"
+            # Generate class code: C01-M-G1-A, C01-M-G1-B, C01-M-G1-C
+            self.code = f"{campus_code}-{shift_code}-G{grade_num}-{self.section}"
             
             # Ensure uniqueness
             original_code = self.code

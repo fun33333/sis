@@ -64,14 +64,21 @@ class ClassRoomCoordinatorFilter(admin.SimpleListFilter):
 
 @admin.register(ClassRoom)
 class ClassRoomAdmin(admin.ModelAdmin):
-    list_display = ("grade", "section", "class_teacher", "capacity", "code", "campus_display")
+    list_display = ("grade", "section", "class_teacher", "get_student_count", "capacity", "code", "campus_display")
     list_filter = ("grade", "class_teacher", "capacity", "grade__level__campus")
     search_fields = ("grade__name", "section", "class_teacher__full_name", "code")
     autocomplete_fields = ("class_teacher",)
     
     def campus_display(self, obj):
-        return obj.campus.campus_name if obj.campus else '-'
+        return obj.grade.level.campus.campus_name if obj.grade and obj.grade.level and obj.grade.level.campus else '-'
     campus_display.short_description = 'Campus'
+    
+    def get_student_count(self, obj):
+        """Display the number of students in this classroom"""
+        from students.models import Student
+        count = Student.objects.filter(classroom=obj).count()
+        return f"{count} students"
+    get_student_count.short_description = "Students"
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('grade', 'class_teacher', 'grade__level__campus')

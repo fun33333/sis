@@ -23,6 +23,7 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     is_verified = models.BooleanField(default=False)
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
+    has_changed_default_password = models.BooleanField(default=False)
     
     # System fields
     created_at = models.DateTimeField(default=timezone.now)
