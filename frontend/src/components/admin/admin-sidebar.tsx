@@ -2,7 +2,7 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, Building2, GraduationCap, TrendingUp, LogOut, Award } from "lucide-react"
+import { Users, Building2, GraduationCap, TrendingUp, LogOut, Award, Calendar } from "lucide-react"
 import { useState, useEffect } from "react"
 
 
@@ -104,6 +104,20 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         ],
       },
       {
+        key: "attendance",
+        title: "Mark Attendance",
+        icon: Calendar,
+        href: "/admin/teachers/attendance",
+        subItems: [],
+      },
+      {
+        key: "class-stats",
+        title: "Class Statistics",
+        icon: TrendingUp,
+        href: "/admin/teachers/stats",
+        subItems: [],
+      },
+      {
         key: "teachers",
         title: "Teachers",
         icon: GraduationCap,
@@ -112,7 +126,6 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Request / Complain", href: "/admin/teachers/request" },
           { title: "Time Table", href: "/admin/teachers/timetable" },
           { title: "Attendance", href: "/admin/teachers/attendance" },
-          { title: "Class Statistics", href: "/admin/teachers/stats" },
           { title: "Class Reasult", href: "/admin/teachers/reasult" },
         ],
       },
@@ -213,11 +226,17 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         icon: Users,
         href: "/admin/students",
         subItems: [
-          { title: "Add Student", href: "/admin/students/add" },
-          { title: "Student List", href: "/admin/students/student-list" },
-          { title: "Transfer Module", href: "/admin/students/transfer-modal" },
-          { title: "Leaving Certificate", href: "/admin/students/leaving-certificate" },
-          { title: "Termination Certificate", href: "/admin/students/termination-certificate" },
+          // Principal: Only show add student and student list
+          ...(userRole === "principal" ? [
+            { title: "Add Student", href: "/admin/students/add" },
+            { title: "Student List", href: "/admin/students/student-list" },
+          ] : [
+            { title: "Add Student", href: "/admin/students/add" },
+            { title: "Student List", href: "/admin/students/student-list" },
+            { title: "Transfer Module", href: "/admin/students/transfer-modal" },
+            { title: "Leaving Certificate", href: "/admin/students/leaving-certificate" },
+            { title: "Termination Certificate", href: "/admin/students/termination-certificate" },
+          ]),
         ],
       },
       {
@@ -226,12 +245,18 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         icon: GraduationCap,
         href: "/admin/teachers",
         subItems: [
-          { title: "Teacher List", href: "/admin/teachers/list" },
-          { title: "Add Teacher", href: "/admin/teachers/add" },
-          { title: "Request / Complain", href: "/admin/teachers/request" },
-          { title: "Time Table", href: "/admin/teachers/timetable" },
-          { title: "Attendance", href: "/admin/teachers/attendance" },
-          { title: "Class Statistics", href: "/admin/teachers/stats" },
+          // Principal: Only show teacher list and add teacher
+          ...(userRole === "principal" ? [
+            { title: "Teacher List", href: "/admin/teachers/list" },
+            { title: "Add Teacher", href: "/admin/teachers/add" },
+          ] : [
+            { title: "Teacher List", href: "/admin/teachers/list" },
+            { title: "Add Teacher", href: "/admin/teachers/add" },
+            { title: "Request / Complain", href: "/admin/teachers/request" },
+            { title: "Time Table", href: "/admin/teachers/timetable" },
+            { title: "Attendance", href: "/admin/teachers/attendance" },
+            { title: "Class Statistics", href: "/admin/teachers/stats" },
+          ]),
         ],
       },
       {
@@ -254,15 +279,21 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         icon: Award,
         href: "/admin/coordinator",
         subItems: [
-          { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
+          ...(userRole === "principal" ? [
+            { title: "Coordinator List", href: "/admin/coordinator/list" },
+          ] : [
+            { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
+          ]),
           { title: "Add Coordinator", href: "/admin/coordinator/add" },
-
           { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
           { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
           { title: "Result Approval", href: "/admin/coordinator/result-approval" },
-          { title: "Class Assign", href: "/admin/coordinator/class-assign" },
-          { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
-          { title: "Time Table", href: "/admin/coordinator/time-table" },
+          // Hide these items for principal
+          ...(userRole !== "principal" ? [
+            { title: "Class Assign", href: "/admin/coordinator/class-assign" },
+            { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
+            { title: "Time Table", href: "/admin/coordinator/time-table" },
+          ] : []),
         ],
       },
     ];

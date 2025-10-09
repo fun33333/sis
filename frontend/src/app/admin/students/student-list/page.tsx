@@ -7,14 +7,21 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Search, Users, Mail, Phone, MapPin, GraduationCap, Calendar, BookOpen, Eye, User } from "lucide-react"
-import { getAllStudents } from "@/lib/api"
+import { getAllStudents, getClassroomStudents, getCoordinatorTeachers, getCurrentUserProfile } from "@/lib/api"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions"
 
 export default function StudentListPage() {
   useEffect(() => {
-    document.title = "Student List | IAK SMS";
+    const role = getCurrentUserRole()
+    if (role === 'teacher') {
+      document.title = "My Class Students | IAK SMS";
+    } else if (role === 'coordinator') {
+      document.title = "My Students | IAK SMS";
+    } else {
+      document.title = "Student List | IAK SMS";
+    }
   }, []);
 
   const router = useRouter()
@@ -23,34 +30,89 @@ export default function StudentListPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [campusFilter, setCampusFilter] = useState<string>("all")
-  const [gradeFilter, setGradeFilter] = useState<string>("all")
+   const [statusFilter, setStatusFilter] = useState<string>("all")
+   const [gradeFilter, setGradeFilter] = useState<string>("all")
   const pageSize = 500
-
-  
-  // Role-based access control
   const [userRole, setUserRole] = useState<string>("")
   const [userCampus, setUserCampus] = useState<string | null>(null)
+  const [userClassroom, setUserClassroom] = useState<number | null>(null)
   const [isClient, setIsClient] = useState(false)
   const canEdit = userRole !== "superadmin"
 
   useEffect(() => {
     setIsClient(true)
     // Get user role and campus
-    setUserRole(getCurrentUserRole())
+    const role = getCurrentUserRole()
+    setUserRole(role)
     
-    // Get user campus for principal filtering
+    // Get user data for filtering
     const user = getCurrentUser() as any
     if (user?.campus?.campus_name) {
       setUserCampus(user.campus.campus_name)
+    }
+    
+    // For teachers, get their classroom info from the API
+    if (role === 'teacher') {
+      getCurrentUserProfile().then((profile: any) => {
+        if (profile?.assigned_classroom?.id) {
+          setUserClassroom(profile.assigned_classroom.id)
+        }
+      }).catch(console.error)
+    } else if (user?.assigned_classroom?.id) {
+      setUserClassroom(user.assigned_classroom.id)
     }
     
     async function fetchStudents() {
       setLoading(true)
       setError(null)
       try {
-        const studentsData = await getAllStudents()
+        let studentsData: any[] = []
+
+        // Role-based data fetching
+        if (role === 'teacher') {
+          // Get teacher profile to get classroom info
+          const teacherProfile = await getCurrentUserProfile() as any
+          if (teacherProfile?.assigned_classroom?.id) {
+            // Teacher: Only students from their classroom
+            const classroomData = await getClassroomStudents(teacherProfile.assigned_classroom.id, teacherProfile.teacher_id) as any
+            studentsData = classroomData.students || []
+          } else {
+            // Teacher has no classroom assigned
+            setError("No classroom assigned to you. Please contact administrator.")
+            studentsData = []
+          }
+        } else if (role === 'principal') {
+          const allStudents = await getAllStudents() as any
+          if (userCampus) {
+            studentsData = allStudents.filter((student: any) => 
+              student.campus?.campus_name === userCampus || student.campus === userCampus
+            )
+          } else {
+            studentsData = allStudents
+          }
+        } else if (role === 'coordinator') {
+
+          const coordinatorId = user?.coordinator?.id || user?.id
+          if (coordinatorId) {
+            const coordinatorTeachers = await getCoordinatorTeachers(coordinatorId) as any
+            const teachersList = coordinatorTeachers.teachers || []
+            const allStudents: any[] = []
+            
+            for (const teacher of teachersList) {
+              if (teacher.classroom?.id) {
+                const classroomData = await getClassroomStudents(teacher.classroom.id, teacher.id) as any
+                allStudents.push(...(classroomData.students || []))
+              }
+            }
+            studentsData = allStudents
+          } else {
+            // Fallback to all students if coordinator ID not found
+            studentsData = await getAllStudents()
+          }
+        } else {
+          // Principal/Admin: All students
+          studentsData = await getAllStudents()
+        }
 
         // Map student data to the expected format
         const mappedStudents = Array.isArray(studentsData) ? studentsData.map((student: any) => ({
@@ -101,25 +163,20 @@ export default function StudentListPage() {
       student.father_name.toLowerCase().includes(searchTerm)
     )
 
-    const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "active" && student.current_state.toLowerCase() === "active") ||
-      (statusFilter === "inactive" && student.current_state.toLowerCase() !== "active")
+     const matchesStatus = statusFilter === "all" || 
+       (statusFilter === "active" && student.current_state.toLowerCase() === "active") ||
+       (statusFilter === "inactive" && student.current_state.toLowerCase() !== "active")
 
-    // Principal campus filtering - only show students from principal's campus
-    const matchesCampus = userRole === "principal" 
-      ? (userCampus ? student.campus.toLowerCase().includes(userCampus.toLowerCase()) : true)
-      : (campusFilter === "all" || student.campus.toLowerCase().includes(campusFilter.toLowerCase()))
+     const matchesGrade = gradeFilter === "all" || 
+       student.current_grade.toLowerCase().includes(gradeFilter.toLowerCase())
 
-    const matchesGrade = gradeFilter === "all" || 
-      student.current_grade.toLowerCase().includes(gradeFilter.toLowerCase())
-
-    return matchesSearch && matchesStatus && matchesCampus && matchesGrade
+     return matchesSearch && matchesStatus && matchesGrade
   })
 
-  // Reset to first page when search or filters change
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [search, statusFilter, campusFilter, gradeFilter])
+   // Reset to first page when search or filters change
+   useEffect(() => {
+     setCurrentPage(1)
+   }, [search, statusFilter, gradeFilter])
 
   const totalRecords = filteredStudents.length
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalRecords / pageSize)), [totalRecords])
@@ -170,13 +227,6 @@ export default function StudentListPage() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
-  const getUniqueCampuses = () => {
-    const campusList = [...new Set(students.map(s => s.campus).filter(Boolean))]
-    if (campusList.length === 0) {
-      return ['Campus 1', 'Campus 2', 'Campus 3', 'Main Campus', 'Branch Campus']
-    }
-    return campusList.sort()
-  }
 
   const getUniqueGrades = () => {
     const grades = [...new Set(students.map(s => s.current_grade).filter(Boolean))]
@@ -198,16 +248,21 @@ export default function StudentListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#274c77' }}>Student List</h1>
-          <p className="text-gray-600">Browse and manage all students in the system</p>
-          {!loading && !error && (
-            <div className="text-sm text-gray-500 mt-1">
-              <p>Total Students: {students.length} | Showing: {filteredStudents.length}</p>
-              {getUniqueCampuses().length === 0 && (
-                <p className="text-yellow-600">⚠️ Campus data not available - using fallback options</p>
-              )}
-            </div>
-          )}
+          <h1 className="text-2xl font-bold" style={{ color: '#274c77' }}>
+            {userRole === 'teacher' ? 'My Class Students' : 
+             userRole === 'coordinator' ? 'My Students' : 
+             'Student List'}
+          </h1>
+          <p className="text-gray-600">
+            {userRole === 'teacher' ? 'Students assigned to your classroom' : 
+             userRole === 'coordinator' ? 'Students under your assigned teachers' : 
+             'Browse and manage all students in the system'}
+          </p>
+           {!loading && !error && (
+             <div className="text-sm text-gray-500 mt-1">
+               <p>Total Students: {students.length} | Showing: {filteredStudents.length}</p>
+             </div>
+           )}
         </div>
         <Badge style={{ backgroundColor: '#6096ba', color: 'white' }} className="px-4 py-2">
           {filteredStudents.length} of {students.length} Students
@@ -229,54 +284,37 @@ export default function StudentListPage() {
               />
             </div>
             
-            {/* Filters - Hide for teachers */}
-            {userRole !== "teacher" && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-              
-                {/* Hide campus filter for principal - they only see their campus data */}
-                {userRole !== "principal" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Campus</label>
-                    <select
-                      value={campusFilter}
-                      onChange={(e) => setCampusFilter(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="all">All Campuses</option>
-                      {getUniqueCampuses().map(campus => (
-                        <option key={campus} value={campus}>{campus}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Grade</label>
-                <select
-                  value={gradeFilter}
-                  onChange={(e) => setGradeFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All Grades</option>
-                  {getUniqueGrades().map(grade => (
-                    <option key={grade} value={grade}>{grade}</option>
-                  ))}
-                </select>
-              </div>
-              </div>
-            )}
+             {/* Filters - Hide for teachers */}
+             {userRole !== "teacher" && (
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                 <select
+                   value={statusFilter}
+                   onChange={(e) => setStatusFilter(e.target.value)}
+                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 >
+                   <option value="all">All Status</option>
+                   <option value="active">Active</option>
+                   <option value="inactive">Inactive</option>
+                 </select>
+               </div>
+               
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-2">Grade</label>
+                 <select
+                   value={gradeFilter}
+                   onChange={(e) => setGradeFilter(e.target.value)}
+                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 >
+                   <option value="all">All Grades</option>
+                   {getUniqueGrades().map(grade => (
+                     <option key={grade} value={grade}>{grade}</option>
+                   ))}
+                 </select>
+               </div>
+               </div>
+             )}
           </div>
         </CardContent>
       </Card>
@@ -306,93 +344,79 @@ export default function StudentListPage() {
           ) : (
             <div className="overflow-x-auto">
               <Table className="w-full min-w-[800px]">
-                <TableHeader>
-                  <TableRow className="bg-[#274c77] text-white hover:bg-[#274c77]">
-                    <TableHead className="text-white min-w-[200px]">Student</TableHead>
-                    <TableHead className="text-white min-w-[120px]">GR No & Grade</TableHead>
-                    <TableHead className="text-white min-w-[120px]">Campus</TableHead>
-                    <TableHead className="text-white min-w-[150px]">Contact</TableHead>
-                    <TableHead className="text-white min-w-[100px]">Enrollment</TableHead>
-                    <TableHead className="text-white min-w-[80px]">Status</TableHead>
-                    <TableHead className="text-white min-w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
+                 <TableHeader>
+                   <TableRow className="bg-[#274c77] text-white hover:bg-[#274c77]">
+                     <TableHead className="text-white w-[25%] px-6 py-4">Student</TableHead>
+                     <TableHead className="text-white w-[20%] px-6 py-4">GR No & Grade</TableHead>
+                     <TableHead className="text-white w-[25%] px-6 py-4">Contact</TableHead>
+                     <TableHead className="text-white w-[15%] px-6 py-4">Status</TableHead>
+                     <TableHead className="text-white w-[15%] px-6 py-4">Actions</TableHead>
+                   </TableRow>
+                 </TableHeader>
                 <TableBody>
                   {currentPageStudents.map((student, index) => {
                     const isActive = student.current_state.toLowerCase() === 'active'
                     return (
-                      <TableRow
-                        key={student.id}
-                        className={`hover:bg-[#a3cef1] transition ${index % 2 === 0 ? 'bg-[#e7ecef]' : 'bg-white'}`}
-                      >
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 bg-green-100 text-green-600 font-semibold rounded-full flex items-center justify-center text-sm">
-                              {getInitials(student.name)}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-900">{student.name}</div>
-                              <div className="text-sm text-gray-500">{student.gender}</div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 text-sm">
-                              <BookOpen className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                              <span className="truncate max-w-[100px]">{student.gr_no}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <GraduationCap className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                              <span className="truncate max-w-[100px]">{student.current_grade}</span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2 text-sm">
-                            <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                            <span className="truncate max-w-[100px]">{student.campus}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 text-sm">
-                              <Phone className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                              <span className="truncate max-w-[120px]">{student.father_contact}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                              <span className="truncate max-w-[120px]">{student.father_name}</span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div className="font-medium">{student.enrollment_year}</div>
-                            <div className="text-gray-500 text-xs">
-                              {student.shift}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {isActive ? (
-                            <span className="px-3 py-1 text-xs font-semibold text-white bg-green-600 rounded-full">Active</span>
-                          ) : (
-                            <span className="px-3 py-1 text-xs font-semibold text-white bg-gray-500 rounded-full">Inactive</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => router.push(`/admin/students/profile?studentId=${student.id}`)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                       <TableRow
+                         key={student.id}
+                         className={`hover:bg-[#a3cef1] transition ${index % 2 === 0 ? 'bg-[#e7ecef]' : 'bg-white'}`}
+                       >
+                         <TableCell className="font-medium px-6 py-4">
+                           <div className="flex items-center gap-3">
+                             <div className="h-10 w-10 bg-green-100 text-green-600 font-semibold rounded-full flex items-center justify-center text-sm">
+                               {getInitials(student.name)}
+                             </div>
+                             <div>
+                               <div className="font-semibold text-gray-900">{student.name}</div>
+                               <div className="text-sm text-gray-500">{student.gender}</div>
+                             </div>
+                           </div>
+                         </TableCell>
+                         <TableCell className="px-6 py-4">
+                           <div className="space-y-1">
+                             <div className="flex items-center gap-2 text-sm">
+                               <BookOpen className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                               <span className="truncate">{student.gr_no}</span>
+                             </div>
+                             <div className="flex items-center gap-2 text-sm text-gray-600">
+                               <GraduationCap className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                               <span className="truncate">{student.current_grade}</span>
+                             </div>
+                           </div>
+                         </TableCell>
+                         <TableCell className="px-6 py-4">
+                           <div className="space-y-1">
+                             <div className="flex items-center gap-2 text-sm">
+                               <Phone className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                               <span className="truncate">{student.father_contact}</span>
+                             </div>
+                             <div className="flex items-center gap-2 text-sm text-gray-600">
+                               <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                               <span className="truncate">{student.father_name}</span>
+                             </div>
+                           </div>
+                         </TableCell>
+                         <TableCell className="px-6 py-4">
+                           <div className="flex justify-center">
+                             {isActive ? (
+                               <span className="px-3 py-1 text-xs font-semibold text-white bg-green-600 rounded-full">Active</span>
+                             ) : (
+                               <span className="px-3 py-1 text-xs font-semibold text-white bg-gray-500 rounded-full">Inactive</span>
+                             )}
+                           </div>
+                         </TableCell>
+                         <TableCell className="px-6 py-4">
+                           <div className="flex justify-center">
+                             <Button
+                               size="sm"
+                               variant="outline"
+                               onClick={() => router.push(`/admin/students/profile?studentId=${student.id}`)}
+                               className="h-8 w-8 p-0"
+                             >
+                               <Eye className="w-4 h-4" />
+                             </Button>
+                           </div>
+                         </TableCell>
                       </TableRow>
                     )
                   })}

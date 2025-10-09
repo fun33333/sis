@@ -17,6 +17,16 @@ function CoordinatorTeacherListContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Helper function to truncate subjects/grades to max 2 items
+  const truncateList = (listString: string, maxItems: number = 2) => {
+    if (!listString) return ''
+    const items = listString.split(', ').map(item => item.trim())
+    if (items.length <= maxItems) {
+      return listString
+    }
+    return `${items.slice(0, maxItems).join(', ')} ...`
+  }
+
   useEffect(() => {
     async function fetchTeachers() {
       setLoading(true)
@@ -147,9 +157,9 @@ function CoordinatorTeacherListContent() {
                     style={{ backgroundColor: index % 2 === 0 ? '#e7ecef' : 'white' }}
                   >
                      <TableCell className="font-medium">{teacher.name}</TableCell>
-                     <TableCell>{teacher.subject}</TableCell>
+                     <TableCell>{truncateList(teacher.subject)}</TableCell>
                      <TableCell className="text-sm text-gray-600">{teacher.email}</TableCell>
-                     <TableCell>{teacher.classes}</TableCell>
+                     <TableCell>{truncateList(teacher.classes)}</TableCell>
                      <TableCell>
                       <div className="flex space-x-2">
                         <Button 

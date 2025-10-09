@@ -196,10 +196,8 @@ export function UserProfilePopup() {
   }
 
   const [currentUser, setCurrentUser] = useState<any>(null)
-  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
-    setIsClient(true)
     setCurrentUser(getCurrentUser())
   }, [])
 

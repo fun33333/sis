@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from django.urls import path
 from . import views
 
@@ -18,17 +17,6 @@ urlpatterns = [
     path('classrooms/<int:pk>/', views.ClassRoomDetailView.as_view(), name='classroom-detail'),
     path('classrooms/choices/', views.classroom_choices, name='classroom-choices'),
     path('classrooms/sections/', views.classroom_sections, name='classroom-sections'),
-=======
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import LevelViewSet, GradeViewSet, ClassRoomViewSet
-
-router = DefaultRouter()
-router.register(r'levels', LevelViewSet)
-router.register(r'grades', GradeViewSet)
-router.register(r'classrooms', ClassRoomViewSet)
-
-urlpatterns = [
-    path('', include(router.urls)),
->>>>>>> f6d7b1692105971a2e74d072cde03fa573152e5d
+    path('classrooms/<int:classroom_id>/students/', views.classroom_students, name='classroom-students'),
+    path('classrooms/<int:classroom_id>/available-students/', views.available_students_for_classroom, name='available-students-for-classroom'),
 ]

@@ -15,6 +15,7 @@ import type { FilterState, DashboardMetrics, LegacyStudent as DashboardStudent }
 import { StudentTable } from "@/components/dashboard/student-table"
 import { useRouter } from "next/navigation"
 import { getDashboardStats, getAllStudents, getAllCampuses, apiGet } from "@/lib/api"
+import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions"
 
 if (typeof window !== 'undefined') {
   import('html2pdf.js').then(mod => { (window as any).html2pdf = mod.default; });
@@ -51,6 +52,10 @@ export default function MainDashboardPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
 
+  // Principal campus filtering
+  const [userRole, setUserRole] = useState<string>("");
+  const [userCampus, setUserCampus] = useState<string>("");
+
   // Close dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -86,19 +91,29 @@ export default function MainDashboardPage() {
     setExportOpen(false);
   }
   const router = useRouter();
+  
+  // Get user role and campus for principal filtering
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const userStr = window.localStorage.getItem("sis_user");
-      if (userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          if (user.role === "teacher") {
+      const role = getCurrentUserRole();
+      setUserRole(role);
+      
+      const user = getCurrentUser() as any;
+      console.log('User data:', user);
+      
+      if (user?.campus?.campus_name) {
+        console.log('Setting user campus:', user.campus.campus_name);
+        setUserCampus(user.campus.campus_name);
+      } else if (user?.campus) {
+        console.log('Setting user campus (direct):', user.campus);
+        setUserCampus(user.campus);
+      }
+      
+      if (role === "teacher") {
             router.replace("/admin/students/student-list");
           }
-        } catch {}
       }
-    }
-  }, []);
+  }, [router]);
   const [filters, setFilters] = useState<FilterState>({
     academicYears: [],
     campuses: [],
@@ -112,29 +127,138 @@ export default function MainDashboardPage() {
   const [showLoader, setShowLoader] = useState(true)
 
   useEffect(() => {
+    // Dynamic title based on user role
+    if (userRole === 'principal' && userCampus) {
+      document.title = `${userCampus} Dashboard | IAK SMS`
+    } else if (userRole === 'superadmin') {
+      document.title = "Super Admin Dashboard | IAK SMS"
+    } else {
     document.title = "Dashboard | IAK SMS"
+    }
     let loaderTimeout: NodeJS.Timeout;
     
     async function fetchData() {
       setLoading(true)
       try {
-        // Try to fetch from API first
+        // Principal: Fetch campus-specific data
+        if (userRole === 'principal' && userCampus) {
+          console.log('Principal campus filtering for:', userCampus)
+          
+          const [apiStudents, apiStats, caps] = await Promise.all([
+            getAllStudents(),
+            getDashboardStats(),
+            getAllCampuses()
+          ])
+          
+          // Filter students by principal's campus
+          const studentsArray = Array.isArray(apiStudents) ? apiStudents : [];
+          const campusArray = Array.isArray(caps) ? caps : (Array.isArray((caps as any)?.results) ? (caps as any).results : [])
+          
+          console.log('Total students fetched:', studentsArray.length)
+          console.log('Available campuses:', campusArray.map((c: any) => c.campus_name || c.name))
+          
+          // Find principal's campus ID
+          const principalCampus = campusArray.find((c: any) => 
+            c.campus_name === userCampus || 
+            c.name === userCampus ||
+            c.campus_code === userCampus ||
+            String(c.id) === String(userCampus)
+          )
+          
+          console.log('Principal campus found:', principalCampus)
+          
+          if (principalCampus) {
+            // Filter students by campus
+            const campusStudents = studentsArray.filter((student: any) => {
+              const studentCampus = student.campus
+              console.log('Student campus:', studentCampus, 'Principal campus:', userCampus, 'Principal campus ID:', principalCampus.id)
+              
+              if (typeof studentCampus === 'object') {
+                const matches = studentCampus.campus_name === userCampus || 
+                               studentCampus.name === userCampus ||
+                               studentCampus.campus_code === userCampus ||
+                               studentCampus.id === principalCampus.id
+                console.log('Object campus match:', matches)
+                return matches
+              }
+              
+              // Check if student campus ID matches principal campus ID
+              const matches = studentCampus === principalCampus.id || 
+                             studentCampus === userCampus ||
+                             String(studentCampus) === String(principalCampus.id) ||
+                             String(studentCampus) === String(userCampus)
+              console.log('ID campus match:', matches)
+              return matches
+            })
+            
+            console.log('Filtered campus students:', campusStudents.length)
+            
+            // Process filtered students
+            const idToCampusName = new Map<string, string>(
+              campusArray.map((c: any) => [String(c.id), String(c.campus_name || c.name || '')])
+            )
+            const idToCampusCode = new Map<string, string>(
+              campusArray.map((c: any) => [String(c.id), String(c.campus_code || c.code || '')])
+            )
+
+            const mapped: DashboardStudent[] = campusStudents.map((item: any, idx: number) => {
+              const createdAt = typeof item?.created_at === "string" ? item.created_at : ""
+              const year = createdAt ? Number(createdAt.split("-")[0]) : new Date().getFullYear()
+              const genderRaw = (item?.gender ?? "").toString().trim()
+              const campusCode = (() => {
+                const raw = item?.campus
+                if (raw && typeof raw === 'object') return String(raw?.campus_code || raw?.code || userCampus).trim()
+                if (typeof raw === 'number' || typeof raw === 'string') {
+                  const hit = idToCampusCode.get(String(raw))
+                  if (hit) return hit
+                }
+                return userCampus
+              })()
+              const gradeName = (item?.current_grade ?? "Unknown").toString().trim()
+              const motherTongue = (item?.mother_tongue ?? "Other").toString().trim()
+              const religion = (item?.religion ?? "Other").toString().trim()
+              return {
+                rawData: item,
+                studentId: String(item?.gr_no || item?.id || idx + 1),
+                name: item?.name || "Unknown",
+                academicYear: isNaN(year) ? new Date().getFullYear() : year,
+                campus: campusCode,
+                grade: gradeName,
+                current_grade: gradeName,
+                gender: genderRaw || "Unknown",
+                motherTongue: motherTongue,
+                religion: religion,
+                attendancePercentage: Math.floor(Math.random() * 31) + 70, // Mock data for now
+                averageScore: Math.floor(Math.random() * 41) + 60, // Mock data for now
+                retentionFlag: (item?.current_state || "").toLowerCase() === "active",
+                enrollmentDate: createdAt ? new Date(createdAt) : new Date(),
+              }
+            })
+            
+            console.log('Mapped campus students:', mapped.length)
+            console.log('Sample student data:', mapped[0])
+            
+            setStudents(mapped)
+          } else {
+            console.warn('Principal campus not found:', userCampus)
+            setStudents([])
+          }
+        } else {
+          // Other roles: Fetch all data
         const [apiStudents, apiStats, caps] = await Promise.all([
           getAllStudents(),
           getDashboardStats(),
           getAllCampuses()
         ])
 
-        // Urdu roman: Yahan pe hum ensure kar rahe hain ke apiStudents array hai aur us par length aur map dono kaam karen.
-        // English: Here we ensure that apiStudents is an array so that length and map work correctly.
+          // Process all students for other roles
         const studentsArray = Array.isArray(apiStudents) ? apiStudents : [];
-        // Always use API data (real database)
         const campusArray = Array.isArray(caps) ? caps : (Array.isArray((caps as any)?.results) ? (caps as any).results : [])
         const idToCampusName = new Map<string, string>(
-          campusArray.map((c: any) => [String(c.id), String(c.name || '')])
+            campusArray.map((c: any) => [String(c.id), String(c.campus_name || c.name || '')])
         )
         const idToCampusCode = new Map<string, string>(
-          campusArray.map((c: any) => [String(c.id), String(c.code || '')])
+            campusArray.map((c: any) => [String(c.id), String(c.campus_code || c.code || '')])
         )
 
         const mapped: DashboardStudent[] = studentsArray.map((item: any, idx: number) => {
@@ -143,7 +267,7 @@ export default function MainDashboardPage() {
             const genderRaw = (item?.gender ?? "").toString().trim()
           const campusCode = (() => {
             const raw = item?.campus
-            if (raw && typeof raw === 'object') return String(raw?.code || 'Unknown').trim()
+              if (raw && typeof raw === 'object') return String(raw?.campus_code || raw?.code || 'Unknown').trim()
             if (typeof raw === 'number' || typeof raw === 'string') {
               const hit = idToCampusCode.get(String(raw))
               if (hit) return hit
@@ -171,6 +295,7 @@ export default function MainDashboardPage() {
             }
           })
         setStudents(mapped)
+        }
       } catch (error) {
         console.error('Error fetching data:', error)
         // Fallback to empty array
@@ -185,10 +310,11 @@ export default function MainDashboardPage() {
       setShowLoader(false)
     }, 3000)
     return () => clearTimeout(loaderTimeout)
-  }, [])
+  }, [userRole, userCampus])
 
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
+      // Principal campus filtering is already done in fetchData, so we only need to apply other filters
       if (filters.academicYears.length > 0 && !filters.academicYears.includes(student.academicYear)) return false
       if (filters.campuses.length > 0 && !filters.campuses.includes(student.campus)) return false
       if (filters.grades.length > 0 && !filters.grades.includes(student.grade)) return false
@@ -204,6 +330,14 @@ export default function MainDashboardPage() {
     const averageAttendance = totalStudents > 0 ? Math.round(filteredStudents.reduce((sum, s) => sum + (s.attendancePercentage || 0), 0) / totalStudents) : 0
     const averageScore = totalStudents > 0 ? Math.round(filteredStudents.reduce((sum, s) => sum + (s.averageScore || 0), 0) / totalStudents) : 0
     const retentionRate = totalStudents > 0 ? Math.round((filteredStudents.filter((s) => s.retentionFlag).length / totalStudents) * 100) : 0
+    
+    console.log('Metrics calculated:', {
+      totalStudents,
+      averageAttendance,
+      averageScore,
+      retentionRate
+    })
+    
     return { totalStudents, averageAttendance, averageScore, retentionRate }
   }, [filteredStudents])
 
@@ -218,27 +352,77 @@ export default function MainDashboardPage() {
       acc[s.campus] = (acc[s.campus] || 0) + 1
       return acc
     }, {})
-    return Object.entries(counts).map(([name, value]) => ({ name, value }))
+    const campusData = Object.entries(counts).map(([name, value]) => ({ name, value }))
+    
+    console.log('Campus performance data:', campusData)
+    
+    return campusData
   }, [filteredStudents])
 
   const chartData = useMemo(() => {
+    console.log('Generating chart data for:', filteredStudents.length, 'students')
+    
+    // Real data for charts
+    const gradeDistribution = getGradeDistribution(filteredStudents as unknown as any[])
+    const genderDistribution = getGenderDistribution(filteredStudents as unknown as any[])
+    const enrollmentTrend = getEnrollmentTrend(filteredStudents as unknown as any[])
+    const motherTongueDistribution = getMotherTongueDistribution(filteredStudents as unknown as any[])
+    const religionDistribution = getReligionDistribution(filteredStudents as unknown as any[])
+    
+    console.log('Chart data generated:', {
+      gradeDistribution: gradeDistribution.length,
+      genderDistribution: genderDistribution.length,
+      enrollmentTrend: enrollmentTrend.length,
+      motherTongueDistribution: motherTongueDistribution.length,
+      religionDistribution: religionDistribution.length
+    })
+    
     return {
-      gradeDistribution: getGradeDistribution(filteredStudents as unknown as any[]),
-      genderDistribution: getGenderDistribution(filteredStudents as unknown as any[]),
+      gradeDistribution,
+      genderDistribution,
       campusPerformance: campusPerformanceData,
-      enrollmentTrend: getEnrollmentTrend(filteredStudents as unknown as any[]),
-      motherTongueDistribution: getMotherTongueDistribution(filteredStudents as unknown as any[]),
-      religionDistribution: getReligionDistribution(filteredStudents as unknown as any[]),
+      enrollmentTrend,
+      motherTongueDistribution,
+      religionDistribution,
     }
   }, [filteredStudents, campusPerformanceData])
 
   // Dynamic filter options based on real data
-  const dynamicAcademicYears = useMemo(() => Array.from(new Set(students.map(s => s.academicYear))).sort((a, b) => a - b), [students])
-  const dynamicCampuses = useMemo(() => Array.from(new Set(students.map(s => s.campus))).sort(), [students])
-  const dynamicGrades = useMemo(() => Array.from(new Set(students.map(s => s.grade))).sort(), [students])
-  const dynamicMotherTongues = useMemo(() => Array.from(new Set(students.map(s => (s.motherTongue || "").toString().trim()))).filter(Boolean).sort(), [students])
-  const dynamicReligions = useMemo(() => Array.from(new Set(students.map(s => (s.religion || "").toString().trim()))).filter(Boolean).sort(), [students])
-  const dynamicGenders = useMemo(() => Array.from(new Set(students.map(s => (s.gender || "").toString().trim()))).filter(Boolean).sort(), [students])
+  const dynamicAcademicYears = useMemo(() => {
+    const years = Array.from(new Set(students.map(s => s.academicYear))).sort((a, b) => a - b)
+    console.log('Dynamic academic years:', years)
+    return years
+  }, [students])
+  
+  const dynamicCampuses = useMemo(() => {
+    const campuses = Array.from(new Set(students.map(s => s.campus))).sort()
+    console.log('Dynamic campuses:', campuses)
+    return campuses
+  }, [students])
+  
+  const dynamicGrades = useMemo(() => {
+    const grades = Array.from(new Set(students.map(s => s.grade))).sort()
+    console.log('Dynamic grades:', grades)
+    return grades
+  }, [students])
+  
+  const dynamicMotherTongues = useMemo(() => {
+    const motherTongues = Array.from(new Set(students.map(s => (s.motherTongue || "").toString().trim()))).filter(Boolean).sort()
+    console.log('Dynamic mother tongues:', motherTongues)
+    return motherTongues
+  }, [students])
+  
+  const dynamicReligions = useMemo(() => {
+    const religions = Array.from(new Set(students.map(s => (s.religion || "").toString().trim()))).filter(Boolean).sort()
+    console.log('Dynamic religions:', religions)
+    return religions
+  }, [students])
+  
+  const dynamicGenders = useMemo(() => {
+    const genders = Array.from(new Set(students.map(s => (s.gender || "").toString().trim()))).filter(Boolean).sort()
+    console.log('Dynamic genders:', genders)
+    return genders
+  }, [students])
 
   const resetFilters = () => {
     setFilters({ academicYears: [], campuses: [], grades: [], genders: [], motherTongues: [], religions: [] })
@@ -269,6 +453,7 @@ export default function MainDashboardPage() {
 
   return (
     <main className="">
+
 
       <div className="bg-white rounded-3xl shadow-xl p-8">
 
@@ -308,7 +493,10 @@ export default function MainDashboardPage() {
           <CardContent className="!bg-[#E7ECEF]">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               <MultiSelectFilter title="Academic Year" options={dynamicAcademicYears} selectedValues={filters.academicYears} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, academicYears: val as number[] }))} placeholder="All years" />
+              {/* Hide campus filter for principal - they only see their campus data */}
+              {userRole !== 'principal' && (
               <MultiSelectFilter title="Campus" options={dynamicCampuses} selectedValues={filters.campuses} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, campuses: val as string[] }))} placeholder="All campuses" />
+              )}
               <MultiSelectFilter title="Grade" options={dynamicGrades} selectedValues={filters.grades} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, grades: val as string[] }))} placeholder="All grades" />
               <MultiSelectFilter title="Gender" options={dynamicGenders} selectedValues={filters.genders} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, genders: val as ("Male" | "Female" | "Other")[] }))} placeholder="All genders" />
               <MultiSelectFilter title="Mother Tongue" options={dynamicMotherTongues} selectedValues={filters.motherTongues} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, motherTongues: val as string[] }))} placeholder="All mother tongues" />
@@ -318,14 +506,45 @@ export default function MainDashboardPage() {
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-          <KpiCard title="Total Students" value={metrics.totalStudents} description="Active enrollments" icon={Users} bgColor="#E7ECEF" textColor="text-[#274c77]" />
-          <KpiCard title="Avg Attendance" value={`${metrics.averageAttendance}%`} description="Overall attendance rate" icon={Calendar} bgColor="#8B8C89" textColor="text-white" />
-          <KpiCard title="Avg Score" value={metrics.averageScore} description="Academic performance" icon={GraduationCap} bgColor="#6096BA" textColor="text-white" />
-          <KpiCard title="Retention Rate" value={`${metrics.retentionRate}%`} description="Student retention" icon={TrendingUp} bgColor="#A3CEF1" textColor="text-[#274c77]" />
+          <KpiCard 
+            title={userRole === 'principal' && userCampus ? `${userCampus} Students` : "Total Students"} 
+            value={metrics.totalStudents} 
+            description={userRole === 'principal' && userCampus ? "Campus enrollments" : "Active enrollments"} 
+            icon={Users} 
+            bgColor="#E7ECEF" 
+            textColor="text-[#274c77]" 
+          />
+          <KpiCard 
+            title="Avg Attendance" 
+            value={`${metrics.averageAttendance}%`} 
+            description={userRole === 'principal' && userCampus ? "Campus attendance rate" : "Overall attendance rate"} 
+            icon={Calendar} 
+            bgColor="#8B8C89" 
+            textColor="text-white" 
+          />
+          <KpiCard 
+            title="Avg Score" 
+            value={metrics.averageScore} 
+            description={userRole === 'principal' && userCampus ? "Campus performance" : "Academic performance"} 
+            icon={GraduationCap} 
+            bgColor="#6096BA" 
+            textColor="text-white" 
+          />
+          <KpiCard 
+            title="Retention Rate" 
+            value={`${metrics.retentionRate}%`} 
+            description={userRole === 'principal' && userCampus ? "Campus retention" : "Student retention"} 
+            icon={TrendingUp} 
+            bgColor="#A3CEF1" 
+            textColor="text-[#274c77]" 
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+          {/* Hide campus performance chart for principal - they only see their campus data */}
+          {userRole !== 'principal' && (
           <CampusPerformanceChart data={chartData.campusPerformance} valueKind={filteredStudents.some(s => (s.averageScore || 0) > 0) ? "average" : "count"} />
+          )}
           <GenderDistributionChart data={chartData.genderDistribution} />
           <ReligionChart data={chartData.religionDistribution} />
         </div>

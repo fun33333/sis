@@ -6,7 +6,8 @@ from .views import (
     UserProfileView,
     UserListView,
     refresh_token_view,
-    logout_view
+    logout_view,
+    current_user_profile
 )
 
 urlpatterns = [
@@ -18,5 +19,6 @@ urlpatterns = [
     
     # User management endpoints
     path('profile/', UserProfileView.as_view(), name='user_profile'),
+    path('current-user/', current_user_profile, name='current_user_profile'),
     path('users/', UserListView.as_view(), name='user_list'),
 ]

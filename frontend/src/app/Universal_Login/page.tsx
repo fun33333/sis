@@ -87,7 +87,7 @@ export default function LoginPage() {
       if (userRole.includes("coord")) {
         router.push("/admin/coordinator");
       } else if (userRole.includes("teach")) {
-        router.push("/admin/teachers/request");
+        router.push("/admin/students/student-list");
       } else if (userRole.includes("princ")) {
         router.push("/admin");
       } else {

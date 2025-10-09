@@ -31,15 +31,10 @@ function TeacherListContent() {
   const canEdit = userRole !== "superadmin"
 
   useEffect(() => {
-<<<<<<< HEAD
     setIsClient(true)
-    // Get user role and campus
-    setUserRole(getCurrentUserRole())
-=======
     // Get user role
     const role = getCurrentUserRole()
     setUserRole(role)
->>>>>>> f6d7b1692105971a2e74d072cde03fa573152e5d
     
     // Get user campus for principal filtering
     const user = getCurrentUser() as any
@@ -76,6 +71,16 @@ function TeacherListContent() {
           } else {
             setError("User not logged in");
             return;
+          }
+        } else if (role === 'principal') {
+          // Principal: Only teachers from their campus
+          const allTeachers = await getAllTeachers();
+          if (userCampus) {
+            teachersData = allTeachers.filter((teacher: any) => 
+              teacher.current_campus?.campus_name === userCampus || teacher.campus === userCampus
+            );
+          } else {
+            teachersData = allTeachers;
           }
         } else {
           // For other roles, get all teachers
