@@ -47,8 +47,10 @@ INSTALLED_APPS = [
     # 'subjects',
     'classes.apps.ClassesConfig', 
     'coordinator',
+    'attendance',
     'principals',
     'services',
+    'student_status',
 ]
 
 MIDDLEWARE = [
@@ -83,10 +85,10 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',  # ye add karo
-        'NAME': 'sis-db',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'sis',
         'USER': 'postgres',
-        'PASSWORD': 'password',
+        'PASSWORD': 'root8@',
         'HOST': 'localhost',
         'PORT': '5432',
         'CONN_MAX_AGE': 0,  # Disable connection pooling

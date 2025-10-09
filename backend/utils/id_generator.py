@@ -24,7 +24,8 @@ class IDGenerator:
         role_map = {
             'teacher': 'T',
             'coordinator': 'C',
-            'principal': 'P'
+            'principal': 'P',
+            'superadmin': 'S'
         }
         return role_map.get(role.lower(), 'T')
     
