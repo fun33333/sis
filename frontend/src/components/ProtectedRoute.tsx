@@ -12,7 +12,8 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         router.replace("/Universal_Login");
       }
     }
-    // Auto-logout after 2 minutes of inactivity (teacher only)
+    
+    // Auto-logout after 15 minutes of inactivity (all roles)
     let timeout: NodeJS.Timeout;
     const resetTimer = () => {
       clearTimeout(timeout);
@@ -20,28 +21,38 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       if (userStr) {
         try {
           const user = JSON.parse(userStr);
-          if (user.role === "teacher") {
-            timeout = setTimeout(() => {
-              window.localStorage.removeItem("sis_user");
-              router.replace("/Universal_Login");
-            }, 2 * 60 * 1000); // 2 minutes
-          }
+          
+          // Same 15 minutes timeout for all roles
+          timeout = setTimeout(() => {
+            // Clear all auth data
+            window.localStorage.removeItem("sis_user");
+            window.localStorage.removeItem("sis_access_token");
+            window.localStorage.removeItem("sis_refresh_token");
+            router.replace("/Universal_Login");
+          }, 15 * 60 * 1000); // 15 minutes for all users
+          
         } catch {}
       }
     };
+    
     // Listen to user activity
     window.addEventListener("mousemove", resetTimer);
     window.addEventListener("keydown", resetTimer);
     window.addEventListener("click", resetTimer);
     window.addEventListener("scroll", resetTimer);
+    window.addEventListener("touchstart", resetTimer); // For mobile
+    
     resetTimer();
+    
     return () => {
       clearTimeout(timeout);
       window.removeEventListener("mousemove", resetTimer);
       window.removeEventListener("keydown", resetTimer);
       window.removeEventListener("click", resetTimer);
       window.removeEventListener("scroll", resetTimer);
+      window.removeEventListener("touchstart", resetTimer);
     };
   }, [router]);
+  
   return <>{children}</>;
 }
