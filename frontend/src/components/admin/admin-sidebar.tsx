@@ -339,19 +339,12 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
           { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
           { title: "Result Approval", href: "/admin/coordinator/result-approval" },
-<<<<<<< HEAD
           // Hide these items for principal
           ...(userRole !== "principal" ? [
             { title: "Class Assign", href: "/admin/coordinator/class-assign" },
             { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
             { title: "Time Table", href: "/admin/coordinator/time-table" },
           ] : []),
-=======
-          { title: "Class Assign", href: "/admin/coordinator/class-assign" },
-          { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
-          { title: "Time Table", href: "/admin/coordinator/time-table" },
-          { title: "Sections Progress", href: "/admin/coordinator/sections-progress" },
->>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
         ],
       },
     ];

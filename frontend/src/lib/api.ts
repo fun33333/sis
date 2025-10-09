@@ -18,7 +18,6 @@ export const API_ENDPOINTS = {
   AUTH_LOGIN: "/api/auth/login/",
   AUTH_REFRESH: "/api/auth/refresh/",
   COORDINATORS: "/api/coordinators/",
-<<<<<<< HEAD
   LEVELS: "/api/levels/",
   GRADES: "/api/grades/",
   CLASSROOMS: "/api/classrooms/",
@@ -29,8 +28,6 @@ export const API_ENDPOINTS = {
   CLASSROOM_STUDENTS: "/api/classrooms/{id}/students/",
   AVAILABLE_STUDENTS: "/api/classrooms/{id}/available-students/",
   CURRENT_USER_PROFILE: "/api/current-user/",
-=======
->>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
 } as const;
 
 
@@ -411,11 +408,8 @@ export async function getCoordinatorDashboardStats(coordinatorId: number) {
   }
 }
 
-<<<<<<< HEAD
 // Classes API functions
 
-=======
->>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
 export async function findCoordinatorByEmail(email: string) {
   try {
     const coordinators = await apiGet(API_ENDPOINTS.COORDINATORS);
@@ -429,19 +423,15 @@ export async function findCoordinatorByEmail(email: string) {
   }
 }
 
-<<<<<<< HEAD
 export async function createLevel(levelData: any) {
-=======
-// Principal-specific API functions
-export async function getPrincipalCampusData(campusId: number) {
->>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
   try {
-    return await apiGet(`${API_ENDPOINTS.CAMPUS}${campusId}/`);
+    return await apiPost(API_ENDPOINTS.LEVELS, levelData);
   } catch (error) {
-    console.error('Failed to fetch principal campus data:', error);
+    console.error('Failed to create level:', error);
     return null;
   }
 }
+
 
 export async function getCampusStudents(campusId: number) {
   try {
@@ -452,7 +442,6 @@ export async function getCampusStudents(campusId: number) {
   }
 }
 
-<<<<<<< HEAD
 export async function getClassroomStudents(classroomId: number, teacherId?: number) {
   try {
     const url = API_ENDPOINTS.CLASSROOM_STUDENTS.replace('{id}', classroomId.toString());
@@ -495,16 +484,15 @@ export async function getAllCoordinators() {
 // List functions for displaying data
 
 export async function getLevels() {
-=======
-export async function getCampusTeachers(campusId: number) {
->>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
   try {
-    return await apiGet(`${API_ENDPOINTS.TEACHERS}?campus=${campusId}`);
+    return await apiGet(API_ENDPOINTS.LEVELS);
   } catch (error) {
-    console.error('Failed to fetch campus teachers:', error);
+    console.error('Failed to fetch levels:', error);
     return [];
   }
 }
+
+
 
 export async function getCampusDashboardStats(campusId: number) {
   try {
@@ -534,4 +522,12 @@ export async function getCampusDashboardStats(campusId: number) {
 }
 
 
+
+function getCampusTeachers(campusId: number): any {
+  throw new Error("Function not implemented.");
+}
+
+function getPrincipalCampusData(campusId: number): any {
+  throw new Error("Function not implemented.");
+}
 

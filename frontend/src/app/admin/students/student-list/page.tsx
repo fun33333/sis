@@ -10,7 +10,7 @@ import { Search, Users, Mail, Phone, MapPin, GraduationCap, Calendar, BookOpen, 
 import { getAllStudents, getClassroomStudents, getCoordinatorTeachers, getCurrentUserProfile } from "@/lib/api"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { getCurrentUserRole } from "@/lib/permissions"
+import { getCurrentUser, getCurrentUserRole } from "@/lib/permissions"
 
 export default function StudentListPage() {
   useEffect(() => {
@@ -30,17 +30,10 @@ export default function StudentListPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-<<<<<<< HEAD
    const [statusFilter, setStatusFilter] = useState<string>("all")
    const [gradeFilter, setGradeFilter] = useState<string>("all")
-=======
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [gradeFilter, setGradeFilter] = useState<string>("all")
-  const [levelFilter, setLevelFilter] = useState<string>("all")
->>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
   const pageSize = 500
   const [userRole, setUserRole] = useState<string>("")
-<<<<<<< HEAD
   const [userCampus, setUserCampus] = useState<string | null>(null)
   const [userClassroom, setUserClassroom] = useState<number | null>(null)
   const [isClient, setIsClient] = useState(false)
@@ -68,41 +61,6 @@ export default function StudentListPage() {
     } else if (user?.assigned_classroom?.id) {
       setUserClassroom(user.assigned_classroom.id)
     }
-=======
-  const canEdit = userRole !== "superadmin"
-
-  // Get grades based on selected level
-  const getFilteredGrades = () => {
-    const allGrades = [
-      'Nursery', 'KG-1', 'KG-2',
-      'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5',
-      'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'
-    ]
-
-    if (levelFilter === "all") {
-      return allGrades
-    } else if (levelFilter === "pre-primary") {
-      return ['Nursery', 'KG-1', 'KG-2']
-    } else if (levelFilter === "primary") {
-      return ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5']
-    } else if (levelFilter === "secondary") {
-      return ['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10']
-    }
-    
-    return allGrades
-  }
-
-  // Reset grade filter when level changes
-  useEffect(() => {
-    if (levelFilter !== "all") {
-      setGradeFilter("all")
-    }
-  }, [levelFilter])
-
-  useEffect(() => {
-    // Get user role
-    setUserRole(getCurrentUserRole())
->>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
     
     async function fetchStudents() {
       setLoading(true)
@@ -241,7 +199,6 @@ export default function StudentListPage() {
        (statusFilter === "active" && student.current_state.toLowerCase() === "active") ||
        (statusFilter === "inactive" && student.current_state.toLowerCase() !== "active")
 
-<<<<<<< HEAD
      const matchesGrade = gradeFilter === "all" || 
        student.current_grade.toLowerCase().includes(gradeFilter.toLowerCase())
 
@@ -252,22 +209,6 @@ export default function StudentListPage() {
    useEffect(() => {
      setCurrentPage(1)
    }, [search, statusFilter, gradeFilter])
-=======
-
-    const matchesGrade = gradeFilter === "all" || 
-      student.current_grade.toLowerCase().includes(gradeFilter.toLowerCase())
-
-    const matchesLevel = levelFilter === "all" || 
-      getLevelFromGrade(student.current_grade) === levelFilter
-
-    return matchesSearch && matchesStatus && matchesGrade && matchesLevel
-  })
-
-  // Reset to first page when search or filters change
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [search, statusFilter, gradeFilter, levelFilter])
->>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
 
   const totalRecords = filteredStudents.length
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalRecords / pageSize)), [totalRecords])
@@ -318,7 +259,6 @@ export default function StudentListPage() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
-<<<<<<< HEAD
 
   const getUniqueGrades = () => {
     const grades = [...new Set(students.map(s => s.current_grade).filter(Boolean))]
@@ -334,22 +274,12 @@ export default function StudentListPage() {
         </div>
       </div>
     );
-=======
-  const getUniqueLevels = () => {
-    return [
-      { value: "all", label: "All Levels" },
-      { value: "pre-primary", label: "Pre-Primary" },
-      { value: "primary", label: "Primary" },
-      { value: "secondary", label: "Secondary" }
-    ]
->>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-<<<<<<< HEAD
           <h1 className="text-2xl font-bold" style={{ color: '#274c77' }}>
             {userRole === 'teacher' ? 'My Class Students' : 
              userRole === 'coordinator' ? 'My Students' : 
@@ -365,15 +295,6 @@ export default function StudentListPage() {
                <p>Total Students: {students.length} | Showing: {filteredStudents.length}</p>
              </div>
            )}
-=======
-          <h1 className="text-2xl font-bold" style={{ color: '#274c77' }}>Student List</h1>
-          <p className="text-gray-600">Browse and manage all students in the system</p>
-          {!loading && !error && (
-            <div className="text-sm text-gray-500 mt-1">
-              <p>Total Students: {students.length} | Showing: {filteredStudents.length}</p>
-            </div>
-          )}
->>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
         </div>
         <Badge style={{ backgroundColor: '#6096ba', color: 'white' }} className="px-4 py-2">
           {filteredStudents.length} of {students.length} Students
@@ -395,7 +316,6 @@ export default function StudentListPage() {
               />
             </div>
             
-<<<<<<< HEAD
              {/* Filters - Hide for teachers */}
              {userRole !== "teacher" && (
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -427,50 +347,6 @@ export default function StudentListPage() {
                </div>
                </div>
              )}
-=======
-            {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
-                <select
-                  value={levelFilter}
-                  onChange={(e) => setLevelFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {getUniqueLevels().map(level => (
-                    <option key={level.value} value={level.value}>{level.label}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Grade</label>
-                <select
-                  value={gradeFilter}
-                  onChange={(e) => setGradeFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All Grades</option>
-                  {getFilteredGrades().map(grade => (
-                    <option key={grade} value={grade}>{grade}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
->>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
           </div>
         </CardContent>
       </Card>
