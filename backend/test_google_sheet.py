@@ -14,6 +14,7 @@ django.setup()
 from campus.models import Campus
 from students.models import Student
 from classes.models import ClassRoom, Grade, Level
+from teachers.models import Teacher
 
 # ---- Helper: date parsing ----
 def parse_date(value):
@@ -62,6 +63,48 @@ def safe_integer(value):
     except (ValueError, TypeError):
         return None
 
+# ---- Helper: Teacher Assignment ----
+def assign_teachers_to_classrooms():
+    """Assign teachers to classrooms based on campus and grade"""
+    from django.db.models import Q
+    
+    # Get all classrooms without teachers
+    classrooms_without_teachers = ClassRoom.objects.filter(class_teacher__isnull=True)
+    print(f"Found {classrooms_without_teachers.count()} classrooms without teachers")
+    
+    assigned_count = 0
+    
+    for classroom in classrooms_without_teachers:
+        try:
+            # Find teachers for this campus and grade
+            campus = classroom.grade.level.campus
+            grade_name = classroom.grade.name
+            
+            # Try to find a teacher for this specific grade
+            teacher = Teacher.objects.filter(
+                current_campus=campus,
+                current_subjects__icontains=grade_name
+            ).first()
+            
+            # If no specific teacher found, find any teacher for this campus
+            if not teacher:
+                teacher = Teacher.objects.filter(
+                    current_campus=campus
+                ).first()
+            
+            if teacher:
+                classroom.class_teacher = teacher
+                classroom.save()
+                print(f"Assigned {teacher.name} to {classroom}")
+                assigned_count += 1
+            else:
+                print(f"No teacher found for {classroom}")
+                
+        except Exception as e:
+            print(f"Error assigning teacher to {classroom}: {e}")
+    
+    print(f"Assigned teachers to {assigned_count} classrooms")
+
 # ---- Google Sheets auth ----
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -77,7 +120,7 @@ sheet = client.open_by_key(spreadsheet_id).sheet1
 records = sheet.get_all_records()
 
 # ---- Debug: Check available campus names ----
-print("🔍 Available campuses in database:")
+print("Available campuses in database:")
 for campus in Campus.objects.all():
     print(f"  - ID: {campus.id}, Name: {campus.campus_name}, Code: {campus.campus_code}")
 
@@ -99,7 +142,7 @@ for row in records:
         )
         
         if not campus_name:
-            print(f"⚠️ Skipped {row.get('Name')} | No campus given")
+            print(f"Skipped {row.get('Name')} | No campus given")
             error_count += 1
             continue
 
@@ -107,7 +150,7 @@ for row in records:
         try:
             campus_obj = Campus.objects.get(campus_name__iexact=campus_name.strip())
         except Campus.DoesNotExist:
-            print(f"⚠️ Campus '{campus_name}' not found")
+            print(f"Campus '{campus_name}' not found")
             error_count += 1
             continue
 
@@ -127,30 +170,64 @@ for row in records:
         # Try to find classroom for assignment
         if grade_name and section_name:
             try:
-                # Find grade
-                grade = Grade.objects.get(
-                    name__iexact=grade_name.strip(),
-                    level__campus=campus_obj
-                )
+                # Find grade with multiple variations
+                grade_name_variations = [
+                    grade_name.strip(),
+                    grade_name.strip().replace('-', ' '),
+                    grade_name.strip().replace(' ', '-'),
+                    f"Grade {grade_name.strip().replace('Grade', '').strip()}",
+                    grade_name.strip().replace('KG-', 'KG '),
+                    grade_name.strip().replace('KG ', 'KG-'),
+                    grade_name.strip().replace('KG-I', 'KG 1'),
+                    grade_name.strip().replace('KG-II', 'KG 2'),
+                    grade_name.strip().replace('KG 1', 'KG-I'),
+                    grade_name.strip().replace('KG 2', 'KG-II'),
+                    grade_name.strip().replace('KG-1', 'KG-I'),
+                    grade_name.strip().replace('KG-2', 'KG-II'),
+                    grade_name.strip().replace('KG1', 'KG-I'),
+                    grade_name.strip().replace('KG2', 'KG-II'),
+                    # Add more variations for better matching
+                    grade_name.strip().replace('KG-1', 'KG-I'),
+                    grade_name.strip().replace('KG-2', 'KG-II'),
+                    grade_name.strip().replace('KG1', 'KG-I'),
+                    grade_name.strip().replace('KG2', 'KG-II'),
+                    grade_name.strip().replace('KG 1', 'KG-I'),
+                    grade_name.strip().replace('KG 2', 'KG-II'),
+                ]
                 
-                # Find or create classroom
-                classroom, created = ClassRoom.objects.get_or_create(
-                    grade=grade,
-                    section=section_name.strip(),
-                    defaults={
-                        'capacity': 30,
-                        'code': f"{grade.short_code}-{section_name.strip()}"
-                    }
-                )
+                grade = None
+                for grade_var in grade_name_variations:
+                    try:
+                        grade = Grade.objects.get(
+                            name__iexact=grade_var,
+                            level__campus=campus_obj
+                        )
+                        break
+                    except Grade.DoesNotExist:
+                        continue
                 
-                # Assign classroom
-                student_data['classroom'] = classroom
-                
-                if created:
-                    print(f"✅ Created classroom: {classroom}")
+                if not grade:
+                    print(f"Grade '{grade_name}' not found in campus '{campus_name}'")
+                    # Continue without classroom assignment
+                else:
+                    # Find or create classroom
+                    classroom, created = ClassRoom.objects.get_or_create(
+                        grade=grade,
+                        section=section_name.strip(),
+                        defaults={
+                            'capacity': 30,
+                            'shift': 'morning'  # Default shift
+                        }
+                    )
                     
-            except Grade.DoesNotExist:
-                print(f"⚠️ Grade '{grade_name}' not found in campus '{campus_name}'")
+                    # Assign classroom
+                    student_data['classroom'] = classroom
+                    
+                    if created:
+                        print(f"Created classroom: {classroom}")
+                        
+            except Exception as e:
+                print(f"Error finding classroom: {e}")
                 # Continue without classroom assignment
         
         # Add other fields
@@ -190,18 +267,22 @@ for row in records:
                 )
                 student.save()
             except Exception as e:
-                print(f"⚠️ Could not generate student code: {e}")
+                print(f"Could not generate student code: {e}")
         
-        print(f"✅ Added: {student.name} → {campus_obj.campus_name} ({student.current_grade}-{student.section})")
+        print(f"Added: {student.name} → {campus_obj.campus_name} ({student.current_grade}-{student.section})")
         if student.classroom:
-            print(f"   📚 Classroom: {student.classroom} (Code: {student.student_code})")
+            print(f"   Classroom: {student.classroom} (Code: {student.student_code})")
         
         success_count += 1
         
     except Exception as e:
-        print(f"❌ Error adding student: {row.get('Name') or 'Unknown'} | {e}")
+        print(f"Error adding student: {row.get('Name') or 'Unknown'} | {e}")
         error_count += 1
 
-print(f"\n🎉 Import completed!")
-print(f"✅ Success: {success_count} students")
-print(f"❌ Errors: {error_count} students")
+print(f"\nImport completed!")
+print(f"Success: {success_count} students")
+print(f"Errors: {error_count} students")
+
+# Assign teachers to classrooms
+print(f"\nAssigning teachers to classrooms...")
+assign_teachers_to_classrooms()
