@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Users, Search } from "lucide-react"
-import { getUsers } from "@/lib/api"
+import { getUsers, getAllCoordinators } from "@/lib/api"
+import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions"
 
 interface CoordinatorUser {
   id: number
@@ -28,17 +29,56 @@ export default function CoordinatorListPage() {
   const [search, setSearch] = useState("")
   const [coordinators, setCoordinators] = useState<CoordinatorUser[]>([])
   const [loading, setLoading] = useState(true)
+  const [userRole, setUserRole] = useState<string>("")
+  const [userCampus, setUserCampus] = useState<string>("")
   const router = useRouter()
+
+  // Get user role and campus for principal filtering
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const role = getCurrentUserRole()
+      setUserRole(role)
+      
+      const user = getCurrentUser() as any
+      if (user?.campus?.campus_name) {
+        setUserCampus(user.campus.campus_name)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const data = await getUsers("coordinator")
-      setCoordinators(Array.isArray(data) ? data : [])
+      
+      // Principal: Get coordinators from their campus only
+      if (userRole === 'principal' && userCampus) {
+        const allCoordinators = await getAllCoordinators() as any
+        const campusCoordinators = allCoordinators.filter((coord: any) => 
+          coord.campus?.campus_name === userCampus || coord.campus === userCampus
+        )
+        
+        // Map to CoordinatorUser format
+        const mappedCoordinators = campusCoordinators.map((coord: any) => ({
+          id: coord.id,
+          username: coord.email || coord.username || '',
+          email: coord.email || '',
+          first_name: coord.full_name?.split(' ')[0] || coord.first_name || '',
+          last_name: coord.full_name?.split(' ').slice(1).join(' ') || coord.last_name || '',
+          role: 'coordinator',
+          campus_name: coord.campus?.campus_name || coord.campus || userCampus,
+          is_active: coord.is_active !== false
+        }))
+        
+        setCoordinators(mappedCoordinators)
+      } else {
+        const data = await getUsers("coordinator")
+        setCoordinators(Array.isArray(data) ? data : [])
+      }
+      
       setLoading(false)
     }
     load()
-  }, [])
+  }, [userRole, userCampus])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -57,7 +97,12 @@ export default function CoordinatorListPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#274c77' }}>Coordinator List</h1>
-          <p className="text-gray-600">All coordinators across campuses</p>
+          <p className="text-gray-600">
+            {userRole === 'principal' && userCampus 
+              ? `Coordinators from ${userCampus} campus` 
+              : 'All coordinators across campuses'
+            }
+          </p>
         </div>
         <Badge style={{ backgroundColor: '#6096ba', color: 'white' }} className="px-4 py-2">
           {filtered.length} Coordinators
@@ -69,7 +114,11 @@ export default function CoordinatorListPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search by name, email, campus..."
+              placeholder={
+                userRole === 'principal' && userCampus 
+                  ? `Search coordinators from ${userCampus}...`
+                  : "Search by name, email, campus..."
+              }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -88,7 +137,12 @@ export default function CoordinatorListPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading coordinators...</div>
+            <div className="text-center py-8">
+              {userRole === 'principal' && userCampus 
+                ? `Loading coordinators from ${userCampus}...`
+                : 'Loading coordinators...'
+              }
+            </div>
           ) : (
             <Table>
               <TableHeader>

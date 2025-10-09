@@ -6,22 +6,35 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Progress } from "@/components/ui/progress"
+import { Input } from "@/components/ui/input"
 import { apiGet, getAllStudents } from "@/lib/api"
 import { ArrowLeft, User, Phone, MapPin, GraduationCap, Users, Calendar, Award, BookOpen, TrendingUp, Star, Crown, Sparkles, Trophy, Medal, Target, Activity, Clock, Mail, Home, School, CheckCircle, AlertCircle, BarChart3, PieChart as PieChartIcon, LineChart as LineChartIcon, RefreshCw, Download, Share } from "lucide-react"
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, LineChart, Line, RadialBarChart, RadialBar, AreaChart, Area } from 'recharts'
+
+// Theme colors - IAK SMS Brand Colors
+const themeColors = {
+  primary: '#274c77',      // Dark Blue
+  secondary: '#6096ba',    // Medium Blue  
+  accent: '#a3cef1',       // Light Blue
+  success: '#16a34a',      // Green
+  warning: '#f59e0b',      // Orange
+  error: '#dc2626',        // Red
+  info: '#3b82f6',         // Blue
+  purple: '#9333ea',       // Purple
+  pink: '#ec4899',         // Pink
+  gray: '#6b7280'          // Gray
+}
 
 // Dynamic chart data based on real student performance
 const generatePerformanceData = (student: any) => {
   const baseScore = 85 + Math.random() * 15;
   return [
-    { subject: 'Mathematics', grade: Math.floor(baseScore + Math.random() * 5), total: 100, color: '#2563eb' },
-    { subject: 'English', grade: Math.floor(baseScore + Math.random() * 5), total: 100, color: '#dc2626' },
-    { subject: 'Science', grade: Math.floor(baseScore + Math.random() * 5), total: 100, color: '#16a34a' },
-    { subject: 'Urdu', grade: Math.floor(baseScore + Math.random() * 5), total: 100, color: '#ca8a04' },
-    { subject: 'Islamiat', grade: Math.floor(baseScore + Math.random() * 5), total: 100, color: '#9333ea' },
-    { subject: 'Computer', grade: Math.floor(baseScore + Math.random() * 5), total: 100, color: '#c2410c' },
+    { subject: 'Math', grade: Math.floor(baseScore + Math.random() * 5), total: 100, color: themeColors.primary },
+    { subject: 'Eng', grade: Math.floor(baseScore + Math.random() * 5), total: 100, color: themeColors.secondary },
+    { subject: 'Sci', grade: Math.floor(baseScore + Math.random() * 5), total: 100, color: themeColors.success },
+    { subject: 'Urdu', grade: Math.floor(baseScore + Math.random() * 5), total: 100, color: themeColors.warning },
+    { subject: 'Isl', grade: Math.floor(baseScore + Math.random() * 5), total: 100, color: themeColors.purple },
+    { subject: 'Com', grade: Math.floor(baseScore + Math.random() * 5), total: 100, color: themeColors.info },
   ]
 }
 
@@ -38,11 +51,11 @@ const generateAttendanceData = () => {
 
 const generateActivityData = () => {
   return [
-    { activity: 'Sports Events', medals: 12, level: 'Gold' },
-    { activity: 'Academic Competitions', medals: 8, level: 'Silver' },
-    { activity: 'Science Fair', medals: 6, level: 'Bronze' },
-    { activity: 'Art Competition', medals: 4, level: 'Gold' },
-    { activity: 'Debate Contest', medals: 3, level: 'Silver' },
+    { activity: 'Sports Events', medals: 12, level: 'Gold', color: themeColors.success },
+    { activity: 'Academic Competitions', medals: 8, level: 'Silver', color: themeColors.secondary },
+    { activity: 'Science Fair', medals: 6, level: 'Bronze', color: themeColors.warning },
+    { activity: 'Art Competition', medals: 4, level: 'Gold', color: themeColors.purple },
+    { activity: 'Debate Contest', medals: 3, level: 'Silver', color: themeColors.info },
   ]
 }
 
@@ -130,23 +143,64 @@ export default function StudentProfilePage() {
           const role = String(u?.role || '').toLowerCase()
           setCanEdit(role.includes('teach') || role.includes('coord'))
         }
-      } catch {}
+      } catch { }
     }
   }, [])
 
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#e7ecef' }}>
-        <div className="flex items-center justify-center h-64">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-transparent mx-auto" style={{ borderTopColor: '#274c77', borderRightColor: '#6096ba' }}></div>
-              <div className="absolute inset-0 animate-pulse">
-                <Sparkles className="h-8 w-8 mx-auto mt-4" style={{ color: '#274c77' }} />
+          {/* Spinning Circle Loader */}
+          <div className="relative mb-8 flex items-center justify-center">
+            <div className="w-20 h-20 border-4 border-gray-200 rounded-full animate-spin border-t-4" style={{ borderTopColor: themeColors.primary }}></div>
+            <div className="absolute w-16 h-16 border-4 border-gray-200 rounded-full animate-spin border-t-4" style={{ borderTopColor: themeColors.secondary, animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+            <div className="absolute w-12 h-12 border-4 border-gray-200 rounded-full animate-spin border-t-4" style={{ borderTopColor: themeColors.success, animationDuration: '2s' }}></div>
+          </div>
+
+          {/* Pulsing Text */}
+          <div className="space-y-4">
+            <h2 className="text-3xl font-bold animate-pulse" style={{ color: themeColors.primary }}>
+              Loading Student Profile
+            </h2>
+            <div className="flex items-center justify-center space-x-1">
+              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '0ms' }}>L</span>
+              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '100ms' }}>o</span>
+              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '200ms' }}>a</span>
+              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '300ms' }}>d</span>
+              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '400ms' }}>i</span>
+              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '500ms' }}>n</span>
+              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '600ms' }}>g</span>
+              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '700ms' }}>.</span>
+              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '800ms' }}>.</span>
+              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '900ms' }}>.</span>
               </div>
             </div>
-            <p className="mt-4 text-lg font-medium" style={{ color: '#274c77' }}>Loading Student Profile...</p>
+
+          {/* Progress Dots */}
+          <div className="flex justify-center space-x-2 mt-8">
+            <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: themeColors.primary, animationDelay: '0ms' }}></div>
+            <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: themeColors.secondary, animationDelay: '200ms' }}></div>
+            <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: themeColors.success, animationDelay: '400ms' }}></div>
+            <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: themeColors.warning, animationDelay: '600ms' }}></div>
+            <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: themeColors.purple, animationDelay: '800ms' }}></div>
+          </div>
+
+          {/* Rotating Icons */}
+          <div className="mt-12 flex justify-center space-x-8">
+            <div className="animate-spin" style={{ animationDuration: '3s' }}>
+              <BookOpen className="w-8 h-8" style={{ color: themeColors.primary }} />
+            </div>
+            <div className="animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}>
+              <GraduationCap className="w-8 h-8" style={{ color: themeColors.secondary }} />
+            </div>
+            <div className="animate-spin" style={{ animationDuration: '4s' }}>
+              <Trophy className="w-8 h-8" style={{ color: themeColors.success }} />
+            </div>
+            <div className="animate-spin" style={{ animationDuration: '2.5s', animationDirection: 'reverse' }}>
+              <Star className="w-8 h-8" style={{ color: themeColors.warning }} />
+            </div>
           </div>
             </div>
       </div>
@@ -188,98 +242,147 @@ export default function StudentProfilePage() {
   const performanceAvg = performanceData.reduce((acc, curr) => acc + curr.grade, 0) / performanceData.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gray-50">
       <div className="p-6 max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+          {/* Top Navigation Bar */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+            <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-3 rounded-lg">
-                <User className="h-8 w-8 text-white" />
-              </div>
+                <Button
+                  onClick={() => router.back()}
+                  variant="outline"
+                  size="sm"
+                  className="hover:bg-gray-50 border-gray-300 text-gray-700"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+                <div className="h-6 w-px bg-gray-300"></div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Welcome Back, {student.name?.split(' ')[0]} 👋
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    Student Profile
                 </h1>
-                <p className="text-gray-600">Your academic progress dashboard</p>
+                  <p className="text-sm text-gray-500">
+                    Comprehensive student information and analytics
+                  </p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm">
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hover:bg-gray-50 border-gray-300 text-gray-700"
+                >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
               </Button>
-              <Button variant="outline" size="sm">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hover:bg-gray-50 border-gray-300 text-gray-700"
+                >
+                  <Share className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hover:bg-gray-50 border-gray-300 text-gray-700"
+                >
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
-              <Button 
-                onClick={() => router.back()}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
+              </div>
             </div>
           </div>
 
-          {/* Student Profile Card */}
-          <Card className="bg-white shadow-lg border-0">
-            <CardContent className="p-6">
+          {/* Student Profile Header Card */}
+          <Card className="bg-gradient-to-r from-blue-50 via-blue-100 to-blue-200 border border-blue-300 shadow-lg overflow-hidden" style={{ background: `linear-gradient(135deg, ${themeColors.accent}20, ${themeColors.secondary}20, ${themeColors.primary}20)` }}>
+            <CardContent className="p-0">
+              <div className="p-6">
               <div className="flex items-center justify-between">
+                  {/* Left Section - Student Info */}
                 <div className="flex items-center space-x-6">
+                    {/* Student Avatar */}
                   <div className="relative">
+                      <div className="w-24 h-24 rounded-xl bg-white shadow-lg flex items-center justify-center border-2" style={{ borderColor: themeColors.secondary }}>
                     {student.photo ? (
                       <img
                         src={student.photo}
                         alt={student.name}
-                        className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
+                            className="w-20 h-20 rounded-lg object-cover"
                       />
                     ) : (
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center border-4 border-white shadow-lg">
-                        <span className="text-2xl font-bold text-white">{student.name?.[0]?.toUpperCase()}</span>
+                          <span className="text-3xl font-bold" style={{ color: themeColors.primary }}>{student.name?.[0]?.toUpperCase()}</span>
+                        )}
                       </div>
-                    )}
-                    <div className="absolute -bottom-1 -right-1 bg-green-500 w-6 h-6 rounded-full flex items-center justify-center">
+                      <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center shadow-lg" style={{ backgroundColor: themeColors.success }}>
                       <CheckCircle className="w-4 h-4 text-white" />
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <h2 className="text-2xl font-bold text-gray-900">{student.name}</h2>
-                    <div className="flex items-center space-x-4 text-sm text-gray-600">
-                      <span className="flex items-center">
-                        <User className="w-4 h-4 mr-1" />
-                        ID: {student.id}
-                      </span>
-                      <span className="flex items-center">
-                        <School className="w-4 h-4 mr-1" />
-                        GR: {student.gr_no || 'Not Assigned'}
-                      </span>
-                      <span className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        Grade {student.current_grade}
-                      </span>
+
+                    {/* Student Details */}
+                    <div className="space-y-3">
+                      <div>
+                        <h2 className="text-3xl font-bold text-gray-900 mb-2">{student.name}</h2>
+                        <div className="flex items-center space-x-6 text-sm text-gray-600">
+                          <div className="flex items-center space-x-2">
+                            <User className="h-4 w-4" style={{ color: themeColors.primary }} />
+                            <span className="font-medium">ID: {student.id}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <GraduationCap className="h-4 w-4" style={{ color: themeColors.success }} />
+                            <span className="font-medium">{student.current_grade || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <BookOpen className="h-4 w-4" style={{ color: themeColors.purple }} />
+                            <span className="font-medium">GR: {student.gr_no || 'None'}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <Users className="h-4 w-4" style={{ color: themeColors.pink }} />
+                          <span className="font-medium">{student.gender || 'N/A'}</span>
                     </div>
-                    <div className="flex items-center space-x-2 mt-2">
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                        {student.campus?.name || 'Main Campus'}
-                      </Badge>
                       <Badge 
-                        className={`${student.current_state === 'active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {student.current_state === 'active' ? '🟢 Active Student' : '🔴 Inactive'}
+                          variant={student?.current_state?.toLowerCase() === 'active' ? 'default' : 'secondary'}
+                          className={`px-3 py-1 text-xs font-medium ${
+                            student?.current_state?.toLowerCase() === 'active'
+                              ? 'text-white border-0'
+                              : 'bg-gray-100 text-gray-800 border-gray-200'
+                          }`}
+                          style={student?.current_state?.toLowerCase() === 'active' ? { backgroundColor: themeColors.success } : {}}
+                        >
+                          {student?.current_state || 'Unknown'}
                       </Badge>
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-4 rounded-lg text-center">
-                    <Trophy className="w-6 h-6 mx-auto mb-1" />
-                    <div className="text-2xl font-bold">{overallScore}</div>
-                    <div className="text-sm opacity-90">Overall Score</div>
+
+                  {/* Right Section - Overall Score */}
+                  <div className="text-center">
+                    <div className="bg-white rounded-xl p-6 shadow-lg border" style={{ borderColor: themeColors.secondary }}>
+                      <div className="flex items-center justify-center mb-3">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.secondary})` }}>
+                          <Trophy className="h-6 w-6 text-white" />
+                        </div>
+                      </div>
+                      <div className="text-3xl font-bold mb-1" style={{ color: themeColors.primary }}>{overallScore}%</div>
+                      <div className="text-sm font-medium" style={{ color: themeColors.gray }}>Overall Score</div>
+                      <div className="mt-2 w-16 h-1 bg-gray-200 rounded-full mx-auto">
+                        <div 
+                          className="h-1 rounded-full transition-all duration-300"
+                          style={{ 
+                            width: `${overallScore}%`,
+                            background: `linear-gradient(90deg, ${themeColors.primary}, ${themeColors.secondary})`
+                          }}
+                        ></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -288,573 +391,425 @@ export default function StudentProfilePage() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-white shadow-sm border" style={{ borderColor: themeColors.accent }}>
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Academic Average</p>
-                  <p className="text-2xl font-bold text-blue-600">{performanceAvg.toFixed(1)}%</p>
+                  <p className="text-sm" style={{ color: themeColors.gray }}>Academic Average</p>
+                  <p className="text-xl font-semibold" style={{ color: themeColors.primary }}>{performanceAvg.toFixed(1)}%</p>
                 </div>
-                <div className="bg-blue-100 p-3 rounded-full">
-                  <BookOpen className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <Progress value={performanceAvg} className="h-2" />
-                <p className="text-xs text-gray-500 mt-1">
-                  {performanceAvg >= 90 ? 'Excellent' : performanceAvg >= 80 ? 'Good' : 'Needs Improvement'}
-                </p>
+                <BookOpen className="w-5 h-5" style={{ color: themeColors.primary }} />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
+          <Card className="bg-white shadow-sm border" style={{ borderColor: themeColors.accent }}>
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Attendance Rate</p>
-                  <p className="text-2xl font-bold text-green-600">{attendanceAvg.toFixed(1)}%</p>
+                  <p className="text-sm" style={{ color: themeColors.gray }}>Attendance Rate</p>
+                  <p className="text-xl font-semibold" style={{ color: themeColors.success }}>{attendanceAvg.toFixed(1)}%</p>
                 </div>
-                <div className="bg-green-100 p-3 rounded-full">
-                  <Calendar className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <Progress value={attendanceAvg} className="h-2" />
-                <p className="text-xs text-gray-500 mt-1">
-                  {attendanceAvg >= 95 ? 'Excellent' : attendanceAvg >= 85 ? 'Good' : 'Poor'}
-                </p>
+                <Calendar className="w-5 h-5" style={{ color: themeColors.success }} />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
+          <Card className="bg-white shadow-sm border" style={{ borderColor: themeColors.accent }}>
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Participation Rate</p>
-                  <p className="text-2xl font-bold text-purple-600">{participationRate}%</p>
+                  <p className="text-sm" style={{ color: themeColors.gray }}>Participation</p>
+                  <p className="text-xl font-semibold" style={{ color: themeColors.purple }}>{participationRate}%</p>
                 </div>
-                <div className="bg-purple-100 p-3 rounded-full">
-                  <Users className="w-6 h-6 text-purple-600" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <Progress value={participationRate} className="h-2" />
-                <p className="text-xs text-gray-500 mt-1">Class Engagement</p>
+                <Users className="w-5 h-5" style={{ color: themeColors.purple }} />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
+          <Card className="bg-white shadow-sm border" style={{ borderColor: themeColors.accent }}>
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Suspension Rate</p>
-                  <p className="text-2xl font-bold text-red-600">{suspensionRate}%</p>
+                  <p className="text-sm" style={{ color: themeColors.gray }}>Suspension Rate</p>
+                  <p className="text-xl font-semibold" style={{ color: themeColors.error }}>{suspensionRate}%</p>
                 </div>
-                <div className="bg-red-100 p-3 rounded-full">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <Progress value={suspensionRate} className="h-2 bg-red-100" />
-                <p className="text-xs text-gray-500 mt-1">Disciplinary Record</p>
+                <AlertCircle className="w-5 h-5" style={{ color: themeColors.error }} />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Sidebar */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Student Selector */}
-            <Card className="bg-white shadow-md border-0">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center text-gray-800">
-                  <Users className="h-5 w-5 mr-2" />
-                  Select Student
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select value={String(student.id)} onValueChange={(v) => router.push(`/admin/students/profile?studentId=${v}`)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Choose a Student" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {students.slice(0, 50).map((st) => (
-                      <SelectItem key={st.id} value={String(st.id)}>
-                        {st.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-
-            {/* Recent Test Results */}
-            <Card className="bg-white shadow-md border-0">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center text-gray-800">
-                  <Activity className="h-5 w-5 mr-2" />
-                  Recent Tests
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {mockTestData.map((test, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-sm text-gray-900">{test.test}</p>
-                      <p className="text-xs text-gray-500">{test.date}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Column 1 - Student Photo */}
+          <div className="flex">
+            <Card className="bg-white shadow-sm border border-gray-200 w-full flex flex-col overflow-hidden">
+              <CardContent className="p-0 flex-1 flex flex-col relative">
+                {/* Background Image/Color Cover */}
+                <div className="flex-1 relative">
+                  {student.photo ? (
+                    <img
+                      src={student.photo}
+                      alt={student.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                      <span className="text-8xl font-bold text-blue-600">{student.name?.[0]?.toUpperCase()}</span>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-bold text-blue-600">{test.score}/{test.total}</div>
-                      <div className="text-xs text-gray-500">{((test.score/test.total)*100).toFixed(0)}%</div>
+                  )}
+
+                  <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+
+                  {/* Student Info Overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent">
+                    <div className="text-center">
+                      <h3 className="text-2xl font-bold text-white mb-2">{student.name}</h3>
+                      <Badge
+                        variant={student?.current_state?.toLowerCase() === 'active' ? 'default' : 'secondary'}
+                        className={`${student?.current_state?.toLowerCase() === 'active'
+                            ? 'bg-green-500 text-white border-green-500'
+                            : 'bg-gray-500 text-white border-gray-500'
+                          }`}
+                      >
+                        {student?.current_state || 'Unknown'}
+                      </Badge>
                     </div>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
 
-            {/* Performance Score */}
-            <Card className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-lg border-0">
-              <CardContent className="p-6 text-center">
-                <div className="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                  <Trophy className="h-8 w-8 text-white" />
+                  {/* Status Indicator */}
+                  <div className="absolute top-4 right-4 w-8 h-8 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  </div>
                 </div>
-                <div className="text-3xl font-bold mb-2">{overallScore}</div>
-                <div className="text-sm opacity-90 mb-3">Overall Performance Score</div>
-                <Badge className="bg-white/20 text-white border-0">
-                  {overallScore >= 90 ? '🏆 Excellence' : overallScore >= 80 ? '⭐ Good' : '📈 Developing'}
-                </Badge>
               </CardContent>
             </Card>
         </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-6">
-            <Tabs defaultValue="academic" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 bg-white shadow-md p-1">
-                <TabsTrigger value="academic" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                  Academic
-                </TabsTrigger>
-                <TabsTrigger value="personal" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+          {/* Column 2 - Tabs and Information */}
+          <div className="flex">
+            <Tabs defaultValue="personal" className="w-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-3 bg-white shadow-sm border" style={{ borderColor: themeColors.accent }}>
+                <TabsTrigger 
+                  value="personal" 
+                  className="data-[state=active]:text-white data-[state=active]:border-b-2"
+                  style={{ 
+                    '--active-bg': themeColors.primary,
+                    '--active-border': themeColors.primary
+                  } as any}
+                >
                   Personal
                 </TabsTrigger>
-                <TabsTrigger value="contact" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                <TabsTrigger 
+                  value="contact" 
+                  className="data-[state=active]:text-white data-[state=active]:border-b-2"
+                  style={{ 
+                    '--active-bg': themeColors.secondary,
+                    '--active-border': themeColors.secondary
+                  } as any}
+                >
                   Contact
                 </TabsTrigger>
-                <TabsTrigger value="activities" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                  Activities
+                <TabsTrigger 
+                  value="academic" 
+                  className="data-[state=active]:text-white data-[state=active]:border-b-2"
+                  style={{ 
+                    '--active-bg': themeColors.success,
+                    '--active-border': themeColors.success
+                  } as any}
+                >
+                  Academic
                 </TabsTrigger>
               </TabsList>
 
-              {/* Academic Tab */}
-              <TabsContent value="academic" className="mt-6 space-y-6">
-                {/* Grade by Subject */}
-                <Card className="bg-white shadow-md border-0">
-                  <CardHeader>
-                    <CardTitle className="text-gray-800 flex items-center">
-                      <BarChart3 className="h-5 w-5 mr-2" />
-                      Grade by Subject
-                    </CardTitle>
+              {/* Personal Information Tab */}
+              <TabsContent value="personal" className="mt-6 flex-1">
+                <Card className="bg-white shadow-sm border h-full flex flex-col" style={{ borderColor: themeColors.accent }}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg font-medium" style={{ color: themeColors.primary }}>Personal Information</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {performanceData.map((item, index) => (
-                        <div key={index} className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-700">{item.subject}</span>
-                            <span className="text-sm font-bold text-gray-900">{item.grade}%</span>
+                  <CardContent className="space-y-4 flex-1">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-600">Student ID</label>
+                        <p className="font-medium text-gray-900">{student.id}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-600">Full Name</label>
+                        <p className="font-medium text-gray-900">{student.name}</p>
                           </div>
-                          <Progress value={item.grade} className="h-3" />
                         </div>
-                      ))}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-600">Grade</label>
+                        <p className="font-medium text-gray-900">{student.current_grade || 'N/A'}</p>
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Academic Information */}
-                <Card className="bg-white shadow-md border-0">
-                  <CardHeader>
-                    <CardTitle className="text-gray-800 flex items-center">
-                      <GraduationCap className="h-5 w-5 mr-2" />
-                      Academic Details
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {[
-                        { label: "Student ID", value: student.id, icon: "🆔" },
-                        { label: "Full Name", value: student.name, icon: "👤" },
-                        { label: "Grade", value: student.current_grade, icon: "📚" },
-                        { label: "Age", value: student.dob ? new Date().getFullYear() - new Date(student.dob).getFullYear() : 'N/A', icon: "🎂" },
-                        { label: "Gender", value: student.gender, icon: "⚧️" },
-                        { label: "Email Address", value: student.email || 'Not provided', icon: "📧" },
-                      ].map((item, index) => (
-                        <div key={index} className="p-4 bg-gray-50 rounded-lg hover:shadow-sm transition-shadow">
-                          <div className="flex items-center space-x-3">
-                            <span className="text-2xl">{item.icon}</span>
                             <div>
-                              <label className="text-sm font-medium text-gray-600">{item.label}</label>
-                              <p className="text-lg font-medium text-gray-900">{renderValue(item.value)}</p>
+                        <label className="text-sm text-gray-600">Age</label>
+                        <p className="font-medium text-gray-900">
+                          {student.dob ? new Date().getFullYear() - new Date(student.dob).getFullYear() : 'N/A'}
+                        </p>
                             </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-600">Gender</label>
+                        <p className="font-medium text-gray-900">{student.gender || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-600">Nationality</label>
+                        <p className="font-medium text-gray-900">{student.nationality || 'N/A'}</p>
                           </div>
                         </div>
-                      ))}
+                    <div>
+                      <label className="text-sm text-gray-600">Email Address</label>
+                      <Input
+                        value={student.email || 'Not provided'}
+                        className="mt-1"
+                        readOnly
+                      />
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              {/* Personal Tab */}
-              <TabsContent value="personal" className="mt-6 space-y-6">
-                <Card className="bg-white shadow-md border-0">
-                  <CardHeader>
-                    <CardTitle className="text-gray-800 flex items-center">
-                      <User className="h-5 w-5 mr-2" />
-                      Personal Information
-                    </CardTitle>
+              {/* Contact Information Tab */}
+              <TabsContent value="contact" className="mt-6 flex-1">
+                <Card className="bg-white shadow-sm border h-full flex flex-col" style={{ borderColor: themeColors.accent }}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg font-medium" style={{ color: themeColors.primary }}>Contact Information</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {[
-                        { label: "Full Name", value: student.name, icon: "👤" },
-                        { label: "Gender", value: student.gender, icon: "⚧️" },
-                        { label: "Date of Birth", value: student.dob, icon: "🎂" },
-                        { label: "Place of Birth", value: student.place_of_birth, icon: "📍" },
-                        { label: "Religion", value: student.religion, icon: "🕌" },
-                        { label: "Mother Tongue", value: student.mother_tongue, icon: "🗣️" },
-                        { label: "Nationality", value: student.nationality, icon: "🌍" },
-                        { label: "B-Form Number", value: student.b_form_number, icon: "📄" },
-                      ].map((item, index) => (
-                        <div key={index} className="p-4 bg-gray-50 rounded-lg hover:shadow-sm transition-shadow">
-                          <div className="flex items-center space-x-3">
-                            <span className="text-2xl">{item.icon}</span>
+                  <CardContent className="space-y-4 flex-1">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-600">Father's Contact</label>
+                        <p className="font-medium text-gray-900">{student.father_contact || 'N/A'}</p>
+                      </div>
                             <div>
-                              <label className="text-sm font-medium text-gray-600">{item.label}</label>
-                              <p className="text-lg font-medium text-gray-900">{renderValue(item.value)}</p>
+                        <label className="text-sm text-gray-600">Mother's Contact</label>
+                        <p className="font-medium text-gray-900">{student.mother_contact || 'N/A'}</p>
                             </div>
                           </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Emergency Contact</label>
+                      <p className="font-medium text-gray-900">{student.emergency_contact || 'N/A'}</p>
                         </div>
-                      ))}
+                    <div>
+                      <label className="text-sm text-gray-600">Address</label>
+                      <p className="font-medium text-gray-900">{student.address || 'N/A'}</p>
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              {/* Contact Tab */}
-              <TabsContent value="contact" className="mt-6 space-y-6">
-                {/* Emergency Contact */}
-                <Card className="bg-white shadow-md border-0">
-                  <CardHeader>
-                    <CardTitle className="text-gray-800 flex items-center">
-                      <Phone className="h-5 w-5 mr-2" />
-                      Emergency Contact
-                    </CardTitle>
+              {/* Academic Information Tab */}
+              <TabsContent value="academic" className="mt-6 flex-1">
+                <Card className="bg-white shadow-sm border h-full flex flex-col" style={{ borderColor: themeColors.accent }}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg font-medium" style={{ color: themeColors.primary }}>Academic Information</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-red-600 mb-2">
-                          {renderValue(student.emergency_contact)}
+                  <CardContent className="space-y-4 flex-1">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-600">Student ID</label>
+                        <p className="font-medium text-gray-900">{student.id}</p>
                         </div>
-                        <div className="text-sm text-gray-600">Primary Emergency Contact</div>
+                      <div>
+                        <label className="text-sm text-gray-600">GR Number</label>
+                        <p className="font-medium text-gray-900">{student.gr_no || 'N/A'}</p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Father Information */}
-                <Card className="bg-white shadow-md border-0">
-                  <CardHeader>
-                    <CardTitle className="text-gray-800 flex items-center">
-                      👨‍💼 Father Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {[
-                        { label: "Father Name", value: student.father_name, icon: "👤" },
-                        { label: "Father Contact", value: student.father_contact, icon: "📱" },
-                        { label: "Father CNIC", value: student.father_cnic, icon: "🆔" },
-                        { label: "Father Occupation", value: student.father_occupation, icon: "💼" },
-                      ].map((item, index) => (
-                        <div key={index} className="p-4 bg-blue-50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <span className="text-2xl">{item.icon}</span>
+                    <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="text-sm font-medium text-gray-600">{item.label}</label>
-                              <p className="text-lg font-medium text-gray-900">{renderValue(item.value)}</p>
+                        <label className="text-sm text-gray-600">Current Grade</label>
+                        <p className="font-medium text-gray-900">{student.current_grade || 'N/A'}</p>
                             </div>
+                      <div>
+                        <label className="text-sm text-gray-600">Campus</label>
+                        <p className="font-medium text-gray-900">{student.campus?.campus_name || 'N/A'}</p>
                           </div>
                         </div>
-                      ))}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-600">Enrollment Date</label>
+                        <p className="font-medium text-gray-900">{student.enrollment_date || 'N/A'}</p>
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Mother Information */}
-                <Card className="bg-white shadow-md border-0">
-                  <CardHeader>
-                    <CardTitle className="text-gray-800 flex items-center">
-                      👩‍💼 Mother Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {[
-                        { label: "Mother Name", value: student.mother_name, icon: "👤" },
-                        { label: "Mother Contact", value: student.mother_contact, icon: "📱" },
-                        { label: "Mother CNIC", value: student.mother_cnic, icon: "🆔" },
-                        { label: "Mother Status", value: student.mother_status, icon: "💼" },
-                      ].map((item, index) => (
-                        <div key={index} className="p-4 bg-pink-50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <span className="text-2xl">{item.icon}</span>
                             <div>
-                              <label className="text-sm font-medium text-gray-600">{item.label}</label>
-                              <p className="text-lg font-medium text-gray-900">{renderValue(item.value)}</p>
-                            </div>
+                        <label className="text-sm text-gray-600">Academic Year</label>
+                        <p className="font-medium text-gray-900">2024-2025</p>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Address */}
-                <Card className="bg-white shadow-md border-0">
-                  <CardHeader>
-                    <CardTitle className="text-gray-800 flex items-center">
-                      <Home className="h-5 w-5 mr-2" />
-                      Address Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="p-4 bg-green-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <MapPin className="h-8 w-8 text-green-600" />
                         <div>
-                          <label className="text-sm font-medium text-gray-600">Home Address</label>
-                          <p className="text-lg text-gray-900">{renderValue(student.address)}</p>
-                        </div>
-                      </div>
+                      <label className="text-sm text-gray-600">Academic Status</label>
+                      <p className="font-medium text-gray-900">{student.current_state || 'N/A'}</p>
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
-
-              {/* Activities Tab */}
-              <TabsContent value="activities" className="mt-6 space-y-6">
-                {/* Activities by Medals Awarded */}
-                <Card className="bg-white shadow-md border-0">
-                  <CardHeader>
-                    <CardTitle className="text-gray-800 flex items-center">
-                      <Award className="h-5 w-5 mr-2" />
-                      Activities by Medals Awarded
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {activityData.map((activity, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
-                          <div className="flex items-center space-x-4">
-                            <div className={`w-4 h-4 rounded-full ${
-                              activity.level === 'Gold' ? 'bg-yellow-500' : 
-                              activity.level === 'Silver' ? 'bg-gray-400' : 'bg-orange-600'
-                            }`}></div>
-                            <div>
-                              <p className="font-medium text-gray-900">{activity.activity}</p>
-                              <p className="text-sm text-gray-600">{activity.level} Level</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Trophy className="h-4 w-4 text-yellow-600" />
-                            <span className="font-bold text-lg text-gray-900">{activity.medals}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Performance Charts */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Student Suspension Rate */}
-                  <Card className="bg-white shadow-md border-0">
-                    <CardHeader>
-                      <CardTitle className="text-gray-800 flex items-center text-sm">
-                        <AlertCircle className="h-4 w-4 mr-2" />
-                        Student Suspension Rate
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex items-center justify-center p-6">
-                      <div className="relative w-32 h-32">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={[
-                                { value: suspensionRate, fill: '#ef4444' },
-                                { value: 100 - suspensionRate, fill: '#e5e7eb' },
-                              ]}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={35}
-                              outerRadius={60}
-                              dataKey="value"
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-center">
-                            <div className="text-xl font-bold text-red-600">{suspensionRate}%</div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Class Participation Rate */}
-                  <Card className="bg-white shadow-md border-0">
-                    <CardHeader>
-                      <CardTitle className="text-gray-800 flex items-center text-sm">
-                        <Users className="h-4 w-4 mr-2" />
-                        Class Participation Rate
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex items-center justify-center p-6">
-                      <div className="relative w-32 h-32">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={[
-                                { value: participationRate, fill: '#10b981' },
-                                { value: 100 - participationRate, fill: '#e5e7eb' },
-                              ]}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={35}
-                              outerRadius={60}
-                              dataKey="value"
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-center">
-                            <div className="text-xl font-bold text-green-600">{participationRate}%</div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
               </TabsContent>
             </Tabs>
+          </div>
+
+          {/* Column 3 - Chart Card */}
+          <div className="flex">
+            <Card className="bg-white shadow-sm border w-full flex flex-col" style={{ borderColor: themeColors.accent }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-medium" style={{ color: themeColors.primary }}>Performance Overview</CardTitle>
+                  </CardHeader>
+              <CardContent className="flex-1 flex flex-col">
+                <div className="flex-1">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={performanceData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={themeColors.accent} />
+                      <XAxis dataKey="subject" stroke={themeColors.gray} />
+                      <YAxis domain={[0, 100]} stroke={themeColors.gray} />
+                      <Tooltip />
+                      <Bar dataKey="grade" fill={themeColors.primary} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+          </div>
         </div>
 
-          {/* Right Sidebar - Analytics */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Attendance Tracking */}
-            <Card className="bg-white shadow-md border-0">
-              <CardHeader>
-                <CardTitle className="text-gray-800 flex items-center text-lg">
-                  <LineChartIcon className="h-5 w-5 mr-2" />
-                  Attendance Tracking
-                </CardTitle>
+        {/* Charts Section */}
+        <div className="mt-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Grade by Subject Chart */}
+            <Card className="bg-white shadow-sm border" style={{ borderColor: themeColors.accent }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-medium" style={{ color: themeColors.primary }}>Grade by Subject</CardTitle>
+                    </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={performanceData} layout="horizontal">
+                      <CartesianGrid strokeDasharray="3 3" stroke={themeColors.accent} />
+                      <XAxis type="number" domain={[0, 100]} stroke={themeColors.gray} />
+                      <YAxis dataKey="subject" type="category" width={80} stroke={themeColors.gray} />
+                      <Tooltip />
+                      <Bar dataKey="grade" fill={themeColors.primary} />
+                    </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+            {/* Activities by Medals Awarded */}
+            <Card className="bg-white shadow-sm border" style={{ borderColor: themeColors.accent }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-medium" style={{ color: themeColors.primary }}>Activities by Medals Awarded</CardTitle>
+                    </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={activityData} layout="horizontal">
+                      <CartesianGrid strokeDasharray="3 3" stroke={themeColors.accent} />
+                      <XAxis type="number" stroke={themeColors.gray} />
+                      <YAxis dataKey="activity" type="category" width={120} stroke={themeColors.gray} />
+                      <Tooltip />
+                      <Bar dataKey="medals" fill={themeColors.success} />
+                    </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+
+          {/* Additional Chart Section - 3 Columns */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            {/* Attendance Trend Chart */}
+            <Card className="bg-white shadow-sm border" style={{ borderColor: themeColors.accent }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-medium" style={{ color: themeColors.primary }}>Attendance Trend</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="mb-4 p-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg text-center">
-                  <div className="text-2xl font-bold">{attendanceAvg.toFixed(1)}%</div>
-                  <div className="text-sm opacity-90">Average Attendance</div>
-                </div>
-                <ResponsiveContainer width="100%" height={120}>
-                  <AreaChart data={attendanceData}>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={attendanceData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={themeColors.accent} />
+                      <XAxis dataKey="month" stroke={themeColors.gray} />
+                      <YAxis domain={[0, 100]} stroke={themeColors.gray} />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="attendance" stroke={themeColors.success} strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
+        </div>
+              </CardContent>
+            </Card>
+
+            {/* Monthly Performance Trend */}
+            <Card className="bg-white shadow-sm border" style={{ borderColor: themeColors.accent }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-medium" style={{ color: themeColors.primary }}>Monthly Performance Trend</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={[
+                      { month: 'Jan', performance: 85, attendance: 92 },
+                      { month: 'Feb', performance: 88, attendance: 90 },
+                      { month: 'Mar', performance: 92, attendance: 94 },
+                      { month: 'Apr', performance: 89, attendance: 88 },
+                      { month: 'May', performance: 91, attendance: 91 },
+                      { month: 'Jun', performance: 94, attendance: 93 }
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={themeColors.accent} />
+                      <XAxis dataKey="month" stroke={themeColors.gray} />
+                      <YAxis domain={[0, 100]} stroke={themeColors.gray} />
+                      <Tooltip />
+                      <Area 
+                        type="monotone" 
+                        dataKey="performance" 
+                        stackId="1"
+                        stroke={themeColors.primary} 
+                        fill={themeColors.primary}
+                        fillOpacity={0.3}
+                      />
                     <Area
                       type="monotone"
                       dataKey="attendance"
-                      stroke="#10b981"
-                      fill="#10b981"
-                      fillOpacity={0.2}
+                        stackId="2"
+                        stroke={themeColors.success} 
+                        fill={themeColors.success}
+                        fillOpacity={0.3}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Academic Performance Ranking */}
-            <Card className="bg-white shadow-md border-0">
-              <CardHeader>
-                <CardTitle className="text-gray-800 flex items-center text-lg">
-                  <Target className="h-5 w-5 mr-2" />
-                  Content Rank
-                </CardTitle>
+            {/* Performance Summary */}
+            <Card className="bg-white shadow-sm border" style={{ borderColor: themeColors.accent }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-medium" style={{ color: themeColors.primary }}>Performance Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="relative w-40 h-40 mx-auto">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { value: overallScore, fill: '#3b82f6' },
-                          { value: 100 - overallScore, fill: '#e5e7eb' },
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={70}
-                        dataKey="value"
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{overallScore}%</div>
-                      <div className="text-sm text-gray-600">Score</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="p-2 bg-red-50 rounded">
-                    <div className="font-bold text-red-600">25</div>
-                    <div className="text-gray-600">Poor</div>
-                  </div>
-                  <div className="p-2 bg-yellow-50 rounded">
-                    <div className="font-bold text-yellow-600">50</div>
-                    <div className="text-gray-600">Good</div>
-                  </div>
-                  <div className="p-2 bg-green-50 rounded">
-                    <div className="font-bold text-green-600">100</div>
-                    <div className="text-gray-600">Excellent</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Latest Contest Rank */}
-            <Card className="bg-gradient-to-br from-purple-600 to-indigo-700 text-white shadow-lg border-0">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center text-lg">
-                  <Trophy className="h-5 w-5 mr-2" />
-                  Latest Contest Rank
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-center">
-                  <div className="text-4xl font-bold mb-2">#{Math.floor(Math.random() * 50) + 1}</div>
-                  <div className="text-sm opacity-90">
-                    {suspensionRate < 2 ? 'You left' : 'You got'} {Math.floor(Math.random() * 100) + 200} students behind in this test.
-                  </div>
-                </div>
-                <div className="bg-white/20 rounded-lg p-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm">Mathematics Test</span>
-                    <span className="text-sm font-bold">89/100</span>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm" style={{ color: themeColors.gray }}>Overall Score</span>
+                    <span className="text-lg font-semibold" style={{ color: themeColors.primary }}>{overallScore}%</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm">Science Quiz</span>
-                    <span className="text-sm font-bold">92/100</span>
+                    <span className="text-sm" style={{ color: themeColors.gray }}>Attendance</span>
+                    <span className="text-lg font-semibold" style={{ color: themeColors.success }}>{attendanceAvg.toFixed(1)}%</span>
+                </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm" style={{ color: themeColors.gray }}>Participation</span>
+                    <span className="text-lg font-semibold" style={{ color: themeColors.purple }}>{participationRate}%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm" style={{ color: themeColors.gray }}>Discipline</span>
+                    <span className="text-lg font-semibold" style={{ color: themeColors.warning }}>{100 - suspensionRate}%</span>
+                  </div>
+                  <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: `${themeColors.success}20` }}>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold mb-1" style={{ color: themeColors.success }}>Excellent</div>
+                      <div className="text-sm" style={{ color: themeColors.gray }}>Performance Rating</div>
+                    </div>
                   </div>
                 </div>
               </CardContent>

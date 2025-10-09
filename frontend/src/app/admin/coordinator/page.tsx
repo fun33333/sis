@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Award, Users, Calendar, FileText, BookOpen, Clock, TrendingUp, CheckCircle, BarChart3, PieChart, Activity } from "lucide-react"
-import { getCoordinatorDashboardStats, findCoordinatorByEmail } from "@/lib/api"
+import { getCoordinatorDashboardStats, findCoordinatorByEmail, getAllCoordinators } from "@/lib/api"
+import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from "recharts"
 
 export default function CoordinatorPage() {
@@ -17,9 +18,21 @@ export default function CoordinatorPage() {
   const [chartData, setChartData] = useState<any[]>([])
   const [subjectData, setSubjectData] = useState<any[]>([])
   const [activityData, setActivityData] = useState<any[]>([])
+  const [coordinators, setCoordinators] = useState<any[]>([])
+  const [userRole, setUserRole] = useState<string>("")
+  const [userCampus, setUserCampus] = useState<string>("")
 
   useEffect(() => {
     document.title = "Co-Ordinator Dashboard | IAK SMS";
+    
+    // Get user role and campus for principal filtering
+    const role = getCurrentUserRole();
+    setUserRole(role);
+    
+    const user = getCurrentUser() as any;
+    if (user?.campus?.campus_name) {
+      setUserCampus(user.campus.campus_name);
+    }
   }, []);
 
   const generateChartData = (stats: any) => {
@@ -61,6 +74,17 @@ export default function CoordinatorPage() {
     async function fetchDashboardData() {
       try {
         setLoading(true)
+        
+        // Principal: Get coordinators from their campus
+        if (userRole === 'principal' && userCampus) {
+          const allCoordinators = await getAllCoordinators() as any
+          const campusCoordinators = allCoordinators.filter((coord: any) => 
+            coord.campus?.campus_name === userCampus || coord.campus === userCampus
+          )
+          setCoordinators(campusCoordinators)
+          setLoading(false)
+          return
+        }
         
         // Get coordinator data from localStorage
         const userData = localStorage.getItem('sis_user')
@@ -262,6 +286,36 @@ export default function CoordinatorPage() {
       </div>
 
       {/* Quick Actions */}
+      {/* Principal: Show coordinators from their campus */}
+      {userRole === 'principal' && coordinators.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4" style={{ color: '#274c77' }}>
+            Campus Coordinators ({coordinators.length})
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {coordinators.map((coord: any, index: number) => (
+              <Card key={coord.id || index} style={{ backgroundColor: '#f8f9fa', borderColor: '#274c77' }}>
+                <CardHeader>
+                  <CardTitle className="flex items-center" style={{ color: '#274c77' }}>
+                    <Award className="h-5 w-5 mr-2" />
+                    {coord.full_name || coord.name || 'Coordinator'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600 mb-2">{coord.email || 'No email'}</p>
+                  <p className="text-sm text-gray-500">
+                    Campus: {coord.campus?.campus_name || coord.campus || 'Unknown'}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Level: {coord.level?.name || 'Unknown'}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card style={{ backgroundColor: '#e7ecef', borderColor: '#a3cef1' }}>
           <CardHeader>

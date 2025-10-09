@@ -180,18 +180,15 @@ class Teacher(models.Model):
                 if grade_match:
                     grade_number = grade_match.group(1)
                     # Map grade to correct database format
-                    if int(grade_number) <= 6:
-                        grade_name = f"Grade {grade_number}"
-                    else:
-                        grade_name = f"Grade-{grade_number}"
+                    grade_name = f"Grade-{grade_number}"
                 else:
                     # Check for Pre-Primary classes
-                    if any(term in classes_text for term in ['nursery', 'kg-1', 'kg-2', 'kg1', 'kg2']):
+                    if any(term in classes_text for term in ['nursery', 'kg-1', 'kg-2', 'kg1', 'kg2', 'kg-ii', 'kg-i']):
                         if 'nursery' in classes_text:
-                            grade_name = 'Nursery'
-                        elif 'kg-1' in classes_text or 'kg1' in classes_text:
+                            grade_name = 'Nursary'  # Note: Database has 'Nursary' not 'Nursery'
+                        elif 'kg-1' in classes_text or 'kg1' in classes_text or 'kg-i' in classes_text:
                             grade_name = 'KG-1'
-                        elif 'kg-2' in classes_text or 'kg2' in classes_text:
+                        elif 'kg-2' in classes_text or 'kg2' in classes_text or 'kg-ii' in classes_text:
                             grade_name = 'KG-2'
                 
                 if grade_name:

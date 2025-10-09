@@ -18,6 +18,19 @@ export const API_ENDPOINTS = {
   AUTH_LOGIN: "/api/auth/login/",
   AUTH_REFRESH: "/api/auth/refresh/",
   COORDINATORS: "/api/coordinators/",
+<<<<<<< HEAD
+  LEVELS: "/api/levels/",
+  GRADES: "/api/grades/",
+  CLASSROOMS: "/api/classrooms/",
+  LEVEL_CHOICES: "/api/levels/choices/",
+  GRADE_CHOICES: "/api/grades/choices/",
+  CLASSROOM_CHOICES: "/api/classrooms/choices/",
+  CLASSROOM_SECTIONS: "/api/classrooms/sections/",
+  CLASSROOM_STUDENTS: "/api/classrooms/{id}/students/",
+  AVAILABLE_STUDENTS: "/api/classrooms/{id}/available-students/",
+  CURRENT_USER_PROFILE: "/api/current-user/",
+=======
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
 } as const;
 
 
@@ -70,7 +83,10 @@ export function clearAuthTokens() {
 // Centralized authorized fetch with auto-refresh and retry
 export async function authorizedFetch(path: string, init: RequestInit = {}, alreadyRetried = false): Promise<Response> {
   const base = getApiBaseUrl();
-  const url = `${base}${path}`;
+  // Ensure no double slashes in URL construction
+  const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `${cleanBase}${cleanPath}`;
 
   const headers = new Headers(init.headers || {});
   const token = getAccessToken();
@@ -84,7 +100,7 @@ export async function authorizedFetch(path: string, init: RequestInit = {}, alre
   if (!alreadyRetried) {
     const refresh = getRefreshToken();
     if (refresh) {
-      const refreshRes = await fetch(`${base}${API_ENDPOINTS.AUTH_REFRESH}`, {
+      const refreshRes = await fetch(`${cleanBase}${API_ENDPOINTS.AUTH_REFRESH}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh })
@@ -108,7 +124,8 @@ export async function authorizedFetch(path: string, init: RequestInit = {}, alre
 // Auth APIs
 export async function loginWithEmailPassword(email: string, password: string) {
   const base = getApiBaseUrl();
-  const res = await fetch(`${base}${API_ENDPOINTS.AUTH_LOGIN}`, {
+  const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  const res = await fetch(`${cleanBase}${API_ENDPOINTS.AUTH_LOGIN}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -394,6 +411,11 @@ export async function getCoordinatorDashboardStats(coordinatorId: number) {
   }
 }
 
+<<<<<<< HEAD
+// Classes API functions
+
+=======
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
 export async function findCoordinatorByEmail(email: string) {
   try {
     const coordinators = await apiGet(API_ENDPOINTS.COORDINATORS);
@@ -407,8 +429,12 @@ export async function findCoordinatorByEmail(email: string) {
   }
 }
 
+<<<<<<< HEAD
+export async function createLevel(levelData: any) {
+=======
 // Principal-specific API functions
 export async function getPrincipalCampusData(campusId: number) {
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
   try {
     return await apiGet(`${API_ENDPOINTS.CAMPUS}${campusId}/`);
   } catch (error) {
@@ -426,7 +452,52 @@ export async function getCampusStudents(campusId: number) {
   }
 }
 
+<<<<<<< HEAD
+export async function getClassroomStudents(classroomId: number, teacherId?: number) {
+  try {
+    const url = API_ENDPOINTS.CLASSROOM_STUDENTS.replace('{id}', classroomId.toString());
+    const params = teacherId ? `?teacher_id=${teacherId}` : '';
+    return await apiGet(url + params);
+  } catch (error) {
+    console.error('Failed to fetch classroom students:', error);
+    return { students: [], total_students: 0 };
+  }
+}
+
+export async function getAvailableStudentsForClassroom(classroomId: number) {
+  try {
+    const url = API_ENDPOINTS.AVAILABLE_STUDENTS.replace('{id}', classroomId.toString());
+    return await apiGet(url);
+  } catch (error) {
+    console.error('Failed to fetch available students for classroom:', error);
+    return { available_students: [], total_available: 0 };
+  }
+}
+
+export async function getCurrentUserProfile() {
+  try {
+    return await apiGet(API_ENDPOINTS.CURRENT_USER_PROFILE);
+  } catch (error) {
+    console.error('Failed to fetch current user profile:', error);
+    return null;
+  }
+}
+
+export async function getAllCoordinators() {
+  try {
+    return await apiGet(API_ENDPOINTS.COORDINATORS);
+  } catch (error) {
+    console.error('Failed to fetch coordinators:', error);
+    return [];
+  }
+}
+
+// List functions for displaying data
+
+export async function getLevels() {
+=======
 export async function getCampusTeachers(campusId: number) {
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
   try {
     return await apiGet(`${API_ENDPOINTS.TEACHERS}?campus=${campusId}`);
   } catch (error) {

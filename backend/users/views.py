@@ -125,6 +125,64 @@ def refresh_token_view(request):
     except Exception as e:
         return Response({'error': 'Invalid refresh token'}, status=status.HTTP_401_UNAUTHORIZED)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def current_user_profile(request):
+    """
+    Get current user's profile with role-specific data
+    """
+    user = request.user
+    
+    # Base user data
+    user_data = {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'role': user.role,
+        'campus': {
+            'id': user.campus.id,
+            'campus_name': user.campus.campus_name,
+            'campus_code': user.campus.campus_code,
+        } if user.campus else None,
+    }
+    
+    # Add role-specific data
+    if user.role == 'teacher':
+        try:
+            from teachers.models import Teacher
+            teacher = Teacher.objects.get(email=user.email)
+            user_data.update({
+                'teacher_id': teacher.id,
+                'full_name': teacher.full_name,
+                'assigned_classroom': {
+                    'id': teacher.assigned_classroom.id,
+                    'name': str(teacher.assigned_classroom),
+                    'grade': teacher.assigned_classroom.grade.name if teacher.assigned_classroom.grade else None,
+                    'section': teacher.assigned_classroom.section,
+                } if teacher.assigned_classroom else None,
+                'current_campus': {
+                    'id': teacher.current_campus.id,
+                    'campus_name': teacher.current_campus.campus_name,
+                } if teacher.current_campus else None,
+                'is_class_teacher': teacher.is_class_teacher,
+            })
+        except Teacher.DoesNotExist:
+            pass
+    elif user.role == 'coordinator':
+        try:
+            from coordinator.models import Coordinator
+            coordinator = Coordinator.objects.get(email=user.email)
+            user_data.update({
+                'coordinator_id': coordinator.id,
+                'full_name': coordinator.full_name,
+            })
+        except Coordinator.DoesNotExist:
+            pass
+    
+    return Response(user_data)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout_view(request):

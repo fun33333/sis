@@ -28,6 +28,18 @@ function TeacherListContent() {
   const [userRole, setUserRole] = useState<string>("")
   const canEdit = userRole !== "superadmin"
 
+<<<<<<< HEAD
+  useEffect(() => {
+    setIsClient(true)
+    // Get user role
+    const role = getCurrentUserRole()
+    setUserRole(role)
+    
+    // Get user campus for principal filtering
+    const user = getCurrentUser() as any
+    if (user?.campus?.campus_name) {
+      setUserCampus(user.campus.campus_name)
+=======
   // Move getLevelFromGrade function BEFORE filteredTeachers
   const getLevelFromGrade = (grade: string) => {
     const gradeLower = grade.toLowerCase()
@@ -35,6 +47,7 @@ function TeacherListContent() {
     // Pre-Primary levels
     if (gradeLower.includes('kg') || gradeLower.includes('nursery') || gradeLower.includes('prep') || gradeLower.includes('playgroup')) {
       return 'pre-primary'
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
     }
 
     // Primary levels (Grade 1-5)
@@ -121,6 +134,16 @@ function TeacherListContent() {
           } else {
             setError("User not logged in");
             return;
+          }
+        } else if (role === 'principal') {
+          // Principal: Only teachers from their campus
+          const allTeachers = await getAllTeachers();
+          if (userCampus) {
+            teachersData = allTeachers.filter((teacher: any) => 
+              teacher.current_campus?.campus_name === userCampus || teacher.campus === userCampus
+            );
+          } else {
+            teachersData = allTeachers;
           }
         } else {
           // For other roles, get all teachers

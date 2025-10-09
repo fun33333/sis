@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.crypto import get_random_string
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 
 # Teacher model assumed in 'teachers' app
 TEACHER_MODEL = "teachers.Teacher"
@@ -288,3 +289,43 @@ class ClassRoom(models.Model):
     @property
     def campus(self):
         return self.grade.level.campus if self.grade and self.grade.level else None
+    
+    def get_students_for_teacher(self, teacher):
+        """
+        Get students assigned to this classroom for a specific teacher
+        Only returns students from the same campus as the teacher
+        """
+        if not teacher or not teacher.current_campus:
+            return self.students.none()
+        
+        return self.students.filter(
+            campus=teacher.current_campus,
+            is_draft=False
+        )
+    
+    def get_available_students_for_assignment(self):
+        """
+        Get students from same campus and grade who can be assigned to this classroom
+        """
+        if not self.campus or not self.grade:
+            return Student.objects.none()
+        
+        from students.models import Student
+        
+        # Normalize grade names for matching
+        grade_name_variations = [
+            self.grade.name,
+            self.grade.name.replace('-', ' '),  # Grade-4 -> Grade 4
+            self.grade.name.replace(' ', '-'),  # Grade 4 -> Grade-4
+        ]
+        
+        grade_query = Q()
+        for grade_var in grade_name_variations:
+            grade_query |= Q(current_grade__icontains=grade_var)
+        
+        return Student.objects.filter(
+            campus=self.campus,
+            is_draft=False
+        ).filter(grade_query).filter(
+            Q(classroom__isnull=True) | Q(classroom=self)
+        )
