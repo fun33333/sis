@@ -22,6 +22,23 @@ if (typeof window !== 'undefined') {
 }
 
 export default function MainDashboardPage() {
+  // Get current user role
+  const [userRole, setUserRole] = useState<string>("")
+  
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userStr = window.localStorage.getItem("sis_user");
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          const role = user.role?.toLowerCase();
+          setUserRole(role || "");
+        } catch {
+          setUserRole("");
+        }
+      }
+    }
+  }, []);
   // Utility to convert students to CSV
   function studentsToCSV(students: DashboardStudent[]) {
     if (!students.length) return '';
@@ -95,6 +112,7 @@ export default function MainDashboardPage() {
   // Get user role and campus for principal filtering
   useEffect(() => {
     if (typeof window !== "undefined") {
+<<<<<<< HEAD
       const role = getCurrentUserRole();
       setUserRole(role);
       
@@ -112,6 +130,22 @@ export default function MainDashboardPage() {
       if (role === "teacher") {
             router.replace("/admin/students/student-list");
           }
+=======
+      const userStr = window.localStorage.getItem("sis_user");
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          const role = user.role?.toLowerCase();
+          
+          // Role-based routing
+          if (role?.includes("teacher")) {
+            router.replace("/admin/teachers/request");
+          } else if (role?.includes("coord")) {
+            router.replace("/admin/coordinator");
+          }
+          // Principal and Super admin stay on main dashboard
+        } catch {}
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
       }
   }, [router]);
   const [filters, setFilters] = useState<FilterState>({
@@ -125,6 +159,7 @@ export default function MainDashboardPage() {
   const [students, setStudents] = useState<DashboardStudent[]>([])
   const [loading, setLoading] = useState(true)
   const [showLoader, setShowLoader] = useState(true)
+  const [principalCampusId, setPrincipalCampusId] = useState<number | null>(null)
 
   useEffect(() => {
     // Dynamic title based on user role
@@ -140,6 +175,7 @@ export default function MainDashboardPage() {
     async function fetchData() {
       setLoading(true)
       try {
+<<<<<<< HEAD
         // Principal: Fetch campus-specific data
         if (userRole === 'principal' && userCampus) {
           console.log('Principal campus filtering for:', userCampus)
@@ -245,6 +281,24 @@ export default function MainDashboardPage() {
           }
         } else {
           // Other roles: Fetch all data
+=======
+        // Get Principal's campus ID if user is Principal
+        let campusId = null;
+        if (userRole?.includes("principal")) {
+          const userStr = window.localStorage.getItem("sis_user");
+          if (userStr) {
+            try {
+              const user = JSON.parse(userStr);
+              campusId = (user as any).campus_id;
+              setPrincipalCampusId(campusId);
+            } catch (err) {
+              console.error("Error getting Principal campus ID:", err);
+            }
+          }
+        }
+        
+        // Try to fetch from API first
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
         const [apiStudents, apiStats, caps] = await Promise.all([
           getAllStudents(),
           getDashboardStats(),
@@ -261,7 +315,15 @@ export default function MainDashboardPage() {
             campusArray.map((c: any) => [String(c.id), String(c.campus_code || c.code || '')])
         )
 
-        const mapped: DashboardStudent[] = studentsArray.map((item: any, idx: number) => {
+        // Filter students by campus if Principal
+        let filteredStudents = studentsArray;
+        if (userRole?.includes("principal") && campusId) {
+          filteredStudents = studentsArray.filter((student: any) => {
+            return student.current_campus === campusId || student.campus_id === campusId;
+          });
+        }
+
+        const mapped: DashboardStudent[] = filteredStudents.map((item: any, idx: number) => {
             const createdAt = typeof item?.created_at === "string" ? item.created_at : ""
             const year = createdAt ? Number(createdAt.split("-")[0]) : new Date().getFullYear()
             const genderRaw = (item?.gender ?? "").toString().trim()
@@ -493,9 +555,15 @@ export default function MainDashboardPage() {
           <CardContent className="!bg-[#E7ECEF]">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               <MultiSelectFilter title="Academic Year" options={dynamicAcademicYears} selectedValues={filters.academicYears} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, academicYears: val as number[] }))} placeholder="All years" />
+<<<<<<< HEAD
               {/* Hide campus filter for principal - they only see their campus data */}
               {userRole !== 'principal' && (
               <MultiSelectFilter title="Campus" options={dynamicCampuses} selectedValues={filters.campuses} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, campuses: val as string[] }))} placeholder="All campuses" />
+=======
+              {/* Hide Campus filter for Principal - they only see their own campus */}
+              {!userRole?.includes("principal") && (
+                <MultiSelectFilter title="Campus" options={dynamicCampuses} selectedValues={filters.campuses} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, campuses: val as string[] }))} placeholder="All campuses" />
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
               )}
               <MultiSelectFilter title="Grade" options={dynamicGrades} selectedValues={filters.grades} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, grades: val as string[] }))} placeholder="All grades" />
               <MultiSelectFilter title="Gender" options={dynamicGenders} selectedValues={filters.genders} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, genders: val as ("Male" | "Female" | "Other")[] }))} placeholder="All genders" />
@@ -507,9 +575,15 @@ export default function MainDashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
           <KpiCard 
+<<<<<<< HEAD
             title={userRole === 'principal' && userCampus ? `${userCampus} Students` : "Total Students"} 
             value={metrics.totalStudents} 
             description={userRole === 'principal' && userCampus ? "Campus enrollments" : "Active enrollments"} 
+=======
+            title="Total Students" 
+            value={metrics.totalStudents} 
+            description={userRole?.includes("principal") ? "Students in your campus" : "Active enrollments"} 
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
             icon={Users} 
             bgColor="#E7ECEF" 
             textColor="text-[#274c77]" 
@@ -517,7 +591,11 @@ export default function MainDashboardPage() {
           <KpiCard 
             title="Avg Attendance" 
             value={`${metrics.averageAttendance}%`} 
+<<<<<<< HEAD
             description={userRole === 'principal' && userCampus ? "Campus attendance rate" : "Overall attendance rate"} 
+=======
+            description={userRole?.includes("principal") ? "Campus attendance rate" : "Overall attendance rate"} 
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
             icon={Calendar} 
             bgColor="#8B8C89" 
             textColor="text-white" 
@@ -525,7 +603,11 @@ export default function MainDashboardPage() {
           <KpiCard 
             title="Avg Score" 
             value={metrics.averageScore} 
+<<<<<<< HEAD
             description={userRole === 'principal' && userCampus ? "Campus performance" : "Academic performance"} 
+=======
+            description={userRole?.includes("principal") ? "Campus academic performance" : "Academic performance"} 
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
             icon={GraduationCap} 
             bgColor="#6096BA" 
             textColor="text-white" 
@@ -533,7 +615,11 @@ export default function MainDashboardPage() {
           <KpiCard 
             title="Retention Rate" 
             value={`${metrics.retentionRate}%`} 
+<<<<<<< HEAD
             description={userRole === 'principal' && userCampus ? "Campus retention" : "Student retention"} 
+=======
+            description={userRole?.includes("principal") ? "Campus student retention" : "Student retention"} 
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
             icon={TrendingUp} 
             bgColor="#A3CEF1" 
             textColor="text-[#274c77]" 
@@ -541,9 +627,15 @@ export default function MainDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+<<<<<<< HEAD
           {/* Hide campus performance chart for principal - they only see their campus data */}
           {userRole !== 'principal' && (
           <CampusPerformanceChart data={chartData.campusPerformance} valueKind={filteredStudents.some(s => (s.averageScore || 0) > 0) ? "average" : "count"} />
+=======
+          {/* Hide Campus Performance Chart for Principal - they only see their own campus */}
+          {!userRole?.includes("principal") && (
+            <CampusPerformanceChart data={chartData.campusPerformance} valueKind={filteredStudents.some(s => (s.averageScore || 0) > 0) ? "average" : "count"} />
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
           )}
           <GenderDistributionChart data={chartData.genderDistribution} />
           <ReligionChart data={chartData.religionDistribution} />

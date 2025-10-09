@@ -195,6 +195,7 @@ export function UserProfilePopup() {
     router.push("/Universal_Login")
   }
 
+<<<<<<< HEAD
   const [currentUser, setCurrentUser] = useState<any>(null)
 
   useEffect(() => {
@@ -202,15 +203,14 @@ export function UserProfilePopup() {
   }, [])
 
   if (!isClient || !currentUser) return null
+=======
+  const currentUser = getCurrentUser()
+  if (!currentUser) return null
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
 
   // Don't render until client-side
   if (!isClient) {
-    return (
-      <div className="flex items-center gap-3 p-2 rounded-lg">
-        <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
-        <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
-      </div>
-    )
+    return null
   }
 
   return (

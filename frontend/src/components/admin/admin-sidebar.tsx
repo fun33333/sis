@@ -28,11 +28,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
 
   const pathname = usePathname()
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [isClient, setIsClient] = useState(false);
-  
   useEffect(() => {
-    setIsClient(true);
-    
     // Sync role if localStorage changes (e.g., login/logout in another tab)
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "sis_user") {
@@ -49,6 +45,8 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
             ? "teacher"
             : roleNorm.includes("admin")
             ? "superadmin"
+            : roleNorm.includes("princ")
+            ? "principal"
             : roleNorm;
           setUserRole(normalized);
         } catch {
@@ -69,6 +67,8 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           ? "teacher"
           : roleNorm.includes("admin")
           ? "superadmin"
+          : roleNorm.includes("princ")
+          ? "principal"
           : roleNorm;
         setUserRole(normalized);
       } else {
@@ -79,17 +79,6 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
     }
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
-
-  // Don't render until client-side hydration is complete
-  if (!isClient) {
-    return (
-      <aside className="h-screen fixed left-0 top-0 w-18 px-2 py-4 z-20" style={{ background: "#a3cef1" }}>
-        <div className="flex h-full flex-col justify-center items-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-        </div>
-      </aside>
-    );
-  }
 
   // Restrict menu based on user role
   const menuItems = userRole === "teacher"
@@ -145,6 +134,73 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Class Assign", href: "/admin/coordinator/class-assign" },
           { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
           { title: "Time Table", href: "/admin/coordinator/time-table" },
+          { title: "Sections Analytics", href: "/admin/coordinator/sections-progress" },
+        ],
+      },
+    ]
+    : userRole === "principal"
+    ? [
+      // Principal: Campus-specific access
+      {
+        key: "dashboard",
+        title: "Dashboard",
+        icon: TrendingUp,
+        href: "/admin",
+        subItems: [],
+      },
+      {
+        key: "students",
+        title: "Students",
+        icon: Users,
+        href: "/admin/students",
+        subItems: [
+          { title: "Add Student", href: "/admin/students/add" },
+          { title: "Student List", href: "/admin/students/student-list" },
+          { title: "Transfer Module", href: "/admin/students/transfer-modal" },
+          { title: "Leaving Certificate", href: "/admin/students/leaving-certificate" },
+          { title: "Termination Certificate", href: "/admin/students/termination-certificate" },
+        ],
+      },
+      {
+        key: "teachers",
+        title: "Teachers",
+        icon: GraduationCap,
+        href: "/admin/teachers",
+        subItems: [
+          { title: "Teacher List", href: "/admin/teachers/list" },
+          { title: "Add Teacher", href: "/admin/teachers/add" },
+          { title: "Request / Complain", href: "/admin/teachers/request" },
+          { title: "Time Table", href: "/admin/teachers/timetable" },
+          { title: "Attendance", href: "/admin/teachers/attendance" },
+          { title: "Class Statistics", href: "/admin/teachers/stats" },
+        ],
+      },
+      {
+        key: "campus",
+        title: "Campus",
+        icon: Building2,
+        href: "/admin/campus",
+        subItems: [
+          { title: "Campus List", href: "/admin/campus/list" },
+          { title: "Add Class", href: "/admin/campus/add-class" },
+          { title: "Add Grade", href: "/admin/campus/add-grade" },
+          { title: "Add Level", href: "/admin/campus/add-level" },
+        ],
+      },
+      {
+        key: "coordinator",
+        title: "Co-Ordinator",
+        icon: Award,
+        href: "/admin/coordinator",
+        subItems: [
+          { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
+          { title: "Add Coordinator", href: "/admin/coordinator/add" },
+          { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
+          { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
+          { title: "Result Approval", href: "/admin/coordinator/result-approval" },
+          { title: "Class Assign", href: "/admin/coordinator/class-assign" },
+          { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
+          { title: "Time Table", href: "/admin/coordinator/time-table" },
         ],
       },
     ]
@@ -191,7 +247,6 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         subItems: [
           { title: "Add Campus", href: "/admin/campus/add" },
           { title: "Campus List", href: "/admin/campus/list" },
-          // Hide Add Class, Add Grade, Add Level for superadmin - only principal can access
         ],
       },
       // // {
@@ -265,12 +320,8 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         icon: Building2,
         href: "/admin/campus",
         subItems: [
-          // Hide Add Campus for principal - they can only view their campus
-          ...(userRole !== "principal" ? [{ title: "Add Campus", href: "/admin/campus/add" }] : []),
+          { title: "Add Campus", href: "/admin/campus/add" },
           { title: "Campus List", href: "/admin/campus/list" },
-          { title: "Add Class", href: "/admin/campus/add-class" },
-          { title: "Add Grade", href: "/admin/campus/add-grade" },
-          { title: "Add Level", href: "/admin/campus/add-level" },
         ],
       },
       {
@@ -288,12 +339,19 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
           { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
           { title: "Result Approval", href: "/admin/coordinator/result-approval" },
+<<<<<<< HEAD
           // Hide these items for principal
           ...(userRole !== "principal" ? [
             { title: "Class Assign", href: "/admin/coordinator/class-assign" },
             { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
             { title: "Time Table", href: "/admin/coordinator/time-table" },
           ] : []),
+=======
+          { title: "Class Assign", href: "/admin/coordinator/class-assign" },
+          { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
+          { title: "Time Table", href: "/admin/coordinator/time-table" },
+          { title: "Sections Progress", href: "/admin/coordinator/sections-progress" },
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
         ],
       },
     ];

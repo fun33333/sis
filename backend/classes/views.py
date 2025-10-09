@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -16,10 +17,27 @@ class LevelListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         queryset = Level.objects.all()
         campus_id = self.request.query_params.get('campus', None)
+=======
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.db.models import Q
+from .models import Level, Grade, ClassRoom
+from .serializers import LevelSerializer, GradeSerializer, ClassRoomSerializer
+
+class LevelViewSet(viewsets.ModelViewSet):
+    queryset = Level.objects.all()
+    serializer_class = LevelSerializer
+    
+    def get_queryset(self):
+        queryset = Level.objects.select_related('campus', 'coordinator')
+        campus_id = self.request.query_params.get('campus_id')
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
         if campus_id:
             queryset = queryset.filter(campus_id=campus_id)
         return queryset
 
+<<<<<<< HEAD
 
 class LevelDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Level.objects.all()
@@ -101,6 +119,22 @@ def classroom_sections(request):
     """Get available sections for classroom creation"""
     sections = [{'value': choice[0], 'label': f'Section {choice[0]}'} for choice in ClassRoom.SECTION_CHOICES]
     return Response(sections)
+=======
+class GradeViewSet(viewsets.ModelViewSet):
+    queryset = Grade.objects.all()
+    serializer_class = GradeSerializer
+    
+    def get_queryset(self):
+        queryset = Grade.objects.select_related('level', 'level__campus')
+        level_id = self.request.query_params.get('level_id')
+        campus_id = self.request.query_params.get('campus_id')
+        
+        if level_id:
+            queryset = queryset.filter(level_id=level_id)
+        if campus_id:
+            queryset = queryset.filter(level__campus_id=campus_id)
+        return queryset
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
 
 
 @api_view(['GET'])
@@ -126,6 +160,7 @@ def classroom_students(request, classroom_id):
         from students.serializers import StudentSerializer
         serializer = StudentSerializer(students, many=True)
         
+<<<<<<< HEAD
         return Response({
             'classroom': {
                 'id': classroom.id,
@@ -174,3 +209,15 @@ def available_students_for_classroom(request, classroom_id):
         return Response({'error': 'Classroom not found'}, status=404)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+=======
+        return Response(available_teachers)
+    
+    @action(detail=False, methods=['get'])
+    def unassigned_classrooms(self, request):
+        """Get classrooms that don't have a class teacher"""
+        unassigned = ClassRoom.objects.filter(
+            class_teacher__isnull=True
+        )
+        serializer = self.get_serializer(unassigned, many=True)
+        return Response(serializer.data)
+>>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3

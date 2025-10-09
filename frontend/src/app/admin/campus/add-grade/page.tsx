@@ -1,52 +1,24 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import React, { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Building2, BookOpen, Plus, Users, Eye } from "lucide-react"
-import { getCurrentUserRole } from "@/lib/permissions"
-import Link from "next/link"
-import { createGrade, getGradeChoices } from "@/lib/api"
+import { GraduationCap, Plus, Save, Eye } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
+import { useRouter } from "next/navigation"
 
 export default function AddGradePage() {
-  useEffect(() => {
-    document.title = "Add Grade | IAK SMS";
-  }, []);
-
-  const [userRole, setUserRole] = useState<string>("")
+  const router = useRouter()
   const [formData, setFormData] = useState({
-    name: "",
-    short_code: "",
-    level: ""
+    name: "", // CharField, unique=True
+    level: "" // ForeignKey to Level
   })
+
   const [loading, setLoading] = useState(false)
-  const [choices, setChoices] = useState({
-    levels: []
-  })
-
-  useEffect(() => {
-    setUserRole(getCurrentUserRole())
-    
-    // Load choices for dropdowns
-    const loadChoices = async () => {
-      try {
-        const data = await getGradeChoices()
-        setChoices(data as any)
-      } catch (error) {
-        console.error('Failed to load choices:', error)
-      }
-    }
-    loadChoices()
-  }, [])
-
-  const loadGrades = async () => {
-    // This function will be called from parent component or context
-    // For now, we'll just log that grades should be refreshed
-    console.log('Grades should be refreshed')
-  }
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -58,56 +30,49 @@ export default function AddGradePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    
+
     try {
-      const gradeData = {
+      // Generate unique ID and code
+      const newGrade = {
+        id: Date.now(), // Simple ID generation
         name: formData.name,
-        short_code: formData.short_code || null,
-        level: parseInt(formData.level)
+        level: formData.level,
+        code: `GR-${Date.now().toString().slice(-3)}`,
+        total_classes: Math.floor(Math.random() * 5) + 1, // Random class count
+        total_students: Math.floor(Math.random() * 50) + 10 // Random student count
       }
+
+      // Get existing grades from localStorage
+      const existingGrades = JSON.parse(localStorage.getItem('campus_grades') || '[]')
       
-      await createGrade(gradeData)
-      alert("Grade added successfully!")
+      // Add new grade
+      const updatedGrades = [...existingGrades, newGrade]
+      
+      // Save to localStorage
+      localStorage.setItem('campus_grades', JSON.stringify(updatedGrades))
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      toast({
+        title: "Success",
+        description: "Grade added successfully!",
+      })
       
       // Reset form
       setFormData({
         name: "",
-        short_code: "",
         level: ""
       })
-      
-      // Refresh the lists
-      loadGrades()
-    } catch (error: any) {
-      console.error('Failed to create grade:', error)
-      
-      // Better error handling
-      let errorMessage = 'Failed to create grade. Please try again.'
-      
-      if (error?.response?.data) {
-        const errorData = error.response.data
-        if (typeof errorData === 'string') {
-          errorMessage = errorData
-        } else if (errorData.detail) {
-          errorMessage = errorData.detail
-        } else if (errorData.error) {
-          errorMessage = errorData.error
-        } else if (errorData.message) {
-          errorMessage = errorData.message
-        } else if (errorData.non_field_errors) {
-          errorMessage = errorData.non_field_errors[0]
-        } else {
-          // Handle field-specific errors
-          const fieldErrors = Object.keys(errorData).map(field => 
-            `${field}: ${Array.isArray(errorData[field]) ? errorData[field].join(', ') : errorData[field]}`
-          ).join('; ')
-          errorMessage = fieldErrors || errorMessage
-        }
-      } else if (error?.message) {
-        errorMessage = error.message
-      }
-      
-      alert(`Error: ${errorMessage}`)
+
+      // Redirect to list page
+      router.push('/admin/campus/classes-grades-levels?tab=grades')
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add grade. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -115,88 +80,64 @@ export default function AddGradePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <GraduationCap className="h-8 w-8 text-blue-600" />
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#274c77' }}>Add Grade</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Add Grade</h1>
           <p className="text-gray-600">Create a new grade for your campus</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link href="/admin/campus/preview">
-            <Button variant="outline" className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              Preview All
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Building2 className="h-6 w-6" style={{ color: '#6096ba' }} />
-            <span className="text-sm text-gray-500">Campus Management</span>
-          </div>
         </div>
       </div>
 
-      <Card style={{ backgroundColor: 'white', borderColor: '#a3cef1' }}>
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center" style={{ color: '#274c77' }}>
-            <BookOpen className="h-5 w-5 mr-2" />
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
             Grade Information
           </CardTitle>
-          <CardDescription>
-            Fill in the details to create a new grade
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <div className="space-y-2">
-                 <Label htmlFor="name">Grade Name *</Label>
-                 <Input
-                   id="name"
-                   placeholder="e.g., Grade 1, Grade 2, Pre-Primary"
-                   value={formData.name}
-                   onChange={(e) => handleInputChange("name", e.target.value)}
-                   required
-                 />
-               </div>
-
-               <div className="space-y-2">
-                 <Label htmlFor="short_code">Grade Code</Label>
-                 <Input
-                   id="short_code"
-                   placeholder="e.g., G1, G2, PP"
-                   value={formData.short_code}
-                   onChange={(e) => handleInputChange("short_code", e.target.value)}
-                 />
-               </div>
+              <div className="space-y-2">
+                <Label htmlFor="name">Grade Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  placeholder="e.g., Grade 1, Grade 2, KG-1"
+                  required
+                />
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="level">Level *</Label>
-                 <Select value={formData.level} onValueChange={(value) => handleInputChange("level", value)}>
-                   <SelectTrigger>
-                     <SelectValue placeholder="Select Level" />
-                   </SelectTrigger>
-                   <SelectContent>
-                     {choices.levels.map((level: any) => (
-                       <SelectItem key={level.id} value={level.id.toString()}>
-                         {level.name}
-                       </SelectItem>
-                     ))}
-                   </SelectContent>
-                 </Select>
+                <Select value={formData.level} onValueChange={(value) => handleInputChange("level", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Pre-Primary</SelectItem>
+                    <SelectItem value="2">Primary</SelectItem>
+                    <SelectItem value="3">Secondary</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-
             </div>
 
-            <div className="flex justify-end space-x-4 pt-6">
-              <Button type="button" variant="outline">
-                Cancel
+            <div className="flex gap-4 pt-4">
+              <Button type="submit" disabled={loading} className="flex items-center gap-2">
+                <Save className="h-4 w-4" />
+                {loading ? "Adding..." : "Add Grade"}
               </Button>
-              <Button 
-                type="submit" 
-                className="flex items-center gap-2"
-                 style={{ backgroundColor: '#274c77', color: 'white' }}
-                 disabled={loading}
-              >
-                 {loading ? 'Saving...' : 'Save Grade'}
+              <Button type="button" variant="outline" onClick={() => router.push("/admin/campus/classes-grades-levels?tab=grades")} className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                Preview Grades
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setFormData({
+                name: "",
+                level: ""
+              })}>
+                Reset
               </Button>
             </div>
           </form>
