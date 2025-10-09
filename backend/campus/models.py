@@ -122,8 +122,8 @@ class Campus(models.Model):
 
     # 🔹 Auto Calculations
     def save(self, *args, **kwargs):
-        # Auto-generate campus_id if not provided
-        if not self.campus_id:
+        # Auto-generate campus_id only if not provided AND it's a new campus
+        if not self.campus_id and not self.pk:
             city_code = self.city[:3].upper() if self.city else "CMP"
             year_code = str(self.established_year or 2025)[-2:]
             postal = self.postal_code[-5:] if self.postal_code else "00000"
@@ -153,5 +153,5 @@ class Campus(models.Model):
 
         super().save(*args, **kwargs)
 
-    def _str_(self):
+    def __str__(self):
         return f"{self.campus_name} ({self.campus_code})"

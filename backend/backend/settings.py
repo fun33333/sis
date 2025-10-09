@@ -47,8 +47,10 @@ INSTALLED_APPS = [
     # 'subjects',
     'classes.apps.ClassesConfig', 
     'coordinator',
+    'attendance',
     'principals',
     'services',
+    'student_status',
 ]
 
 MIDDLEWARE = [

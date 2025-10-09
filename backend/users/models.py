@@ -58,6 +58,36 @@ class User(AbstractUser):
     def can_view_all_data(self):
         return self.role in ['superadmin', 'principal']
     
+    def save(self, *args, **kwargs):
+        # Auto-generate employee code for super admin if not provided
+        if self.role == 'superadmin' and not self.username.startswith('C'):
+            try:
+                from campus.models import Campus
+                from utils.id_generator import IDGenerator
+                
+                # Get first campus for super admin (super admin doesn't belong to specific campus)
+                campus = Campus.objects.first()
+                if campus:
+                    # Generate super admin employee code
+                    employee_code = IDGenerator.generate_employee_code(
+                        campus_id=campus.id,
+                        shift='morning',  # Default shift
+                        year=2025,
+                        role='superadmin',
+                        entity_id=1  # Super admin is always first
+                    )
+                    
+                    # Set username to employee code
+                    self.username = employee_code
+                    print(f"✅ Auto-generated super admin employee code: {employee_code}")
+                else:
+                    print("⚠️  No campus found, using default username")
+                    
+            except Exception as e:
+                print(f"❌ Error generating super admin employee code: {str(e)}")
+        
+        super().save(*args, **kwargs)
+    
     class Meta:
         db_table = 'users_user'
         verbose_name = 'User'

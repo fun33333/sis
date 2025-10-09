@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('students', '0002_student_terminated_on_student_termination_reason_and_more'),
+        ('students', '0001_initial'),
     ]
 
     operations = [

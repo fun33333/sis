@@ -4,7 +4,25 @@ from django.db import models
 from django.utils import timezone
 
 
+class StudentManager(models.Manager):
+    """Custom manager to exclude soft deleted students by default"""
+    
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+    
+    def with_deleted(self):
+        """Return all students including soft deleted ones"""
+        return super().get_queryset()
+    
+    def only_deleted(self):
+        """Return only soft deleted students"""
+        return super().get_queryset().filter(is_deleted=True)
+
+
 class Student(models.Model):
+    # Custom manager
+    objects = StudentManager()
+    
     # --- Personal Details ---
     photo = models.ImageField(upload_to="students/photos/", null=True, blank=True)
     name = models.CharField(max_length=200)
@@ -82,6 +100,8 @@ class Student(models.Model):
 
     # --- System Fields ---
     is_draft = models.BooleanField(default=True)
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -111,8 +131,30 @@ class Student(models.Model):
     def class_teacher(self):
         return self.classroom.class_teacher if self.classroom else None
 
-    def _str_(self):
+    def __str__(self):
         return f"{self.name} ({self.student_code or self.student_id or self.gr_no or 'No ID'})"
+    
+    def soft_delete(self):
+        """Soft delete the student"""
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.current_state = "terminated"
+        self.terminated_on = timezone.now()
+        self.termination_reason = "Deleted from system"
+        self.save()
+    
+    def restore(self):
+        """Restore a soft deleted student"""
+        self.is_deleted = False
+        self.deleted_at = None
+        self.current_state = "active"
+        self.terminated_on = None
+        self.termination_reason = None
+        self.save()
+    
+    def hard_delete(self):
+        """Permanently delete the student from database"""
+        super().delete()
 
     def save(self, *args, **kwargs):
         # Set termination date automatically

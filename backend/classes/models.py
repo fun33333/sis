@@ -12,7 +12,7 @@ class Level(models.Model):
     School levels: Pre-Primary, Primary, Secondary, etc.
     """
     name = models.CharField(max_length=50)
-    code = models.CharField(max_length=10, unique=True, blank=True, null=True, editable=False)
+    code = models.CharField(max_length=25, unique=True, blank=True, null=True, editable=False)
     
     # Campus connection
     campus = models.ForeignKey(
@@ -34,9 +34,14 @@ class Level(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            # Generate code as: C01-L1 (Campus-Level)
-            campus_id = self.campus.id if self.campus else 1
-            campus_code = f"C{campus_id:02d}"  # C01, C02, C03, etc.
+            # Generate code using campus_id field instead of database ID
+            if self.campus and self.campus.campus_id:
+                # Use campus_id field (e.g., C01, C02, etc.)
+                campus_code = self.campus.campus_id
+            else:
+                # Fallback to database ID if campus_id not set
+                campus_id = self.campus.id if self.campus else 1
+                campus_code = f"C{campus_id:02d}"
             
             # Map level names to codes: L1, L2, L3
             level_name = self.name.lower()
@@ -71,7 +76,7 @@ class Grade(models.Model):
     Top-level grade (e.g., Grade 1, Grade 2)
     """
     name = models.CharField(max_length=50)
-    code = models.CharField(max_length=20, unique=True, blank=True, null=True, editable=False)
+    code = models.CharField(max_length=25, unique=True, blank=True, null=True, editable=False)
     
     # Level connection
     level = models.ForeignKey(
@@ -83,9 +88,13 @@ class Grade(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            # Generate code as: C01-L1-G1 (Campus-Level-Grade)
-            campus_id = self.level.campus.id if self.level and self.level.campus else 1
-            campus_code = f"C{campus_id:02d}"  # C01, C02, C03, etc.
+            # Generate code using campus_id field instead of database ID
+            if self.level and self.level.campus and self.level.campus.campus_id:
+                campus_code = self.level.campus.campus_id
+            else:
+                # Fallback to database ID if campus_id not set
+                campus_id = self.level.campus.id if self.level and self.level.campus else 1
+                campus_code = f"C{campus_id:02d}"
             
             # Level code mapping: Pre-Primary=L1, Primary=L2, Secondary=L3
             level_name = self.level.name.lower() if self.level else "unknown"
@@ -212,9 +221,13 @@ class ClassRoom(models.Model):
         self.clean()
         
         if not self.code:
-            # Generate code as: C01-M-L1-G1-A (Campus-Shift-Level-Grade-Section)
-            campus_id = self.grade.level.campus.id if self.grade and self.grade.level and self.grade.level.campus else 1
-            campus_code = f"C{campus_id:02d}"  # C01, C02, C03, etc.
+            # Generate code using campus_id field instead of database ID
+            if self.grade and self.grade.level and self.grade.level.campus and self.grade.level.campus.campus_id:
+                campus_code = self.grade.level.campus.campus_id
+            else:
+                # Fallback to database ID if campus_id not set
+                campus_id = self.grade.level.campus.id if self.grade and self.grade.level and self.grade.level.campus else 1
+                campus_code = f"C{campus_id:02d}"
             
             # Get shift code from classroom shift field
             shift_map = {
