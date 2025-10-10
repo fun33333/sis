@@ -690,6 +690,28 @@ export async function getCoordinatorDashboardStats(coordinatorId: number) {
 
 // Classes API functions
 
+export async function findCoordinatorByEmployeeCode(employeeCode: string) {
+  try {
+    const response = await apiGet(API_ENDPOINTS.COORDINATORS);
+    
+    // Handle different response formats
+    let coordinators = []
+    if (Array.isArray(response)) {
+      coordinators = response
+    } else if (response && (response as any).results) {
+      coordinators = (response as any).results
+    } else if (response && Array.isArray((response as any).data)) {
+      coordinators = (response as any).data
+    }
+    
+    const foundCoordinator = coordinators.find((coord: any) => coord.employee_code === employeeCode);
+    return foundCoordinator || null;
+  } catch (error) {
+    console.error('Failed to find coordinator by employee code:', error);
+    return null;
+  }
+}
+
 export async function findCoordinatorByEmail(email: string) {
   try {
     const coordinators = await apiGet(API_ENDPOINTS.COORDINATORS);

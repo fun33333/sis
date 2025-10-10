@@ -41,9 +41,9 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
         
         # Get teachers assigned to this coordinator
         teachers = Teacher.objects.filter(
-            assigned_coordinator=coordinator,
+            assigned_coordinators=coordinator,
             is_currently_active=True
-        ).select_related('current_campus', 'assigned_coordinator')
+        ).select_related('current_campus').prefetch_related('assigned_coordinators')
         
         # Serialize teacher data
         teachers_data = []
@@ -82,7 +82,7 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
         
         # Get teachers count assigned to this coordinator
         teachers_count = Teacher.objects.filter(
-            assigned_coordinator=coordinator,
+            assigned_coordinators=coordinator,
             is_currently_active=True
         ).count()
         

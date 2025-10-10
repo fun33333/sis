@@ -46,23 +46,20 @@ class StudentViewSet(viewsets.ModelViewSet):
                 # If teacher object doesn't exist, show no students
                 queryset = queryset.none()
         elif user.is_coordinator():
-            # Coordinator: Show students from classrooms taught by teachers assigned to this coordinator
+            # Coordinator: Show students from classrooms under their assigned level
             from coordinator.models import Coordinator
             try:
                 coordinator_obj = Coordinator.objects.get(email=user.email)
-                # Get teachers assigned to this coordinator
-                from teachers.models import Teacher
-                assigned_teachers = Teacher.objects.filter(assigned_coordinators=coordinator_obj)
                 
-                # Get classrooms taught by these teachers (through grade -> level -> campus)
+                # Get all classrooms under this coordinator's level
                 from classes.models import ClassRoom
-                teacher_classrooms = ClassRoom.objects.filter(
-                    class_teacher__in=assigned_teachers,
+                coordinator_classrooms = ClassRoom.objects.filter(
+                    grade__level=coordinator_obj.level,
                     grade__level__campus=coordinator_obj.campus
                 ).values_list('id', flat=True)
                 
                 # Filter students from these classrooms
-                queryset = queryset.filter(classroom__in=teacher_classrooms)
+                queryset = queryset.filter(classroom__in=coordinator_classrooms)
             except Coordinator.DoesNotExist:
                 # If coordinator object doesn't exist, return empty queryset
                 queryset = queryset.none()

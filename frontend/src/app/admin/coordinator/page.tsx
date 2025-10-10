@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Award, Users, Calendar, FileText, BookOpen, Clock, TrendingUp, CheckCircle, BarChart3, PieChart, Activity } from "lucide-react"
-import { getCoordinatorDashboardStats, findCoordinatorByEmail, getAllCoordinators } from "@/lib/api"
+import { getCoordinatorDashboardStats, findCoordinatorByEmployeeCode, getAllCoordinators } from "@/lib/api"
 import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from "recharts"
 
@@ -94,7 +94,7 @@ export default function CoordinatorPage() {
         }
 
         const user = JSON.parse(userData)
-        const coordinator = await findCoordinatorByEmail(user.email)
+        const coordinator = await findCoordinatorByEmployeeCode(user.username)
         
         if (coordinator) {
           console.log('Coordinator found:', coordinator)
@@ -127,7 +127,7 @@ export default function CoordinatorPage() {
             generateChartData({ total_teachers: 19, total_students: 987, total_classes: 15, pending_requests: 0 })
           }
         } else {
-          console.log('No coordinator found for email:', user.email)
+          console.log('No coordinator found for employee code:', user.username)
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error)

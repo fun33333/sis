@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Clock, Calendar, Edit, Plus, Download, Users, Save, X, Check } from "lucide-react"
-import { getCoordinatorTeachers, findCoordinatorByEmail } from "@/lib/api"
+import { getCoordinatorTeachers, findCoordinatorByEmployeeCode } from "@/lib/api"
 
 interface Teacher {
   id: number
@@ -16,6 +16,7 @@ interface Teacher {
   current_subjects: string
   current_classes_taught: string
   email: string
+  employee_code: string
 }
 
 interface Period {
@@ -52,6 +53,12 @@ export default function TimeTablePage() {
     grade: ''
   })
   const [loading, setLoading] = useState(true)
+  const [isTimeTableSaved, setIsTimeTableSaved] = useState(false)
+  const [savedTimeTable, setSavedTimeTable] = useState<TimeTableData | null>(null)
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null)
+  const [savedTimeTableList, setSavedTimeTableList] = useState<any[]>([])
+  const [showAllTimeTables, setShowAllTimeTables] = useState(false)
 
   const timeSlots = [
     "08:00 - 08:45",
@@ -64,24 +71,44 @@ export default function TimeTablePage() {
     "01:00 - 01:30" // Last period
   ]
 
-  const weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+  const weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
   // Fetch teachers assigned to coordinator
   const fetchTeachers = async () => {
     try {
       setLoading(true)
-      const userData = localStorage.getItem('userData')
-      if (!userData) return
+      const userData = localStorage.getItem('sis_user')
+      if (!userData) {
+        console.error('No user data found in localStorage')
+        return
+      }
 
-      const { email } = JSON.parse(userData)
-      const coordinator = await findCoordinatorByEmail(email)
+      const user = JSON.parse(userData)
+      const coordinator = await findCoordinatorByEmployeeCode(user.username)
       
       if (coordinator) {
         const teachersData = await getCoordinatorTeachers(coordinator.id)
-        setTeachers(teachersData as Teacher[])
+        
+        // Handle different response formats
+        let teachers = []
+        if (Array.isArray(teachersData)) {
+          teachers = teachersData
+        } else if (teachersData && (teachersData as any).teachers) {
+          teachers = (teachersData as any).teachers
+        } else if (teachersData && Array.isArray((teachersData as any).results)) {
+          teachers = (teachersData as any).results
+        }
+        
+        setTeachers(teachers as Teacher[])
+      } else {
+        console.error('No coordinator found for employee code:', user.username)
+        setTeachers([])
       }
     } catch (error) {
       console.error('Error fetching teachers:', error)
+      setTeachers([])
+      // Show user-friendly error message
+      alert('Failed to load teachers. Please check if backend server is running.')
     } finally {
       setLoading(false)
     }
@@ -94,7 +121,7 @@ export default function TimeTablePage() {
     weekDays.forEach(day => {
       initialData[day] = {}
       timeSlots.forEach(timeSlot => {
-        // Set break periods - 11:00-11:30 is ALWAYS break
+        // Set break periods - 11:00-11:30 is ALWAYS break for ALL days including Saturday
         if (timeSlot.includes("11:00 - 11:30")) {
           initialData[day][timeSlot] = {
             subject: "Break",
@@ -126,11 +153,134 @@ export default function TimeTablePage() {
     initializeTimeTable()
   }
 
+  // Clear all periods and reset form
+  const clearAllPeriods = () => {
+    // Clear localStorage first
+    localStorage.removeItem('coordinator_timetable')
+    
+    // Initialize fresh empty time table
+    initializeTimeTable()
+    
+    // Reset all states
+    setSelectedTeacher(null)
+    setNewPeriod({ subject: '', teacher: '', teacherId: 0, section: '', grade: '' })
+    setIsEditDialogOpen(false)
+    setEditingPeriod(null)
+    setIsTimeTableSaved(false)
+    setSavedTimeTable(null)
+  }
+
+  // Save time table to localStorage
+  const saveTimeTable = () => {
+    try {
+      localStorage.setItem('coordinator_timetable', JSON.stringify(timeTableData))
+      setSavedTimeTable({...timeTableData})
+      setIsTimeTableSaved(true)
+      
+      // Add to saved time table list
+      const newSavedItem = {
+        id: Date.now(), // Simple ID generation
+        timestamp: new Date().toLocaleString(),
+        data: {...timeTableData},
+        periodsCount: Object.keys(timeTableData).reduce((total, day) => {
+          return total + Object.keys(timeTableData[day]).filter(timeSlot => {
+            const period = timeTableData[day][timeSlot]
+            return !period.isBreak && !period.isFree && period.subject && period.subject.trim() !== ''
+          }).length
+        }, 0)
+      }
+      
+      setSavedTimeTableList(prev => [newSavedItem, ...prev])
+      
+      alert('Time table saved successfully! This will be your default schedule.')
+    } catch (error) {
+      console.error('Error saving time table:', error)
+      alert('Failed to save time table')
+    }
+  }
+
+  // Load saved time table from localStorage
+  const loadSavedTimeTable = () => {
+    try {
+      const saved = localStorage.getItem('coordinator_timetable')
+      if (saved) {
+        const parsedData = JSON.parse(saved)
+        setTimeTableData(parsedData)
+        setSavedTimeTable(parsedData)
+        setIsTimeTableSaved(true)
+        alert('Saved time table loaded successfully!')
+      } else {
+        alert('No saved time table found. Please create and save one first.')
+      }
+    } catch (error) {
+      console.error('Error loading time table:', error)
+      alert('Failed to load saved time table')
+    }
+  }
+
   useEffect(() => {
     fetchTeachers()
+    
+    // Force reset to ensure Saturday is included
     initializeTimeTable()
+    
+    // Try to load saved time table after a short delay
+    setTimeout(() => {
+      const saved = localStorage.getItem('coordinator_timetable')
+      if (saved) {
+        try {
+          const parsedData = JSON.parse(saved)
+          // Ensure Saturday is included in saved data
+          if (!parsedData.Saturday) {
+            parsedData.Saturday = {}
+            timeSlots.forEach(timeSlot => {
+              if (timeSlot.includes("11:00 - 11:30")) {
+                parsedData.Saturday[timeSlot] = {
+                  subject: "Break",
+                  teacher: "",
+                  teacherId: 0,
+                  section: "",
+                  grade: "",
+                  isBreak: true
+                }
+              } else {
+                parsedData.Saturday[timeSlot] = {
+                  subject: "",
+                  teacher: "",
+                  teacherId: 0,
+                  section: "",
+                  grade: "",
+                  isFree: true
+                }
+              }
+            })
+          }
+          setTimeTableData(parsedData)
+          setSavedTimeTable(parsedData)
+          setIsTimeTableSaved(true)
+        } catch (error) {
+          console.error('Error loading saved time table:', error)
+          initializeTimeTable()
+        }
+      }
+    }, 100)
   }, [])
 
+
+  // Handle teacher selection and pre-fill form
+  const handleTeacherSelect = (teacher: Teacher) => {
+    console.log('Teacher selected:', teacher)
+    setSelectedTeacher(teacher)
+    // Pre-fill form with selected teacher data
+    setNewPeriod({
+      subject: teacher.current_subjects || 'Subject',
+      teacher: `${teacher.full_name} - ${teacher.employee_code}`,
+      teacherId: teacher.id,
+      section: 'A', // Default section
+      grade: 'Grade 1' // Default grade
+    })
+    console.log('New period set with teacher:', teacher.full_name)
+  }
 
   // Handle period assignment
   const handleAssignPeriod = (day: string, timeSlot: string) => {
@@ -140,9 +290,13 @@ export default function TimeTablePage() {
       return
     }
     
+    console.log('Opening dialog for:', day, timeSlot)
+    console.log('Selected teacher:', selectedTeacher)
+    
     setEditingPeriod({ day, timeSlot })
     const currentPeriod = timeTableData[day]?.[timeSlot]
     if (currentPeriod && !currentPeriod.isBreak) {
+      console.log('Editing existing period:', currentPeriod)
       setNewPeriod({
         subject: currentPeriod.subject,
         teacher: currentPeriod.teacher,
@@ -151,6 +305,18 @@ export default function TimeTablePage() {
         grade: currentPeriod.grade
       })
     } else {
+      // If a teacher is already selected externally, pre-fill the form
+      if (selectedTeacher) {
+        console.log('Pre-filling with selected teacher:', selectedTeacher.full_name)
+        setNewPeriod({
+          subject: selectedTeacher.current_subjects || 'Subject',
+          teacher: `${selectedTeacher.full_name} - ${selectedTeacher.employee_code}`,
+          teacherId: selectedTeacher.id,
+          section: 'A',
+          grade: 'Grade 1'
+        })
+      } else {
+        console.log('No teacher selected, creating empty period')
       setNewPeriod({
         subject: '',
         teacher: '',
@@ -158,27 +324,48 @@ export default function TimeTablePage() {
         section: '',
         grade: ''
       })
+      }
     }
     setIsEditDialogOpen(true)
   }
 
   // Save period assignment
   const handleSavePeriod = () => {
-    if (!editingPeriod) return
+    if (!editingPeriod) {
+      console.log('No editing period found!')
+      return
+    }
 
     const { day, timeSlot } = editingPeriod
+    console.log('Saving period for:', day, timeSlot)
+    console.log('New period data:', newPeriod)
+    console.log('Selected teacher:', selectedTeacher)
+    
+    // Use selected teacher data if teacher field is empty
+    const finalPeriodData = {
+      ...newPeriod,
+      teacher: newPeriod.teacher || (selectedTeacher ? `${selectedTeacher.full_name} - ${selectedTeacher.employee_code}` : ''),
+      teacherId: newPeriod.teacherId || (selectedTeacher ? selectedTeacher.id : 0)
+    }
+    
+    console.log('Final period data:', finalPeriodData)
+    
     const updatedData = { ...timeTableData }
     
     updatedData[day][timeSlot] = {
-      ...newPeriod,
+      ...finalPeriodData,
       isFree: false,
       isBreak: false
     }
+    
+    console.log('Updated data for', day, timeSlot, ':', updatedData[day][timeSlot])
     
     setTimeTableData(updatedData)
     setIsEditDialogOpen(false)
     setEditingPeriod(null)
     setNewPeriod({ subject: '', teacher: '', teacherId: 0, section: '', grade: '' })
+    
+    console.log('Period saved successfully!')
   }
 
   // Clear period
@@ -201,12 +388,6 @@ export default function TimeTablePage() {
     setTimeTableData(updatedData)
   }
 
-  // Get teachers for selected subject
-  const getTeachersForSubject = (subject: string) => {
-    return teachers.filter(teacher => 
-      teacher.current_subjects?.toLowerCase().includes(subject.toLowerCase())
-    )
-  }
 
   if (loading) {
     return (
@@ -214,6 +395,20 @@ export default function TimeTablePage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#274c77' }}></div>
           <p className="text-gray-600">Loading time table...</p>
+          <p className="text-sm text-gray-500 mt-2">Fetching teachers and coordinator data</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (teachers.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Users className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">No Teachers Found</h2>
+          <p className="text-gray-500 mb-4">No teachers are assigned to this coordinator yet.</p>
+          <p className="text-sm text-gray-400">Please contact administrator to assign teachers to this coordinator.</p>
         </div>
       </div>
     )
@@ -221,38 +416,127 @@ export default function TimeTablePage() {
 
   return (
     <div className="space-y-6">
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          <span>✅ Time table saved successfully! Form reset for new assignments.</span>
+        </div>
+      )}
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#274c77' }}>Time Table Management</h1>
-          <p className="text-gray-600">Create and manage class schedules and time tables</p>
+          <p className="text-gray-600">
+            {isTimeTableSaved 
+              ? '✅ Default schedule saved! Make changes and save to update.' 
+              : 'Create your default schedule once, then reuse it every week. Make changes as needed.'
+            }
+          </p>
         </div>
         <div className="flex space-x-2">
           <Button 
-            style={{ backgroundColor: '#6096ba', color: 'white' }}
-            onClick={() => {
-              // Save time table to localStorage or send to backend
-              localStorage.setItem('timeTableData', JSON.stringify(timeTableData))
-              alert('Time table saved successfully!')
-            }}
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Time Table
-          </Button>
-          <Button 
             variant="outline" 
-            style={{ borderColor: '#274c77', color: '#274c77' }}
-            onClick={resetTimeTable}
+            onClick={() => setShowAllTimeTables(!showAllTimeTables)}
+            className="flex items-center space-x-2"
           >
-            <X className="h-4 w-4 mr-2" />
-            Reset
-          </Button>
-          <Button variant="outline" style={{ borderColor: '#6096ba', color: '#274c77' }}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
+            <Calendar className="h-4 w-4" />
+            <span>{showAllTimeTables ? 'Hide All Time Tables' : 'View All Time Tables'}</span>
           </Button>
         </div>
       </div>
 
+
+      {/* Quick Teacher Selection */}
+      <Card style={{ backgroundColor: '#f8f9fa', borderColor: '#a3cef1' }}>
+        <CardContent className="p-4">
+          <div className="flex items-center space-x-4">
+            <div className="flex-1">
+              <Label htmlFor="main-teacher-select" className="text-sm font-medium" style={{ color: '#274c77' }}>
+                Quick Teacher Selection
+              </Label>
+              <Select 
+                value={selectedTeacher ? selectedTeacher.id.toString() : ""}
+                onValueChange={(value) => {
+                  const teacher = teachers.find(t => t.id === parseInt(value))
+                  if (teacher) {
+                    handleTeacherSelect(teacher)
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue placeholder="Select teacher for quick assignment" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teachers.map(teacher => (
+                    <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                      {teacher.full_name} - {teacher.employee_code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="text-sm text-gray-600">
+                {selectedTeacher ? (
+                  <span>Selected: <strong style={{ color: '#274c77' }}>{selectedTeacher.full_name} - {selectedTeacher.employee_code}</strong></span>
+                ) : (
+                  <span>No teacher selected</span>
+                )}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setSelectedTeacher(null)
+                  setNewPeriod({ subject: '', teacher: '', teacherId: 0, section: '', grade: '' })
+                }}
+                disabled={!selectedTeacher}
+                className="ml-2"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear
+              </Button>
+              <Button 
+                style={{ backgroundColor: '#10b981', color: 'white' }}
+                onClick={() => {
+                  // Debug: Log current time table data
+                  console.log('Current timeTableData:', timeTableData)
+                  
+                  // Check if any periods are filled
+                  const hasPeriods = Object.keys(timeTableData).some(day => 
+                    Object.keys(timeTableData[day]).some(timeSlot => {
+                      const period = timeTableData[day][timeSlot]
+                      console.log(`Checking ${day} ${timeSlot}:`, period)
+                      return !period.isBreak && !period.isFree && period.subject && period.subject.trim() !== '' && period.teacher && period.teacher.trim() !== ''
+                    })
+                  )
+                  
+                  console.log('Has periods:', hasPeriods)
+                  
+                  if (hasPeriods) {
+                    saveTimeTable()
+                    
+                    // Clear all periods and reset form after saving
+                    clearAllPeriods()
+                    
+                    // Show success message
+                    setShowSuccessMessage(true)
+                    setTimeout(() => setShowSuccessMessage(false), 3000)
+                    
+                    alert('✅ Time table saved successfully! Form has been reset for new assignments.')
+                  } else {
+                    alert('Please fill at least one period before saving!')
+                  }
+                }}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Time Table
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Time Table Grid */}
       <Card style={{ backgroundColor: 'white', borderColor: '#a3cef1' }}>
@@ -283,6 +567,7 @@ export default function TimeTablePage() {
                       const period = timeTableData[day]?.[timeSlot]
                       const isBreak = period?.isBreak
                       const isFree = period?.isFree
+                      
                       
                       return (
                         <td key={dayIndex} className="border border-gray-300 py-2 px-2 text-center" style={{ backgroundColor: dayIndex % 2 === 0 ? '#f8f9fa' : 'white' }}>
@@ -324,12 +609,14 @@ export default function TimeTablePage() {
                             </div>
                           ) : (
                             <div 
-                              className="p-2 rounded border-dashed border-2 hover:bg-gray-50 cursor-pointer" 
+                              className="p-2 rounded border-dashed border-2 hover:bg-gray-50 cursor-pointer transition-all"
                               style={{ borderColor: '#a3cef1' }}
                               onClick={() => handleAssignPeriod(day, timeSlot)}
                             >
                               <Plus className="h-4 w-4 mx-auto text-gray-400" />
-                              <span className="text-xs text-gray-500 mt-1 block">Add Period</span>
+                              <span className="text-xs mt-1 block text-gray-500">
+                                Add Period
+                              </span>
                             </div>
                           )}
                         </td>
@@ -350,6 +637,11 @@ export default function TimeTablePage() {
             <DialogTitle style={{ color: '#274c77' }}>
               {editingPeriod ? 'Edit Period' : 'Assign Period'}
             </DialogTitle>
+            {selectedTeacher && (
+              <p className="text-sm text-gray-600">
+                Pre-filled with selected teacher: <strong>{selectedTeacher.full_name}</strong>
+              </p>
+            )}
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -364,29 +656,13 @@ export default function TimeTablePage() {
             
             <div>
               <Label htmlFor="teacher">Teacher</Label>
-              <Select 
-                value={newPeriod.teacherId.toString()} 
-                onValueChange={(value) => {
-                  const teacherId = parseInt(value)
-                  const teacher = teachers.find(t => t.id === teacherId)
-                  setNewPeriod({
-                    ...newPeriod,
-                    teacherId,
-                    teacher: teacher?.full_name || ''
-                  })
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select teacher" />
-                </SelectTrigger>
-                <SelectContent>
-                  {teachers.map(teacher => (
-                    <SelectItem key={teacher.id} value={teacher.id.toString()}>
-                      {teacher.full_name} - {teacher.current_subjects}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="teacher"
+                value={newPeriod.teacher || ''}
+                placeholder="Teacher name will auto-fill from external selection"
+                readOnly
+                className="bg-gray-50"
+              />
             </div>
             
             <div>
@@ -433,51 +709,199 @@ export default function TimeTablePage() {
               <Button 
                 style={{ backgroundColor: '#274c77', color: 'white' }}
                 onClick={handleSavePeriod}
-                disabled={!newPeriod.subject || !newPeriod.teacher || !newPeriod.grade || !newPeriod.section}
+                disabled={false}
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Period
+                {editingPeriod ? 'Update Period' : 'Assign Period'}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card style={{ backgroundColor: '#e7ecef', borderColor: '#a3cef1' }}>
-          <CardContent className="p-4 text-center">
-            <Clock className="h-8 w-8 mx-auto mb-3" style={{ color: '#274c77' }} />
-            <h3 className="font-semibold mb-2" style={{ color: '#274c77' }}>Schedule Templates</h3>
-            <p className="text-sm text-gray-600 mb-4">Create reusable time table templates</p>
-            <Button variant="outline" style={{ borderColor: '#6096ba', color: '#274c77' }}>
-              Manage Templates
+      {/* Saved Time Tables List */}
+      {savedTimeTableList.length > 0 && (
+        <Card style={{ backgroundColor: '#f8f9fa', borderColor: '#a3cef1' }}>
+          <CardHeader>
+            <CardTitle style={{ color: '#274c77' }} className="flex items-center">
+              <Calendar className="h-5 w-5 mr-2" />
+              Saved Time Tables
+            </CardTitle>
+            <p className="text-sm text-gray-600">
+              Your previously saved time tables are listed below
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {savedTimeTableList.map((item) => (
+                <div key={item.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <div>
+                        <h4 className="font-medium text-gray-900">
+                          Time Table #{item.id}
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          Saved on: {item.timestamp}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {item.periodsCount} periods assigned
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setTimeTableData(item.data)
+                        alert('Time table loaded successfully!')
+                      }}
+                    >
+                      <Calendar className="h-4 w-4 mr-1" />
+                      Load
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSavedTimeTableList(prev => prev.filter(savedItem => savedItem.id !== item.id))
+                        alert('Time table removed from list!')
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Remove
             </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
+      )}
 
-        <Card style={{ backgroundColor: '#a3cef1', borderColor: '#6096ba' }}>
-          <CardContent className="p-4 text-center">
-            <Users className="h-8 w-8 mx-auto mb-3" style={{ color: '#274c77' }} />
-            <h3 className="font-semibold mb-2" style={{ color: '#274c77' }}>Teacher Availability</h3>
-            <p className="text-sm mb-4" style={{ color: '#274c77' }}>Check teacher schedule conflicts</p>
-            <Button style={{ backgroundColor: '#274c77', color: 'white' }}>
-              Check Availability
+      {/* View All Time Tables Section */}
+      {showAllTimeTables && (
+        <Card style={{ backgroundColor: '#f8f9fa', borderColor: '#a3cef1' }}>
+          <CardHeader>
+            <CardTitle style={{ color: '#274c77' }} className="flex items-center">
+              <Calendar className="h-5 w-5 mr-2" />
+              All Saved Time Tables Overview
+            </CardTitle>
+            <p className="text-sm text-gray-600">
+              Complete overview of all your saved time tables
+            </p>
+          </CardHeader>
+          <CardContent>
+            {savedTimeTableList.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-600">No time tables saved yet</p>
+                <p className="text-sm text-gray-500 mt-2">Create and save your first time table to see it here</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {savedTimeTableList.map((item, index) => (
+                  <div key={item.id} className="bg-white rounded-lg border border-gray-200 p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold" style={{ color: '#274c77' }}>
+                          Time Table #{index + 1}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Saved on: {item.timestamp}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {item.periodsCount} periods assigned
+                        </p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setTimeTableData(item.data)
+                            setShowAllTimeTables(false)
+                            alert('Time table loaded successfully!')
+                          }}
+                        >
+                          <Calendar className="h-4 w-4 mr-1" />
+                          Load
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setSavedTimeTableList(prev => prev.filter(savedItem => savedItem.id !== item.id))
+                            alert('Time table removed from list!')
+                          }}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Remove
             </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Time Table Preview */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-xs">
+                        <thead>
+                          <tr style={{ backgroundColor: '#274c77' }}>
+                            <th className="border border-gray-300 py-2 px-2 text-white text-left">Time</th>
+                            {weekDays.map(day => (
+                              <th key={day} className="border border-gray-300 py-2 px-2 text-white text-center">{day}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {timeSlots.map((timeSlot, timeIndex) => (
+                            <tr key={timeIndex}>
+                              <td className="border border-gray-300 py-1 px-2 font-medium text-xs" style={{ backgroundColor: '#e7ecef' }}>
+                                {timeSlot}
+                              </td>
+                              {weekDays.map((day, dayIndex) => {
+                                const period = item.data[day]?.[timeSlot]
+                                const isBreak = period?.isBreak
+                                const isFree = period?.isFree
+                                
+                                return (
+                                  <td key={dayIndex} className="border border-gray-300 py-1 px-1 text-center" style={{ backgroundColor: dayIndex % 2 === 0 ? '#f8f9fa' : 'white' }}>
+                                    {isBreak ? (
+                                      <div className="p-1 rounded text-xs" style={{ backgroundColor: '#8b8c89' }}>
+                                        <span className="text-white">Break</span>
+                                      </div>
+                                    ) : period && !isFree ? (
+                                      <div className="p-1 rounded text-xs" style={{ backgroundColor: '#a3cef1' }}>
+                                        <div className="font-medium" style={{ color: '#274c77' }}>
+                                          {period.subject}
+                                        </div>
+                                        <div className="text-xs" style={{ color: '#274c77' }}>
+                                          {period.teacher}
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="p-1 text-gray-400 text-xs">
+                                        Free
+                                      </div>
+                                    )}
+                                  </td>
+                                )
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
+      )}
 
-        <Card style={{ backgroundColor: '#274c77' }}>
-          <CardContent className="p-4 text-center">
-            <Calendar className="h-8 w-8 mx-auto mb-3 text-white" />
-            <h3 className="font-semibold mb-2 text-white">Bulk Operations</h3>
-            <p className="text-sm text-white/80 mb-4">Copy schedules across classes</p>
-            <Button variant="outline" className="border-white text-white hover:bg-white hover:text-gray-900">
-              Bulk Copy
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   )
 }
