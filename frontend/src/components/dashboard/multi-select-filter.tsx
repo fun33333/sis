@@ -47,7 +47,7 @@ export function MultiSelectFilter({
         : `${selectedValues.length} selected`
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 flex-1 min-w-[200px] max-w-[300px]">
       <label className="text-sm font-medium text-foreground">{title}</label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>

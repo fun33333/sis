@@ -62,16 +62,16 @@ class Command(BaseCommand):
                 grade_match = re.search(r'grade\s*[-]?\s*(\d+)', classes_text)
                 if grade_match:
                     grade_number = grade_match.group(1)
-                    grade_name = f"Grade-{grade_number}"
+                    grade_name = f"Grade {grade_number}"  # Use space format to match database
                 else:
                     # Check for Pre-Primary classes
                     if any(term in classes_text for term in ['nursery', 'kg-1', 'kg-2', 'kg1', 'kg2', 'kg-ii', 'kg-i']):
                         if 'nursery' in classes_text:
-                            grade_name = 'Nursary'
+                            grade_name = 'Nursery'  # Fix typo
                         elif 'kg-1' in classes_text or 'kg1' in classes_text or 'kg-i' in classes_text:
-                            grade_name = 'KG-1'
+                            grade_name = 'KG-I'  # Use database format
                         elif 'kg-2' in classes_text or 'kg2' in classes_text or 'kg-ii' in classes_text:
-                            grade_name = 'KG-2'
+                            grade_name = 'KG-II'  # Use database format
                 
                 if grade_name:
                     self.stdout.write(f"   Extracted grade: {grade_name}")

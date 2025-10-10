@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Building2, Plus, Search, Edit, Trash2, Eye, Users, GraduationCap, Layers, User } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { toast } from "@/components/ui/use-toast"
 
 interface ClassData {
@@ -423,10 +424,7 @@ export default function CombinedListPage() {
   if (loading) {
   return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading data...</p>
-        </div>
+        <LoadingSpinner message="Loading data..." />
       </div>
     )
   }

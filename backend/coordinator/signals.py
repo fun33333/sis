@@ -3,6 +3,26 @@ from django.dispatch import receiver
 from coordinator.models import Coordinator
 from teachers.models import Teacher
 from classes.models import Grade
+from services.user_creation_service import UserCreationService
+
+@receiver(post_save, sender=Coordinator)
+def create_coordinator_user(sender, instance, created, **kwargs):
+    """Auto-create user when coordinator is created"""
+    if created:
+        try:
+            # Check if user already exists
+            from users.models import User
+            if User.objects.filter(email=instance.email).exists():
+                print(f"User already exists for coordinator {instance.full_name}")
+                return
+            
+            user, message = UserCreationService.create_user_from_entity(instance, 'coordinator')
+            if not user:
+                print(f"Failed to create user for coordinator {instance.id}: {message}")
+            else:
+                print(f"✅ Created user for coordinator: {instance.full_name} ({instance.employee_code})")
+        except Exception as e:
+            print(f"Error creating user for coordinator {instance.id}: {str(e)}")
 
 @receiver(post_save, sender=Coordinator)
 def auto_assign_teachers_to_new_coordinator(sender, instance, created, **kwargs):
@@ -21,10 +41,9 @@ def auto_assign_teachers_to_new_coordinator(sender, instance, created, **kwargs)
                 print(f"No grades found for level {instance.level.name}")
                 return
             
-            # Find teachers for this campus and level who don't have coordinators
+            # Find teachers for this campus who teach grades in this level
             teachers = Teacher.objects.filter(
                 current_campus=instance.campus,
-                assigned_coordinator__isnull=True,
                 current_classes_taught__isnull=False
             )
             
@@ -40,22 +59,23 @@ def auto_assign_teachers_to_new_coordinator(sender, instance, created, **kwargs)
                     grade_match = re.search(r'grade\s*[-]?\s*(\d+)', classes_text)
                     if grade_match:
                         grade_number = grade_match.group(1)
-                        grade_name = f"Grade-{grade_number}"
+                        grade_name = f"Grade {grade_number}"  # Use space format to match database
                     else:
                         # Check for Pre-Primary classes
                         if any(term in classes_text for term in ['nursery', 'kg-1', 'kg-2', 'kg1', 'kg2', 'kg-ii', 'kg-i']):
                             if 'nursery' in classes_text:
-                                grade_name = 'Nursary'
+                                grade_name = 'Nursery'  # Fix typo
                             elif 'kg-1' in classes_text or 'kg1' in classes_text or 'kg-i' in classes_text:
-                                grade_name = 'KG-1'
+                                grade_name = 'KG-I'  # Use database format
                             elif 'kg-2' in classes_text or 'kg2' in classes_text or 'kg-ii' in classes_text:
-                                grade_name = 'KG-2'
+                                grade_name = 'KG-II'  # Use database format
                     
                     if grade_name and grade_name in grade_names:
-                        teacher.assigned_coordinator = instance
-                        teacher.save(update_fields=['assigned_coordinator'])
-                        assigned_count += 1
-                        print(f"Auto-assigned teacher {teacher.full_name} to coordinator {instance.full_name}")
+                        # Add coordinator (not replace) - use ManyToMany
+                        if instance not in teacher.assigned_coordinators.all():
+                            teacher.assigned_coordinators.add(instance)
+                            assigned_count += 1
+                            print(f"Added coordinator {instance.full_name} to {teacher.full_name}")
                         
                 except Exception as e:
                     print(f"Error assigning teacher {teacher.full_name}: {str(e)}")

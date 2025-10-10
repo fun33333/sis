@@ -43,6 +43,31 @@ class Coordinator(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    def save(self, *args, **kwargs):
+        # Auto-generate employee_code if not provided
+        if not self.employee_code and self.campus:
+            try:
+                # Get year from joining date or current year
+                if self.joining_date:
+                    if isinstance(self.joining_date, str):
+                        from datetime import datetime
+                        joining_date = datetime.strptime(self.joining_date, '%Y-%m-%d').date()
+                        year = joining_date.year
+                    else:
+                        year = self.joining_date.year
+                else:
+                    year = 2025
+                
+                # Generate employee code using IDGenerator
+                from utils.id_generator import IDGenerator
+                self.employee_code = IDGenerator.generate_unique_employee_code(
+                    self.campus, 'morning', year, 'coordinator'
+                )
+            except Exception as e:
+                print(f"Error generating employee code: {str(e)}")
+        
+        super().save(*args, **kwargs)
+    
     def get_assigned_teachers(self):
         """
         Get all teachers assigned to this coordinator through level -> grades -> classrooms

@@ -194,6 +194,17 @@ class ClassRoom(models.Model):
             grade_code = "".join(self.grade.name.split()).upper()
         return grade_code, self.section
 
+    def get_expected_coordinator(self):
+        """Get the coordinator that should be assigned for this classroom"""
+        if self.grade and self.grade.level and self.campus:
+            from coordinator.models import Coordinator
+            return Coordinator.objects.filter(
+                level=self.grade.level,
+                campus=self.campus,
+                is_currently_active=True
+            ).first()
+        return None
+
     def clean(self):
         """
         Validate that teacher is not already assigned to another classroom
@@ -205,10 +216,16 @@ class ClassRoom(models.Model):
             ).exclude(pk=self.pk).first()
             
             if existing_classroom:
-                raise ValidationError(
+                # Show warning with coordinator info
+                expected_coordinator = self.get_expected_coordinator()
+                old_coordinator = self.class_teacher.assigned_coordinator
+                
+                warning_msg = (
                     f"Teacher {self.class_teacher.full_name} is already assigned to {existing_classroom}. "
-                    "One teacher can only be assigned to one classroom."
+                    f"Reassigning will update coordinator from {old_coordinator} to {expected_coordinator}. "
+                    "Continue?"
                 )
+                raise ValidationError(warning_msg)
 
     def save(self, *args, **kwargs):
         # Run validation

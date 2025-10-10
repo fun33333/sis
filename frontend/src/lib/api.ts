@@ -1,8 +1,12 @@
+import { CacheManager } from './cache';
+
 export function getApiBaseUrl(): string {
-  if (typeof window !== "undefined") {
-    return process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
-  }
-  return process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://backend:8000";
+  const baseUrl = typeof window !== "undefined" 
+    ? (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000")
+    : (process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://backend:8000");
+  
+  console.log('🌐 API Base URL:', baseUrl);
+  return baseUrl;
 }
 
 // API endpoints
@@ -11,6 +15,10 @@ export const API_ENDPOINTS = {
   STUDENTS_TOTAL: "/api/students/total/",
   STUDENTS_GENDER_STATS: "/api/students/gender_stats/",
   STUDENTS_CAMPUS_STATS: "/api/students/campus_stats/",
+  STUDENTS_GRADE_DISTRIBUTION: "/api/students/grade_distribution/",
+  STUDENTS_ENROLLMENT_TREND: "/api/students/enrollment_trend/",
+  STUDENTS_MOTHER_TONGUE_DISTRIBUTION: "/api/students/mother_tongue_distribution/",
+  STUDENTS_RELIGION_DISTRIBUTION: "/api/students/religion_distribution/",
   TEACHERS: "/api/teachers/",
   CAMPUS: "/api/campus/",
   CAMPUS_ACTIVE: "/api/campus/active/",
@@ -172,16 +180,28 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
 // simple GET helper 
 export async function apiGet<T>(path: string): Promise<T> {
   try {
+    console.log('🌐 apiGet called with path:', path);
+    const fullUrl = `${getApiBaseUrl()}${path}`;
+    console.log('🔗 Full URL:', fullUrl);
+    
     const res = await authorizedFetch(path, {
       method: "GET",
       headers: { "Accept": "application/json" },
     });
+    
+    console.log('📡 Response status:', res.status, res.statusText);
+    
     if (!res.ok) {
       const text = await res.text();
+      console.error('❌ API Error:', res.status, text);
       handleApiError(res, text);
     }
-    return (await res.json()) as T;
+    
+    const data = await res.json();
+    console.log('✅ API Response data:', data);
+    return data as T;
   } catch (error) {
+    console.error('❌ apiGet error:', error);
     if (error instanceof ApiError) throw error;
     throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
   }
@@ -300,8 +320,80 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   }
 }
 
+// Fetch chart data from backend (aggregated for all students)
+export async function getDashboardChartData() {
+  try {
+    const [gradeDistribution, genderDistribution, enrollmentTrend, motherTongueDistribution, religionDistribution, campusStats] = await Promise.all([
+      apiGet<Array<{ grade: string; count: number }>>(API_ENDPOINTS.STUDENTS_GRADE_DISTRIBUTION),
+      apiGet<{ male: number; female: number; other: number }>(API_ENDPOINTS.STUDENTS_GENDER_STATS),
+      apiGet<Array<{ year: number; count: number }>>(API_ENDPOINTS.STUDENTS_ENROLLMENT_TREND),
+      apiGet<Array<{ name: string; value: number }>>(API_ENDPOINTS.STUDENTS_MOTHER_TONGUE_DISTRIBUTION),
+      apiGet<Array<{ name: string; value: number }>>(API_ENDPOINTS.STUDENTS_RELIGION_DISTRIBUTION),
+      apiGet<Array<{ campus: string; count: number }>>(API_ENDPOINTS.STUDENTS_CAMPUS_STATS)
+    ]);
+
+    // Format gender distribution
+    const genderData = [
+      { name: 'Male', value: genderDistribution.male },
+      { name: 'Female', value: genderDistribution.female },
+      { name: 'Other', value: genderDistribution.other }
+    ].filter(item => item.value > 0);
+
+    // Format campus performance
+    const campusPerformance = campusStats.map(item => ({
+      name: item.campus,
+      value: item.count
+    }));
+
+    return {
+      gradeDistribution,
+      genderDistribution: genderData,
+      enrollmentTrend,
+      motherTongueDistribution,
+      religionDistribution,
+      campusPerformance
+    };
+  } catch (error) {
+    console.error('Failed to fetch dashboard chart data:', error);
+    
+    // Return empty data on error
+    return {
+      gradeDistribution: [],
+      genderDistribution: [],
+      enrollmentTrend: [],
+      motherTongueDistribution: [],
+      religionDistribution: [],
+      campusPerformance: []
+    };
+  }
+}
+
+// Fetch limited students for dashboard (first page only)
+export async function getDashboardStudents(pageSize: number = 50) {
+  try {
+    const data = await apiGet(`${API_ENDPOINTS.STUDENTS}?page=1&page_size=${pageSize}`);
+    
+    if (Array.isArray(data)) {
+      return data;
+    } else if (data && Array.isArray((data as any).results)) {
+      return (data as any).results;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error fetching dashboard students:', error);
+    return [];
+  }
+}
+
 export async function getAllStudents() {
   try {
+    // Try to get from cache first
+    const cached = CacheManager.get(CacheManager.KEYS.STUDENTS);
+    if (cached) {
+      return cached;
+    }
+
     // Fetch all students with pagination
     let allStudents: any[] = [];
     let page = 1;
@@ -322,6 +414,9 @@ export async function getAllStudents() {
       }
     }
     
+    // Cache the results for 10 minutes
+    CacheManager.set(CacheManager.KEYS.STUDENTS, allStudents, 10 * 60 * 1000);
+    
     return allStudents;
   } catch (error) {
     console.error('Failed to fetch students:', error);
@@ -329,9 +424,73 @@ export async function getAllStudents() {
   }
 }
 
+export async function getFilteredStudents(params: {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  campus?: number;
+  current_grade?: string;
+  section?: string;
+  current_state?: string;
+  gender?: string;
+  shift?: string;
+  classroom?: number;
+  ordering?: string;
+}): Promise<{
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: any[];
+}> {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    // Add pagination params
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.page_size) queryParams.append('page_size', params.page_size.toString());
+    
+    // Add search param
+    if (params.search) queryParams.append('search', params.search);
+    
+    // Add filter params
+    if (params.campus) queryParams.append('campus', params.campus.toString());
+    if (params.current_grade) queryParams.append('current_grade', params.current_grade);
+    if (params.section) queryParams.append('section', params.section);
+    if (params.current_state) queryParams.append('current_state', params.current_state);
+    if (params.gender) queryParams.append('gender', params.gender);
+    if (params.shift) queryParams.append('shift', params.shift);
+    if (params.classroom) queryParams.append('classroom', params.classroom.toString());
+    
+    // Add ordering param
+    if (params.ordering) queryParams.append('ordering', params.ordering);
+    
+    const response = await apiGet(`${API_ENDPOINTS.STUDENTS}?${queryParams.toString()}`);
+    return response as {
+      count: number;
+      next: string | null;
+      previous: string | null;
+      results: any[];
+    };
+  } catch (error) {
+    console.error('Failed to fetch filtered students:', error);
+    return { results: [], count: 0, next: null, previous: null };
+  }
+}
+
 export async function getAllCampuses() {
   try {
-    return await apiGet(API_ENDPOINTS.CAMPUS);  // ✅ Use main endpoint
+    // Try to get from cache first
+    const cached = CacheManager.get(CacheManager.KEYS.CAMPUSES);
+    if (cached) {
+      return cached;
+    }
+
+    const data = await apiGet(API_ENDPOINTS.CAMPUS);
+    
+    // Cache the results for 30 minutes (campuses don't change often)
+    CacheManager.set(CacheManager.KEYS.CAMPUSES, data, 30 * 60 * 1000);
+    
+    return data;
   } catch (error) {
     console.error('Failed to fetch campuses:', error);
     return [];
@@ -340,6 +499,12 @@ export async function getAllCampuses() {
 
 export async function getAllTeachers() {
   try {
+    // Try to get from cache first
+    const cached = CacheManager.get(CacheManager.KEYS.TEACHERS);
+    if (cached) {
+      return cached;
+    }
+
     // Fetch all teachers with pagination
     let allTeachers: any[] = [];
     let page = 1;
@@ -360,6 +525,9 @@ export async function getAllTeachers() {
       }
     }
     
+    // Cache the results for 10 minutes
+    CacheManager.set(CacheManager.KEYS.TEACHERS, allTeachers, 10 * 60 * 1000);
+    
     return allTeachers;
   } catch (error) {
     console.error('Failed to fetch teachers:', error);
@@ -367,9 +535,70 @@ export async function getAllTeachers() {
   }
 }
 
+export async function getFilteredTeachers(params: {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  current_campus?: number;
+  shift?: string;
+  is_currently_active?: boolean;
+  assigned_coordinator?: number;
+  is_class_teacher?: boolean;
+  current_subjects?: string;
+  ordering?: string;
+}): Promise<{
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: any[];
+}> {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    // Add pagination params
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.page_size) queryParams.append('page_size', params.page_size.toString());
+    
+    // Add search param
+    if (params.search) queryParams.append('search', params.search);
+    
+    // Add filter params
+    if (params.current_campus) queryParams.append('current_campus', params.current_campus.toString());
+    if (params.shift) queryParams.append('shift', params.shift);
+    if (params.is_currently_active !== undefined) queryParams.append('is_currently_active', params.is_currently_active.toString());
+    if (params.assigned_coordinator) queryParams.append('assigned_coordinator', params.assigned_coordinator.toString());
+    if (params.is_class_teacher !== undefined) queryParams.append('is_class_teacher', params.is_class_teacher.toString());
+    if (params.current_subjects) queryParams.append('current_subjects', params.current_subjects);
+    
+    // Add ordering param
+    if (params.ordering) queryParams.append('ordering', params.ordering);
+    
+    const response = await apiGet(`${API_ENDPOINTS.TEACHERS}?${queryParams.toString()}`);
+    return response as {
+      count: number;
+      next: string | null;
+      previous: string | null;
+      results: any[];
+    };
+  } catch (error) {
+    console.error('Failed to fetch filtered teachers:', error);
+    return { results: [], count: 0, next: null, previous: null };
+  }
+}
+
 export async function getTeacherById(teacherId: string | number) {
   try {
+    // Try to get from cache first
+    const cached = CacheManager.get(CacheManager.KEYS.TEACHER_PROFILE(Number(teacherId)));
+    if (cached) {
+      return cached;
+    }
+
     const teacher = await apiGet(`${API_ENDPOINTS.TEACHERS}${teacherId}/`);
+    
+    // Cache the teacher profile for 15 minutes
+    CacheManager.set(CacheManager.KEYS.TEACHER_PROFILE(Number(teacherId)), teacher, 15 * 60 * 1000);
+    
     return teacher;
   } catch (error) {
     console.error('Failed to fetch teacher by ID:', error);
@@ -378,7 +607,58 @@ export async function getTeacherById(teacherId: string | number) {
 }
 
 
-// Users API
+export async function getStudentById(studentId: string | number) {
+  try {
+    console.log('🔍 getStudentById called with ID:', studentId);
+    
+    // Try to get from cache first
+    const cached = CacheManager.get(CacheManager.KEYS.STUDENT_PROFILE(Number(studentId)));
+    if (cached) {
+      console.log('✅ Found student in cache:', cached);
+      return cached;
+    }
+
+    console.log('🌐 Fetching student from API...');
+    const url = `${API_ENDPOINTS.STUDENTS}${studentId}/`;
+    console.log('🔗 API URL:', url);
+    
+    const student = await apiGet(url);
+    
+    console.log('📊 Student data from API:', student);
+    
+    // Cache the student profile for 15 minutes
+    CacheManager.set(CacheManager.KEYS.STUDENT_PROFILE(Number(studentId)), student, 15 * 60 * 1000);
+    
+    return student;
+  } catch (error) {
+    console.error('❌ Failed to fetch student by ID:', error);
+    return null;
+  }
+}
+
+
+// Cache invalidation functions
+export function invalidateStudentCache(studentId?: number) {
+  if (studentId) {
+    CacheManager.remove(CacheManager.KEYS.STUDENT_PROFILE(studentId));
+  }
+  CacheManager.remove(CacheManager.KEYS.STUDENTS);
+}
+
+export function invalidateTeacherCache(teacherId?: number) {
+  if (teacherId) {
+    CacheManager.remove(CacheManager.KEYS.TEACHER_PROFILE(teacherId));
+  }
+  CacheManager.remove(CacheManager.KEYS.TEACHERS);
+}
+
+export function invalidateCampusCache() {
+  CacheManager.remove(CacheManager.KEYS.CAMPUSES);
+}
+
+export function clearAllCache() {
+  CacheManager.clear();
+}
 export async function getUsers(role?: string) {
   try {
     const path = role ? `${API_ENDPOINTS.USERS}?role=${encodeURIComponent(role)}` : API_ENDPOINTS.USERS;

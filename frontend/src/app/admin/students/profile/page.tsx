@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { apiGet, getAllStudents } from "@/lib/api"
+import { apiGet, getAllStudents, getStudentById } from "@/lib/api"
 import { ArrowLeft, User, Phone, MapPin, GraduationCap, Users, Calendar, Award, BookOpen, TrendingUp, Star, Crown, Sparkles, Trophy, Medal, Target, Activity, Clock, Mail, Home, School, CheckCircle, AlertCircle, BarChart3, PieChart as PieChartIcon, LineChart as LineChartIcon, RefreshCw, Download, Share } from "lucide-react"
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, LineChart, Line, RadialBarChart, RadialBar, AreaChart, Area } from 'recharts'
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 // Theme colors - IAK SMS Brand Colors
 const themeColors = {
@@ -88,7 +89,7 @@ export default function StudentProfilePage() {
   
   const router = useRouter()
   const params = useSearchParams()
-  const studentId = params?.get("studentId") || ""
+  const studentId = params?.get("id") || ""
   const [student, setStudent] = useState<any>(null)
   const [students, setStudents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -104,26 +105,61 @@ export default function StudentProfilePage() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!studentId) return
+      if (!studentId) {
+        setError('No student ID provided');
+        setLoading(false);
+        return;
+      }
       
-      setLoading(true)
+      setLoading(true);
+      setError(null);
+      
+      // Add timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        setError('Request timeout - please try again');
+        setLoading(false);
+      }, 10000);
+      
       try {
         const [studentData, allStudents] = await Promise.all([
-          apiGet<any>(`/api/students/${studentId}/`),
+          getStudentById(studentId),
           getAllStudents()
         ])
+        
+        clearTimeout(timeoutId); // Clear timeout if request succeeds
+        
+        
+        if (!studentData) {
+          
+          // Fallback: try to find student in allStudents list
+          const fallbackStudent = allStudents?.find((s: any) => s.id === Number(studentId));
+          if (fallbackStudent) {
+            setStudent(fallbackStudent);
+          } else {
+            setError('Student not found');
+            return;
+          }
+        } else {
         setStudent(studentData)
+        }
         setStudents(Array.isArray(allStudents) ? allStudents : [])
         
         // Generate dynamic data based on real student
-        setPerformanceData(generatePerformanceData(studentData))
+        const currentStudent = studentData || allStudents?.find((s: any) => s.id === Number(studentId));
+        if (currentStudent) {
+          setPerformanceData(generatePerformanceData(currentStudent))
+          setOverallScore(calculateOverallScore(currentStudent))
+        }
+        
+        // Generate other data
         setAttendanceData(generateAttendanceData())
         setActivityData(generateActivityData())
         setMockTestData(generateMockTestData())
-        setOverallScore(calculateOverallScore(studentData))
         setSuspensionRate(Math.floor(Math.random() * 5) + 1) // 1-5%
         setParticipationRate(Math.floor(Math.random() * 20) + 80) // 80-100%
+        
       } catch (err: any) {
+        clearTimeout(timeoutId); // Clear timeout on error
         console.error("Error fetching student:", err)
         setError(err.message || "Failed to load student")
       } finally {
@@ -149,62 +185,7 @@ export default function StudentProfilePage() {
 
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-          {/* Spinning Circle Loader */}
-          <div className="relative mb-8 flex items-center justify-center">
-            <div className="w-20 h-20 border-4 border-gray-200 rounded-full animate-spin border-t-4" style={{ borderTopColor: themeColors.primary }}></div>
-            <div className="absolute w-16 h-16 border-4 border-gray-200 rounded-full animate-spin border-t-4" style={{ borderTopColor: themeColors.secondary, animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
-            <div className="absolute w-12 h-12 border-4 border-gray-200 rounded-full animate-spin border-t-4" style={{ borderTopColor: themeColors.success, animationDuration: '2s' }}></div>
-          </div>
-
-          {/* Pulsing Text */}
-          <div className="space-y-4">
-            <h2 className="text-3xl font-bold animate-pulse" style={{ color: themeColors.primary }}>
-              Loading Student Profile
-            </h2>
-            <div className="flex items-center justify-center space-x-1">
-              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '0ms' }}>L</span>
-              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '100ms' }}>o</span>
-              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '200ms' }}>a</span>
-              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '300ms' }}>d</span>
-              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '400ms' }}>i</span>
-              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '500ms' }}>n</span>
-              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '600ms' }}>g</span>
-              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '700ms' }}>.</span>
-              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '800ms' }}>.</span>
-              <span className="text-gray-600 animate-bounce" style={{ animationDelay: '900ms' }}>.</span>
-              </div>
-            </div>
-
-          {/* Progress Dots */}
-          <div className="flex justify-center space-x-2 mt-8">
-            <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: themeColors.primary, animationDelay: '0ms' }}></div>
-            <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: themeColors.secondary, animationDelay: '200ms' }}></div>
-            <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: themeColors.success, animationDelay: '400ms' }}></div>
-            <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: themeColors.warning, animationDelay: '600ms' }}></div>
-            <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: themeColors.purple, animationDelay: '800ms' }}></div>
-          </div>
-
-          {/* Rotating Icons */}
-          <div className="mt-12 flex justify-center space-x-8">
-            <div className="animate-spin" style={{ animationDuration: '3s' }}>
-              <BookOpen className="w-8 h-8" style={{ color: themeColors.primary }} />
-            </div>
-            <div className="animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}>
-              <GraduationCap className="w-8 h-8" style={{ color: themeColors.secondary }} />
-            </div>
-            <div className="animate-spin" style={{ animationDuration: '4s' }}>
-              <Trophy className="w-8 h-8" style={{ color: themeColors.success }} />
-            </div>
-            <div className="animate-spin" style={{ animationDuration: '2.5s', animationDirection: 'reverse' }}>
-              <Star className="w-8 h-8" style={{ color: themeColors.warning }} />
-            </div>
-          </div>
-            </div>
-      </div>
-    )
+    return <LoadingSpinner message="Loading Student Profile..." fullScreen />
   }
 
   if (error || !student) {

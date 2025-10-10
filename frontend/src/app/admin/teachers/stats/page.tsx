@@ -7,6 +7,7 @@ import { useState, useEffect } from "react"
 import { getCurrentUserProfile, getClassroomStudents } from "@/lib/api"
 import { getCurrentUserRole } from "@/lib/permissions"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from "recharts"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 import { BarChart2, UserCheck, Users as UsersIcon, Award, CalendarCheck, BookOpen, UserPlus, FileText, PieChart as PieChartIcon, TrendingUp as TrendingUpIcon, Activity, Clock, Star } from "lucide-react"
 
@@ -162,9 +163,7 @@ export default function TeacherClassDashboard() {
           <h2 className="text-3xl font-extrabold text-[#274c77] mb-2 tracking-wide">Class Dashboard</h2>
           <p className="text-gray-600 text-lg">Loading your class data...</p>
         </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6096ba]"></div>
-        </div>
+        <LoadingSpinner message="Loading class statistics..." />
       </div>
     )
   }

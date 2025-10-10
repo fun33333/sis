@@ -8,3 +8,4 @@ python-dateutil
 django-cors-headers
 redis
 django-redis
+django-filter

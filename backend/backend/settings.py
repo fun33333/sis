@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'teachers',
     'rest_framework',
     'corsheaders',
+    'django_filters',
     # 'subjects',
     'classes.apps.ClassesConfig', 
     'coordinator',
@@ -85,10 +86,10 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',  # ye add karo
-        'NAME': 'sis-db',
-        'USER': 'postgres',
-        'PASSWORD': 'password',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'project_db',
+        'USER': 'project_user',
+        'PASSWORD': 'project_pass',
         'HOST': 'localhost',
         'PORT': '5432',
         'CONN_MAX_AGE': 0,  
@@ -153,7 +154,12 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 1000,
+    'PAGE_SIZE': 50,
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
 }
 
 SIMPLE_JWT = {

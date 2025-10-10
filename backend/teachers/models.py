@@ -81,14 +81,22 @@ class Teacher(models.Model):
     current_role_title = models.CharField(max_length=150, blank=True, null=True)
     current_campus = models.ForeignKey(Campus, on_delete=models.CASCADE, related_name="teachers", blank=True, null=True)
     
-    # Coordinator Assignment - NEW FIELD
+    # Coordinator Assignment - NEW FIELD (ManyToMany for multi-level teachers)
+    assigned_coordinators = models.ManyToManyField(
+        'coordinator.Coordinator',
+        blank=True,
+        related_name='assigned_teachers',
+        help_text="Coordinators assigned to this teacher based on grades/levels taught"
+    )
+    
+    # Keep old field temporarily for migration compatibility
     assigned_coordinator = models.ForeignKey(
         'coordinator.Coordinator',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='assigned_teachers',
-        help_text="Coordinator assigned to this teacher based on grade/level"
+        related_name='legacy_assigned_teachers',
+        help_text="LEGACY: Single coordinator (use assigned_coordinators instead)"
     )
     
     # Shift Information - NEW FIELD
@@ -164,62 +172,98 @@ class Teacher(models.Model):
             self.is_class_teacher = False
             print(f"Removing class teacher status from {self.full_name}")
         
-        # Auto-assign coordinator based on grade/level
-        if not self.assigned_coordinator and self.current_campus and self.current_classes_taught:
-            try:
-                from classes.models import Level, Grade
-                from coordinator.models import Coordinator
-                
-                # Extract grade from current_classes_taught (e.g., "Grade 5A" -> "Grade 5")
-                classes_text = self.current_classes_taught.lower()
-                grade_name = None
-                
-                # Try to extract grade from classes taught
-                import re
-                grade_match = re.search(r'grade\s*[-]?\s*(\d+)', classes_text)
-                if grade_match:
-                    grade_number = grade_match.group(1)
-                    # Map grade to correct database format
-                    grade_name = f"Grade-{grade_number}"
-                else:
-                    # Check for Pre-Primary classes
-                    if any(term in classes_text for term in ['nursery', 'kg-1', 'kg-2', 'kg1', 'kg2', 'kg-ii', 'kg-i']):
-                        if 'nursery' in classes_text:
-                            grade_name = 'Nursary'  # Note: Database has 'Nursary' not 'Nursery'
-                        elif 'kg-1' in classes_text or 'kg1' in classes_text or 'kg-i' in classes_text:
-                            grade_name = 'KG-1'
-                        elif 'kg-2' in classes_text or 'kg2' in classes_text or 'kg-ii' in classes_text:
-                            grade_name = 'KG-2'
-                
-                if grade_name:
-                    # Find the grade
-                    grade = Grade.objects.filter(
-                        name__icontains=grade_name,
-                        level__campus=self.current_campus
-                    ).first()
-                    
-                    if grade and grade.level:
-                        # Find coordinator for this level
-                        coordinator = Coordinator.objects.filter(
-                            level=grade.level,
-                            campus=self.current_campus,
-                            is_currently_active=True
-                        ).first()
-                        
-                        if coordinator:
-                            self.assigned_coordinator = coordinator
-                            print(f"Auto-assigned coordinator {coordinator.full_name} to teacher {self.full_name}")
-                        else:
-                            print(f"No active coordinator found for level {grade.level.name} in campus {self.current_campus.campus_name}")
-                    else:
-                        print(f"Grade {grade_name} or level not found for campus {self.current_campus.campus_name}")
-                else:
-                    print(f"Could not extract grade from classes: {self.current_classes_taught}")
-                    
-            except Exception as e:
-                print(f"Error auto-assigning coordinator: {str(e)}")
-        
+        # Save first to get ID for ManyToMany operations
+        is_new = self.pk is None
         super().save(*args, **kwargs)
+        
+        # Auto-assign coordinators based on assigned_classroom
+        if self.assigned_classroom and self.current_campus:
+            self._assign_coordinators_from_classroom()
+        
+        # Auto-assign coordinators based on current_classes_taught
+        elif self.current_campus and self.current_classes_taught:
+            self._assign_coordinators_from_classes()
+    
+    def _assign_coordinators_from_classroom(self):
+        """Assign coordinator from assigned classroom"""
+        try:
+            from coordinator.models import Coordinator
+            classroom = self.assigned_classroom
+            if classroom.grade and classroom.grade.level:
+                level = classroom.grade.level
+                coordinator = Coordinator.objects.filter(
+                    level=level,
+                    campus=self.current_campus,
+                    is_currently_active=True
+                ).first()
+                
+                if coordinator:
+                    # Add coordinator (not replace)
+                    if coordinator not in self.assigned_coordinators.all():
+                        self.assigned_coordinators.add(coordinator)
+                        print(f"✅ Added coordinator {coordinator.full_name} for level {level.name}")
+                else:
+                    print(f"❌ No coordinator for level {level.name}")
+        except Exception as e:
+            print(f"Error: {str(e)}")
+
+    def _assign_coordinators_from_classes(self):
+        """Extract all grades and assign all relevant coordinators"""
+        try:
+            from classes.models import Grade
+            from coordinator.models import Coordinator
+            import re
+            
+            classes_text = self.current_classes_taught.lower()
+            
+            # Extract ALL grade numbers from text
+            grade_numbers = re.findall(r'grade\s*[-]?\s*(\d+)', classes_text)
+            
+            # Check for pre-primary classes
+            has_nursery = 'nursery' in classes_text
+            has_kg1 = any(term in classes_text for term in ['kg-1', 'kg1', 'kg-i'])
+            has_kg2 = any(term in classes_text for term in ['kg-2', 'kg2', 'kg-ii'])
+            
+            # Build list of grade names
+            grade_names = []
+            if has_nursery:
+                grade_names.append('Nursery')
+            if has_kg1:
+                grade_names.append('KG-I')
+            if has_kg2:
+                grade_names.append('KG-II')
+            for num in grade_numbers:
+                grade_names.append(f"Grade {num}")
+            
+            # Find all unique levels
+            levels = set()
+            for grade_name in grade_names:
+                grade = Grade.objects.filter(
+                    name__icontains=grade_name,
+                    level__campus=self.current_campus
+                ).first()
+                if grade and grade.level:
+                    levels.add(grade.level)
+            
+            # Clear existing coordinators and add new ones
+            self.assigned_coordinators.clear()
+            
+            # Get coordinators for all levels
+            for level in levels:
+                coordinator = Coordinator.objects.filter(
+                    level=level,
+                    campus=self.current_campus,
+                    is_currently_active=True
+                ).first()
+                
+                if coordinator:
+                    self.assigned_coordinators.add(coordinator)
+                    print(f"✅ Added coordinator {coordinator.full_name} for level {level.name}")
+            
+            print(f"✅ Assigned {self.assigned_coordinators.count()} coordinators to {self.full_name}")
+            
+        except Exception as e:
+            print(f"Error: {str(e)}")
 
     def __str__(self):
         return f"{self.full_name} ({self.employee_code or 'No Code'})"

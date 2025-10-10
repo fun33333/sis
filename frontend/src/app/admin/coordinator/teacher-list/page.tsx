@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Users, Search, Eye, Edit } from "lucide-react"
-import { getCoordinatorTeachers, findCoordinatorByEmail } from "@/lib/api"
+import { getAllTeachers } from "@/lib/api"
 import { useRouter } from "next/navigation"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 function CoordinatorTeacherListContent() {
   const router = useRouter()
@@ -38,22 +39,15 @@ function CoordinatorTeacherListContent() {
           return;
         }
         
-         // Get coordinator ID from localStorage
+         // Get user from localStorage
          const user = localStorage.getItem("sis_user");
          if (user) {
            const userData = JSON.parse(user);
            
-           // Find coordinator by email
-           const coordinator = await findCoordinatorByEmail(userData.email);
-           if (!coordinator) {
-             setError("Coordinator not found for this user");
-             return;
-           }
-          
-          // Fetch teachers for this coordinator
-          const data = await getCoordinatorTeachers(coordinator.id) as any;
-          const teachersData = data.teachers || [];
-          
+           // Backend automatically filters teachers based on logged-in coordinator
+           // No need to find coordinator separately
+           const teachersData = await getAllTeachers();
+           
            // Map teacher data to the expected format
            const mappedTeachers = teachersData.map((teacher: any) => ({
              id: teacher.id,
@@ -127,10 +121,7 @@ function CoordinatorTeacherListContent() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading teachers...</p>
-            </div>
+            <LoadingSpinner message="Loading teachers..." />
           ) : error ? (
             <div className="text-center py-8">
               <div className="text-red-600 mb-2">Error: {error}</div>
@@ -166,7 +157,7 @@ function CoordinatorTeacherListContent() {
                           size="sm" 
                           variant="outline" 
                           style={{ borderColor: '#6096ba', color: '#274c77' }}
-                          onClick={() => router.push(`/admin/teachers/profile?teacherId=${teacher.id}`)}
+                          onClick={() => router.push(`/admin/teachers/profile?id=${teacher.id}`)}
                           title="View Teacher Profile"
                         >
                           <Eye className="h-4 w-4" />
@@ -211,12 +202,7 @@ export default function CoordinatorTeacherListPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-500">Loading...</p>
-              </div>
-            </div>
+            <LoadingSpinner message="Loading..." />
           </CardContent>
         </Card>
       </div>

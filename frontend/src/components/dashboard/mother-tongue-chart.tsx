@@ -54,8 +54,8 @@ export function MotherTongueChart({ data }: MotherTongueChartProps) {
         <CardDescription>Students by mother tongue (exact DB labels)</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig}>
-          <ResponsiveContainer width="100%" height={320}>
+        <ChartContainer config={chartConfig} className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart
               accessibilityLayer
               data={chartData}
@@ -67,13 +67,15 @@ export function MotherTongueChart({ data }: MotherTongueChartProps) {
                 tickMargin={10}
                 axisLine={false}
                 interval={0}
-                tick={{ fontSize: 12, angle: -20 }}
+                tick={{ fontSize: 12 }}
+                angle={-20}
               />
               <YAxis
                 dataKey="students"
                 allowDecimals={false}
                 tickLine={false}
                 axisLine={false}
+                domain={[0, 5000]}
               />
               <ChartTooltip cursor={false} content={<MotherTongueTooltip />} />
               <Bar dataKey="students" radius={5}>

@@ -1,6 +1,9 @@
 from rest_framework import viewsets, decorators, response, permissions
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import Coordinator
 from .serializers import CoordinatorSerializer
+from .filters import CoordinatorFilter
 from teachers.models import Teacher
 from students.models import Student
 from classes.models import ClassRoom
@@ -11,6 +14,25 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
     queryset = Coordinator.objects.all()
     serializer_class = CoordinatorSerializer
     permission_classes = [permissions.IsAuthenticated]
+    
+    # Filtering, search, and ordering
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class = CoordinatorFilter
+    search_fields = ['full_name', 'employee_code', 'email']
+    ordering_fields = ['full_name', 'joining_date', 'employee_code']
+    ordering = ['-joining_date']  # Default ordering
+    
+    def get_queryset(self):
+        """Override to handle role-based filtering and optimize queries"""
+        queryset = Coordinator.objects.select_related('campus').all()
+        
+        # Role-based filtering
+        user = self.request.user
+        if hasattr(user, 'campus') and user.campus and user.is_principal():
+            # Principal: Only show coordinators from their campus
+            queryset = queryset.filter(campus=user.campus)
+        
+        return queryset
 
     @decorators.action(detail=True, methods=["get"])
     def teachers(self, request, pk=None):

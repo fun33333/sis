@@ -36,12 +36,22 @@ class UserLoginView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        email = serializer.validated_data['email']
+        email_or_code = serializer.validated_data['email']
         password = serializer.validated_data['password']
         
-        # Now username field is the primary authentication field
-        # Input can be either email or employee code (username)
-        user = authenticate(request, username=email, password=password)
+        # Try to authenticate with email first, then with username (employee code)
+        user = None
+        
+        # First try with email as username
+        user = authenticate(request, username=email_or_code, password=password)
+        
+        # If that fails, try to find user by email and authenticate with their username
+        if not user:
+            try:
+                user_obj = User.objects.get(email=email_or_code)
+                user = authenticate(request, username=user_obj.username, password=password)
+            except User.DoesNotExist:
+                pass
         
         if user and user.is_active:
             # Generate JWT tokens
@@ -169,6 +179,23 @@ def current_user_profile(request):
                 'is_class_teacher': teacher.is_class_teacher,
             })
         except Teacher.DoesNotExist:
+            pass
+    elif user.role == 'principal':
+        try:
+            from principals.models import Principal
+            principal = Principal.objects.get(email=user.email)
+            user_data.update({
+                'principal_id': principal.id,
+                'full_name': principal.full_name,
+                'campus': {
+                    'id': principal.campus.id,
+                    'campus_name': principal.campus.campus_name,
+                    'campus_code': principal.campus.campus_code,
+                } if principal.campus else None,
+                'shift': principal.shift,
+                'is_active': principal.is_currently_active,
+            })
+        except Principal.DoesNotExist:
             pass
     elif user.role == 'coordinator':
         try:

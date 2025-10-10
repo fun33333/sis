@@ -1,615 +1,505 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect, useMemo } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Search, Users, Mail, Phone, MapPin, GraduationCap, Calendar, BookOpen, Eye, Edit } from "lucide-react"
-import { getAllTeachers, getAllCampuses, findCoordinatorByEmail, getCoordinatorTeachers } from "@/lib/api"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination"
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { getCurrentUserRole } from "@/lib/permissions"
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions";
+import { getFilteredTeachers, getAllCampuses } from "@/lib/api";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-function TeacherListContent() {
-  const router = useRouter()
-  const [search, setSearch] = useState("")
-  const [teachers, setTeachers] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [gradeFilter, setGradeFilter] = useState<string>("all")
-  const [levelFilter, setLevelFilter] = useState<string>("all")
-  const pageSize = 30
-  
-  // Role-based access control
-  const [userRole, setUserRole] = useState<string>("")
-  const canEdit = userRole !== "superadmin"
+interface Teacher {
+  id: number;
+  full_name: string;
+  employee_code: string;
+  email: string;
+  contact_number: string;
+  current_subjects: string;
+  current_classes_taught: string;
+  shift: string;
+  is_currently_active: boolean;
+  is_class_teacher: boolean;
+  campus_name: string;
+  coordinator_names: string[];
+  classroom_name: string;
+  joining_date: string;
+  total_experience_years: number;
+}
 
-<<<<<<< HEAD
-  useEffect(() => {
-    setIsClient(true)
-    // Get user role
-    const role = getCurrentUserRole()
-    setUserRole(role)
-    
-    // Get user campus for principal filtering
-    const user = getCurrentUser() as any
-    if (user?.campus?.campus_name) {
-      setUserCampus(user.campus.campus_name)
-=======
-  // Move getLevelFromGrade function BEFORE filteredTeachers
-  const getLevelFromGrade = (grade: string) => {
-    const gradeLower = grade.toLowerCase()
-
-    // Pre-Primary levels
-    if (gradeLower.includes('kg') || gradeLower.includes('nursery') || gradeLower.includes('prep') || gradeLower.includes('playgroup')) {
-      return 'pre-primary'
->>>>>>> ef2ff2eeb8466ac7af124936336a3080ea2dfed3
-    }
-
-    // Primary levels (Grade 1-5)
-    if (gradeLower.includes('grade 1') || gradeLower.includes('grade 2') || gradeLower.includes('grade 3') ||
-      gradeLower.includes('grade 4') || gradeLower.includes('grade 5') || gradeLower.includes('class 1') ||
-      gradeLower.includes('class 2') || gradeLower.includes('class 3') || gradeLower.includes('class 4') ||
-      gradeLower.includes('class 5') || gradeLower.includes('1st') || gradeLower.includes('2nd') ||
-      gradeLower.includes('3rd') || gradeLower.includes('4th') || gradeLower.includes('5th')) {
-      return 'primary'
-    }
-
-    // Secondary levels (Grade 6-12)
-    if (gradeLower.includes('grade 6') || gradeLower.includes('grade 7') || gradeLower.includes('grade 8') ||
-      gradeLower.includes('grade 9') || gradeLower.includes('grade 10') || gradeLower.includes('grade 11') ||
-      gradeLower.includes('grade 12') || gradeLower.includes('class 6') || gradeLower.includes('class 7') ||
-      gradeLower.includes('class 8') || gradeLower.includes('class 9') || gradeLower.includes('class 10') ||
-      gradeLower.includes('class 11') || gradeLower.includes('class 12') || gradeLower.includes('6th') ||
-      gradeLower.includes('7th') || gradeLower.includes('8th') || gradeLower.includes('9th') ||
-      gradeLower.includes('10th') || gradeLower.includes('11th') || gradeLower.includes('12th')) {
-      return 'secondary'
-    }
-
-    return 'primary' // Default to primary if no match
-  }
-
-  // Get grades based on selected level
-  const getFilteredGrades = () => {
-    const allGrades = [
-      'Nursery', 'KG-1', 'KG-2',
-      'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5',
-      'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'
-    ]
-
-    if (levelFilter === "all") {
-      return allGrades
-    } else if (levelFilter === "pre-primary") {
-      return ['Nursery', 'KG-1', 'KG-2']
-    } else if (levelFilter === "primary") {
-      return ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5']
-    } else if (levelFilter === "secondary") {
-      return ['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10']
-    }
-    
-    return allGrades
-  }
-
-  // Reset grade filter when level changes
-  useEffect(() => {
-    if (levelFilter !== "all") {
-      setGradeFilter("all")
-    }
-  }, [levelFilter])
-
-  useEffect(() => {
-    // Get user role
-    setUserRole(getCurrentUserRole())
-    
-    async function fetchTeachers() {
-      setLoading(true)
-      setError(null)
-      try {
-        let teachersData: any[] = []
-        
-        // Check if user is coordinator
-        if (userRole === 'coordinator') {
-          // Check if we're on client side
-          if (typeof window === 'undefined') {
-            setError("Please wait, loading...");
-            return;
-          }
-          
-          // Get coordinator ID from localStorage
-          const user = localStorage.getItem("sis_user");
-          if (user) {
-            const userData = JSON.parse(user);
-            const coordinatorId = await findCoordinatorByEmail(userData.email);
-            if (coordinatorId) {
-              const data = await getCoordinatorTeachers(coordinatorId) as any;
-              teachersData = data.teachers || [];
-            } else {
-              setError("Coordinator not found for this user");
-              return;
-            }
-          } else {
-            setError("User not logged in");
-            return;
-          }
-        } else if (role === 'principal') {
-          // Principal: Only teachers from their campus
-          const allTeachers = await getAllTeachers();
-          if (userCampus) {
-            teachersData = allTeachers.filter((teacher: any) => 
-              teacher.current_campus?.campus_name === userCampus || teacher.campus === userCampus
-            );
-          } else {
-            teachersData = allTeachers;
-          }
-        } else {
-          // For other roles, get all teachers
-          teachersData = await getAllTeachers();
-        }
-        
-        const campusesData = await getAllCampuses().catch(err => {
-            console.error('Campus API Error:', err)
-            return []
-          })
-        
-        
-        // Also fix campus mapping to use campus_name instead of name
-        const campusMap = new Map()
-        
-        // Handle different response structures
-        let actualCampusData = campusesData
-        if (campusesData && typeof campusesData === 'object' && 'results' in campusesData && Array.isArray((campusesData as any).results)) {
-          actualCampusData = (campusesData as any).results
-        } else if (Array.isArray(campusesData)) {
-          actualCampusData = campusesData
-        }
-        
-        if (Array.isArray(actualCampusData)) {
-          actualCampusData.forEach((campus: any) => {
-            campusMap.set(campus.id, campus.campus_name || campus.name)  // ✅ Use campus_name
-          })
-        }
-
-          // Map teacher data to the expected format
-          const mappedTeachers = Array.isArray(teachersData) ? teachersData.map((teacher: any) => {
-            const campusName = teacher.current_campus ? 
-              (typeof teacher.current_campus === 'object' ? 
-                teacher.current_campus.campus_name || teacher.current_campus.name : 
-                campusMap.get(teacher.current_campus)
-              ) : 'Unknown Campus'
-            
-            return {
-            id: teacher.id,
-            name: teacher.full_name || 'Unknown',
-            subject: teacher.current_subjects || 'Not Assigned',
-            campus: campusName,
-            assigned_coordinator: teacher.assigned_coordinator || null,
-            email: teacher.email || 'Not provided',
-            phone: teacher.contact_number || 'Not provided',
-            experience: teacher.total_experience_years || 'Not provided',
-            is_active: teacher.is_currently_active,
-            classes: teacher.current_classes_taught || 'Not Assigned',
-            joining_date: teacher.role_start_date || 'Not provided',
-            qualification: teacher.education_level || 'Not provided',
-            gender: teacher.gender || 'Not specified',
-            dob: teacher.dob || null,
-            address: teacher.permanent_address || 'Not provided'
-            }
-          }) : []
-
-        setTeachers(mappedTeachers)
-      } catch (err: any) {
-        console.error("Error fetching teachers:", err)
-        setError(err.message || "Failed to load teachers")
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchTeachers()
-  }, [userRole])
-
-  const filteredTeachers = teachers.filter(teacher => {
-    const searchTerm = search.toLowerCase()
-    const matchesSearch = (
-      teacher.name.toLowerCase().includes(searchTerm) ||
-      teacher.subject.toLowerCase().includes(searchTerm) ||
-      teacher.campus.toLowerCase().includes(searchTerm) ||
-      teacher.email.toLowerCase().includes(searchTerm) ||
-      teacher.qualification.toLowerCase().includes(searchTerm) ||
-      teacher.classes.toLowerCase().includes(searchTerm)
-    )
-
-    const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "active" && teacher.is_active) ||
-      (statusFilter === "inactive" && !teacher.is_active)
-
-    const matchesGrade = gradeFilter === "all" || 
-      (teacher.classes && teacher.classes !== 'Not Assigned' && 
-       teacher.classes.toLowerCase().includes(gradeFilter.toLowerCase())) ||
-      (teacher.subject && teacher.subject !== 'Not Assigned' && 
-       teacher.subject.toLowerCase().includes(gradeFilter.toLowerCase()))
-
-    const matchesLevel = levelFilter === "all" || 
-      (teacher.classes && getLevelFromGrade(teacher.classes) === levelFilter)
-
-    // Debug logging for grade filter
-    if (gradeFilter !== "all") {
-      console.log(`Teacher: ${teacher.name}, Classes: ${teacher.classes}, Subject: ${teacher.subject}, Grade Filter: ${gradeFilter}, Matches: ${matchesGrade}`)
-    }
-
-    return matchesSearch && matchesStatus && matchesGrade && matchesLevel
-  })
-
-  // Reset to first page when search or filters change
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [search, statusFilter, gradeFilter, levelFilter])
-
-  const totalRecords = filteredTeachers.length
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(totalRecords / pageSize)), [totalRecords])
-  const startIndex = (currentPage - 1) * pageSize
-  const endIndex = Math.min(totalRecords, startIndex + pageSize)
-
-  // Clamp current page if total pages shrink (e.g., after search)
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages)
-    }
-  }, [totalPages, currentPage])
-
-  const currentPageTeachers = useMemo(() => {
-    return filteredTeachers.slice(startIndex, startIndex + pageSize)
-  }, [filteredTeachers, startIndex, pageSize])
-
-  const pageNumbers = useMemo<(number | "ellipsis")[]>(() => {
-    const pages: (number | "ellipsis")[] = []
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i)
-      return pages
-    }
-    pages.push(1)
-    if (currentPage > 3) pages.push("ellipsis")
-    const windowStart = Math.max(2, currentPage - 1)
-    const windowEnd = Math.min(totalPages - 1, currentPage + 1)
-    for (let i = windowStart; i <= windowEnd; i++) pages.push(i)
-    if (currentPage < totalPages - 2) pages.push("ellipsis")
-    pages.push(totalPages)
-    return pages
-  }, [currentPage, totalPages])
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr || dateStr === 'Not provided') return 'Not provided'
-    try {
-      return new Date(dateStr).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
-    } catch {
-      return dateStr
-    }
-  }
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-  }
-
-  const getUniqueLevels = () => {
-    return [
-      { value: "all", label: "All Levels" },
-      { value: "pre-primary", label: "Pre-Primary" },
-      { value: "primary", label: "Primary" },
-      { value: "secondary", label: "Secondary" }
-    ]
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#274c77' }}>Teacher List</h1>
-          <p className="text-gray-600">Browse and manage all teachers in the system</p>
-           {!loading && !error && (
-             <div className="text-sm text-gray-500 mt-1">
-               <p>Total Teachers: {teachers.length} | Showing: {filteredTeachers.length}</p>
-             </div>
-           )}
-        </div>
-        <Badge style={{ backgroundColor: '#6096ba', color: 'white' }} className="px-4 py-2">
-          {filteredTeachers.length} of {teachers.length} Teachers
-        </Badge>
-      </div>
-
-       {/* Search and Filters */}
-       <Card style={{ backgroundColor: 'white', borderColor: '#a3cef1' }}>
-         <CardContent className="p-6">
-           <div className="space-y-4">
-             {/* Search Bar */}
-             <div className="relative">
-               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-               <Input
-                 placeholder="Search teachers by name, subject, campus, or email..."
-                 value={search}
-                 onChange={(e) => setSearch(e.target.value)}
-                 className="pl-10"
-               />
-             </div>
-             
-             {/* Filters */}
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                 <select
-                   value={statusFilter}
-                   onChange={(e) => setStatusFilter(e.target.value)}
-                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 >
-                   <option value="all">All Status</option>
-                   <option value="active">Active</option>
-                   <option value="inactive">Inactive</option>
-                 </select>
-               </div>
-               
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
-                 <select
-                   value={levelFilter}
-                   onChange={(e) => setLevelFilter(e.target.value)}
-                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 >
-                   {getUniqueLevels().map(level => (
-                     <option key={level.value} value={level.value}>{level.label}</option>
-                   ))}
-                 </select>
-               </div>
-               
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-2">Grade</label>
-                 <select
-                   value={gradeFilter}
-                   onChange={(e) => setGradeFilter(e.target.value)}
-                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 >
-                   <option value="all">All Grades</option>
-                   {getFilteredGrades().map(grade => (
-                     <option key={grade} value={grade}>{grade}</option>
-                   ))}
-                 </select>
-               </div>
-             </div>
-           </div>
-         </CardContent>
-       </Card>
-
-      {/* Teachers List */}
-      <Card style={{ backgroundColor: 'white', borderColor: '#a3cef1' }}>
-        <CardHeader>
-          <CardTitle style={{ color: '#274c77' }} className="flex items-center">
-            <Users className="h-5 w-5 mr-2" />
-            Teachers Overview
-          </CardTitle>
-          <CardDescription>Click on any teacher to view their detailed profile</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading teachers...</p>
-            </div>
-          ) : error ? (
-            <div className="text-center py-8">
-              <div className="text-red-600 mb-2">Error: {error}</div>
-              <Button onClick={() => window.location.reload()} variant="outline">
-                Try Again
-              </Button>
-            </div>
-          ) : (
-             <div className="overflow-x-auto">
-               <Table className="w-full min-w-[920px]">
-                 <TableHeader>
-                   <TableRow className="bg-[#274c77] text-white hover:bg-[#274c77]">
-                     <TableHead className="text-white min-w-[200px]">Teacher</TableHead>
-                     <TableHead className="text-white min-w-[150px]">Subject & Classes</TableHead>
-                     <TableHead className="text-white min-w-[120px]">Campus</TableHead>
-                     <TableHead className="text-white min-w-[120px]">Coordinator</TableHead>
-                     <TableHead className="text-white min-w-[180px]">Contact</TableHead>
-                     <TableHead className="text-white min-w-[100px]">Experience</TableHead>
-                     <TableHead className="text-white min-w-[80px]">Status</TableHead>
-                     <TableHead className="text-white min-w-[100px]">Actions</TableHead>
-                   </TableRow>
-                 </TableHeader>
-                <TableBody>
-                  {currentPageTeachers.map((teacher, index) => {
-                    const isActive = !!teacher.is_active
-                    return (
-                       <TableRow
-                         key={teacher.id}
-                         className={`hover:bg-[#a3cef1] transition ${index % 2 === 0 ? 'bg-[#e7ecef]' : 'bg-white'}`}
-                       >
-                         <TableCell className="font-medium">
-                           <div className="flex items-center gap-3">
-                             <div className="h-10 w-10 bg-blue-100 text-blue-600 font-semibold rounded-full flex items-center justify-center text-sm">
-                               {getInitials(teacher.name)}
-                             </div>
-                             <div>
-                               <div className="font-semibold text-gray-900">{teacher.name}</div>
-                               <div className="text-sm text-gray-500">{teacher.qualification}</div>
-                             </div>
-                           </div>
-                         </TableCell>
-                         <TableCell>
-                           <div className="space-y-1">
-                             <div className="flex items-center gap-2 text-sm">
-                               <BookOpen className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                               <span className="truncate max-w-[120px]">{teacher.subject}</span>
-                             </div>
-                             <div className="flex items-center gap-2 text-sm text-gray-600">
-                               <GraduationCap className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                               <span className="truncate max-w-[120px]">{teacher.classes}</span>
-                             </div>
-                           </div>
-                         </TableCell>
-                         <TableCell>
-                           <div className="flex items-center gap-2 text-sm">
-                             <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                             <span className="truncate max-w-[100px]">{teacher.campus}</span>
-                           </div>
-                         </TableCell>
-                         <TableCell>
-                           <div className="text-sm">
-                             {teacher.assigned_coordinator ? (
-                               <div className="flex items-center gap-2">
-                                 <div className="h-6 w-6 bg-blue-100 text-blue-600 font-semibold rounded-full flex items-center justify-center text-xs">
-                                   {teacher.assigned_coordinator.full_name?.charAt(0) || 'C'}
-                                 </div>
-                                 <span className="truncate max-w-[100px] font-medium">
-                                   {teacher.assigned_coordinator.full_name}
-                                 </span>
-                               </div>
-                             ) : (
-                               <span className="text-gray-400 text-xs">Not Assigned</span>
-                             )}
-                           </div>
-                         </TableCell>
-                         <TableCell>
-                           <div className="space-y-1">
-                             <div className="flex items-center gap-2 text-sm">
-                               <Mail className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                               <span className="truncate max-w-[150px]">{teacher.email}</span>
-                             </div>
-                             <div className="flex items-center gap-2 text-sm text-gray-600">
-                               <Phone className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                               <span className="truncate max-w-[150px]">{teacher.phone}</span>
-                             </div>
-                           </div>
-                         </TableCell>
-                         <TableCell>
-                           <div className="text-sm">
-                             <div className="font-medium">{teacher.experience} years</div>
-                             <div className="text-gray-500 text-xs">
-                               Joined: {formatDate(teacher.joining_date)}
-                             </div>
-                           </div>
-                         </TableCell>
-                         <TableCell>
-                           {isActive ? (
-                             <span className="px-3 py-1 text-xs font-semibold text-white bg-green-600 rounded-full">Active</span>
-                           ) : (
-                             <span className="px-3 py-1 text-xs font-semibold text-white bg-gray-500 rounded-full">Inactive</span>
-                           )}
-                         </TableCell>
-                         <TableCell>
-                           <div className="flex gap-2">
-                             <Button
-                               size="sm"
-                               variant="outline"
-                               onClick={() => router.push(`/admin/teachers/profile?teacherId=${teacher.id}`)}
-                               className="h-8 w-8 p-0"
-                             >
-                               <Eye className="w-4 h-4" />
-                             </Button>
-                             {canEdit && (
-                               <Button
-                                 size="sm"
-                                 variant="outline"
-                                 className="h-8 w-8 p-0"
-                               >
-                                 <Edit className="w-4 h-4" />
-                               </Button>
-                             )}
-                           </div>
-                         </TableCell>
-                       </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-              {filteredTeachers.length === 0 && !loading && (
-                <div className="text-center py-8 text-gray-500">
-                  No teachers found matching your search criteria.
-                </div>
-              )}
-              <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="text-sm text-[#274c77]">
-                  {totalRecords > 0
-                    ? `Showing ${startIndex + 1}-${endIndex} of ${totalRecords}`
-                    : 'No records found'}
-                </div>
-                <Pagination className="w-full sm:w-auto">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(e) => { e.preventDefault(); setCurrentPage((p) => Math.max(1, p - 1)) }}
-                      />
-                    </PaginationItem>
-                    {pageNumbers.map((p, i) => (
-                      p === "ellipsis" ? (
-                        <PaginationItem key={`e-${i}`}>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      ) : (
-                        <PaginationItem key={p}>
-                          <PaginationLink
-                            href="#"
-                            isActive={p === currentPage}
-                            onClick={(e) => { e.preventDefault(); setCurrentPage(p) }}
-                          >
-                            {p}
-                          </PaginationLink>
-                        </PaginationItem>
-                      )
-                    ))}
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(e) => { e.preventDefault(); setCurrentPage((p) => Math.min(totalPages, p + 1)) }}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  )
+interface PaginationInfo {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Teacher[];
 }
 
 export default function TeacherListPage() {
-  const [isClient, setIsClient] = useState(false)
+  const router = useRouter();
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageSize, setPageSize] = useState(50);
+  
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState({
+    current_campus: "",
+    shift: "",
+    is_currently_active: "",
+    is_class_teacher: "",
+    current_subjects: "",
+    ordering: "-joining_date"
+  });
+  
+  // User role and campus info
+  const [userRole, setUserRole] = useState<string>("");
+  const [userCampus, setUserCampus] = useState<string>("");
+  const [campuses, setCampuses] = useState<any[]>([]);
+  
+  // Debounced search
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    setIsClient(true)
-    document.title = "Teacher List | IAK SMS";
-  }, [])
+    initializeUserData();
+  }, []);
 
-  if (!isClient) {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Teacher List
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-500">Loading...</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
+  useEffect(() => {
+    fetchTeachers();
+  }, [currentPage, pageSize, filters, searchQuery]);
+
+  const initializeUserData = async () => {
+    const role = getCurrentUserRole();
+    setUserRole(role);
+    
+    // Get user campus info
+          const user = getCurrentUser() as any;
+          if (user?.campus?.campus_name) {
+            setUserCampus(user.campus.campus_name);
+    }
+    
+    // Fetch campuses for filter dropdown
+    try {
+      const campusesData = await getAllCampuses();
+      setCampuses(Array.isArray(campusesData) ? campusesData : []);
+    } catch (error) {
+      console.error('Error fetching campuses:', error);
+    }
+  };
+
+  const fetchTeachers = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const params = {
+        page: currentPage,
+        page_size: pageSize,
+        search: searchQuery || undefined,
+        current_campus: filters.current_campus ? parseInt(filters.current_campus) : undefined,
+        shift: filters.shift || undefined,
+        is_currently_active: filters.is_currently_active ? filters.is_currently_active === 'true' : undefined,
+        is_class_teacher: filters.is_class_teacher ? filters.is_class_teacher === 'true' : undefined,
+        current_subjects: filters.current_subjects || undefined,
+        ordering: filters.ordering
+      };
+
+      const response: PaginationInfo = await getFilteredTeachers(params);
+      
+      setTeachers(response.results || []);
+      setTotalCount(response.count || 0);
+      setTotalPages(Math.ceil((response.count || 0) / pageSize));
+      
+      } catch (err: any) {
+      console.error("Error fetching teachers:", err);
+      setError(err.message || "Failed to load teachers");
+      } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1); // Reset to first page when searching
+    
+    // Clear existing timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    // Set new timeout for debounced search
+    const timeout = setTimeout(() => {
+      fetchTeachers();
+    }, 500);
+    
+    setSearchTimeout(timeout);
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(1); // Reset to first page when filtering
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      current_campus: "",
+      shift: "",
+      is_currently_active: "",
+      is_class_teacher: "",
+      current_subjects: "",
+      ordering: "-joining_date"
+    });
+    setSearchQuery("");
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+  };
+
+  if (loading && teachers.length === 0) {
+    return <LoadingSpinner message="Loading teachers..." fullScreen />;
   }
 
-  return <TeacherListContent />
+  return (
+    <div className="p-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Teachers List</h1>
+        <p className="text-gray-600">
+          Showing {teachers.length} of {totalCount} teachers
+        </p>
+      </div>
+
+       {/* Search and Filters */}
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          {/* Search */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Search
+            </label>
+            <input
+              type="text"
+              placeholder="Search by name, code, email..."
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+               />
+             </div>
+             
+          {/* Campus Filter */}
+               <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Campus
+            </label>
+                 <select
+              value={filters.current_campus}
+              onChange={(e) => handleFilterChange('current_campus', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Campuses</option>
+              {campuses.map((campus) => (
+                <option key={campus.id} value={campus.id}>
+                  {campus.campus_name || campus.name}
+                </option>
+              ))}
+                 </select>
+               </div>
+               
+          {/* Shift Filter */}
+               <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Shift
+            </label>
+                 <select
+              value={filters.shift}
+              onChange={(e) => handleFilterChange('shift', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Shifts</option>
+              <option value="morning">Morning</option>
+              <option value="afternoon">Afternoon</option>
+              <option value="evening">Evening</option>
+                 </select>
+               </div>
+               
+          {/* Status Filter */}
+               <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+                 <select
+              value={filters.is_currently_active}
+              onChange={(e) => handleFilterChange('is_currently_active', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Status</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+                 </select>
+               </div>
+             </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          {/* Class Teacher Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Role
+            </label>
+            <select
+              value={filters.is_class_teacher}
+              onChange={(e) => handleFilterChange('is_class_teacher', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Roles</option>
+              <option value="true">Class Teacher</option>
+              <option value="false">Subject Teacher</option>
+            </select>
+           </div>
+
+          {/* Subjects Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Subjects
+            </label>
+            <input
+              type="text"
+              placeholder="Filter by subjects..."
+              value={filters.current_subjects}
+              onChange={(e) => handleFilterChange('current_subjects', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            </div>
+
+          {/* Ordering */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Sort By
+            </label>
+            <select
+              value={filters.ordering}
+              onChange={(e) => handleFilterChange('ordering', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="-joining_date">Joining Date (Newest)</option>
+              <option value="joining_date">Joining Date (Oldest)</option>
+              <option value="full_name">Name (A-Z)</option>
+              <option value="-full_name">Name (Z-A)</option>
+              <option value="-total_experience_years">Experience (High to Low)</option>
+              <option value="total_experience_years">Experience (Low to High)</option>
+            </select>
+                             </div>
+                           </div>
+
+        <div className="flex justify-between items-center">
+          <button
+            onClick={clearFilters}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Clear Filters
+          </button>
+
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-gray-700">Per page:</label>
+            <select
+              value={pageSize}
+              onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+              className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+                             </div>
+                             </div>
+                           </div>
+
+      {/* Teachers Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Teacher
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Employee Code
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Subjects/Classes
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Campus
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {teachers.map((teacher) => (
+                <tr key={teacher.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {teacher.full_name}
+                           </div>
+                      <div className="text-sm text-gray-500">
+                        {teacher.email}
+                                 </div>
+                               </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {teacher.employee_code || 'N/A'}
+                           </div>
+                    <div className="text-sm text-gray-500">
+                      {teacher.shift}
+                             </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">
+                      <div className="font-medium">Subjects:</div>
+                      <div className="text-gray-600">{teacher.current_subjects || 'N/A'}</div>
+                             </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      <div className="font-medium">Classes:</div>
+                      <div>{teacher.current_classes_taught || 'N/A'}</div>
+                           </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {teacher.campus_name || 'N/A'}
+                             </div>
+                    {teacher.coordinator_names && teacher.coordinator_names.length > 0 && (
+                      <div className="text-sm text-gray-500">
+                        Coord: {teacher.coordinator_names.join(', ')}
+                           </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="space-y-1">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        teacher.is_currently_active 
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {teacher.is_currently_active ? 'Active' : 'Inactive'}
+                      </span>
+                      {teacher.is_class_teacher && (
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                          Class Teacher
+                        </span>
+                             )}
+                           </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button
+                      onClick={() => router.push(`/admin/teachers/profile?id=${teacher.id}`)}
+                      className="text-blue-600 hover:text-blue-900"
+                    >
+                      View Profile
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+                </div>
+
+        {/* Pagination */}
+        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+              </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing{' '}
+                <span className="font-medium">
+                  {Math.min((currentPage - 1) * pageSize + 1, totalCount)}
+                </span>{' '}
+                to{' '}
+                <span className="font-medium">
+                  {Math.min(currentPage * pageSize, totalCount)}
+                </span>{' '}
+                of{' '}
+                <span className="font-medium">{totalCount}</span>{' '}
+                results
+              </p>
+            </div>
+            <div>
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                
+                {/* Page numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNum = Math.max(1, currentPage - 2) + i;
+                  if (pageNum > totalPages) return null;
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                        pageNum === currentPage
+                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="text-sm text-red-600">{error}</div>
+        </div>
+      )}
+    </div>
+  );
 }

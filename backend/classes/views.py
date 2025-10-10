@@ -1,6 +1,8 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 from .models import Level, Grade, ClassRoom
 from .serializers import LevelSerializer, GradeSerializer, ClassRoomSerializer
@@ -8,6 +10,12 @@ from .serializers import LevelSerializer, GradeSerializer, ClassRoomSerializer
 class LevelViewSet(viewsets.ModelViewSet):
     queryset = Level.objects.all()
     serializer_class = LevelSerializer
+    
+    # Filtering, search, and ordering
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ['name', 'description']
+    ordering_fields = ['name', 'created_at']
+    ordering = ['name']  # Default ordering
     
     def get_queryset(self):
         queryset = Level.objects.select_related('campus', 'coordinator')
@@ -19,6 +27,12 @@ class LevelViewSet(viewsets.ModelViewSet):
 class GradeViewSet(viewsets.ModelViewSet):
     queryset = Grade.objects.all()
     serializer_class = GradeSerializer
+    
+    # Filtering, search, and ordering
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ['name', 'description']
+    ordering_fields = ['name', 'order', 'created_at']
+    ordering = ['order', 'name']  # Default ordering
     
     def get_queryset(self):
         queryset = Grade.objects.select_related('level', 'level__campus')
@@ -34,6 +48,12 @@ class GradeViewSet(viewsets.ModelViewSet):
 class ClassRoomViewSet(viewsets.ModelViewSet):
     queryset = ClassRoom.objects.all()
     serializer_class = ClassRoomSerializer
+    
+    # Filtering, search, and ordering
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ['code', 'section']
+    ordering_fields = ['code', 'section', 'created_at']
+    ordering = ['code', 'section']  # Default ordering
     
     def get_queryset(self):
         queryset = ClassRoom.objects.select_related(

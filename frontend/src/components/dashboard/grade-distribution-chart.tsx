@@ -1,6 +1,6 @@
 "use client"
 
-import { BarChart, Bar, XAxis, CartesianGrid, ResponsiveContainer, Tooltip, LabelList, Cell } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, LabelList, Cell } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ChartData } from "@/types/dashboard"
 
@@ -49,6 +49,12 @@ export function GradeDistributionChart({ data }: GradeDistributionChartProps) {
                 angle={-15}
                 textAnchor="end"
               />
+              <YAxis
+                domain={[0, 1000]}
+                allowDecimals={false}
+                tickLine={false}
+                axisLine={false}
+              />
               <Tooltip
                 cursor={false}
                 content={({ active, payload }) => {
@@ -67,7 +73,7 @@ export function GradeDistributionChart({ data }: GradeDistributionChartProps) {
                 }}
               />
               <Bar dataKey="value" radius={8}>
-                {data.map((entry, index) => (
+                {data.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
                 <LabelList
