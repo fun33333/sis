@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -45,6 +46,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'django_filters',
+    'graphene_django',
+    'graphql_jwt.refresh_token.apps.RefreshTokenConfig',
+    'graphql_auth',
+    'django_cleanup.apps.CleanupConfig',
     # 'subjects',
     'classes.apps.ClassesConfig', 
     'coordinator',
@@ -213,6 +218,40 @@ CORS_ALLOW_ALL_HEADERS = True
 CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 
 
+
+# GraphQL Configuration
+GRAPHENE = {
+    'SCHEMA': 'backend.schema.schema',
+    'MIDDLEWARE': [
+        'graphql_jwt.middleware.JSONWebTokenMiddleware',
+    ],
+}
+
+# GraphQL JWT Configuration
+AUTHENTICATION_BACKENDS = [
+    'graphql_jwt.backends.JSONWebTokenBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+GRAPHQL_JWT = {
+    'JWT_VERIFY_EXPIRATION': True,
+    'JWT_LONG_RUNNING_REFRESH_TOKEN': True,
+    'JWT_EXPIRATION_DELTA': timedelta(minutes=60),
+    'JWT_REFRESH_EXPIRATION_DELTA': timedelta(days=7),
+}
+
+# GraphQL Auth Configuration
+GRAPHQL_AUTH = {
+    'LOGIN_ALLOWED_FIELDS': ['email'],
+    'REGISTER_MUTATION_FIELDS': ['email', 'first_name', 'last_name'],
+    'REGISTER_MUTATION_FIELDS_OPTIONAL': [],
+    'USER_NODE_EXCLUDE_FIELDS': ['password'],
+    'USER_NODE_FILTER_FIELDS': {
+        'email': ['exact'],
+        'is_active': ['exact'],
+        'date_joined': ['exact', 'isnull'],
+    },
+}
 
 # Superuser credentials (use environment variables in production)
 SUPERUSER_USERNAME = os.getenv('SUPERUSER_USERNAME', 'admin')
