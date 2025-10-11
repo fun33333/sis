@@ -148,10 +148,6 @@ export default function TimeTablePage() {
     setTimeTableData(initialData)
   }
 
-  // Reset time table with break period fixed
-  const resetTimeTable = () => {
-    initializeTimeTable()
-  }
 
   // Clear all periods and reset form
   const clearAllPeriods = () => {

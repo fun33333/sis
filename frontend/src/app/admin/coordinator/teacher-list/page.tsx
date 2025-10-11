@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Users, Search, Eye, Edit } from "lucide-react"
+import { Users, Search, Eye, Edit, User, Mail, Phone, GraduationCap, MapPin, Calendar, Award } from "lucide-react"
 import { getAllTeachers } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
@@ -84,24 +84,26 @@ function CoordinatorTeacherListContent() {
    )
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#274c77' }}>Teacher List</h1>
-          <p className="text-gray-600">Manage and review teacher assignments</p>
-        </div>
-        <Badge style={{ backgroundColor: '#6096ba', color: 'white' }} className="px-4 py-2">
-          {filteredTeachers.length} of {teachers.length} Teachers
-        </Badge>
+    <div className="p-6 space-y-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2 flex items-center space-x-3" style={{ color: '#274c77' }}>
+          <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6096ba' }}>
+            <Users className="h-5 w-5 text-white" />
+          </div>
+          <span>Teacher List</span>
+        </h1>
+        <p className="text-gray-600">
+          Showing {filteredTeachers.length} of {teachers.length} teachers
+        </p>
       </div>
 
-      {/* Search */}
+      {/* Search Section */}
       <Card style={{ backgroundColor: 'white', borderColor: '#a3cef1' }}>
         <CardContent className="p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search teachers by name or subject..."
+              placeholder="Search teachers by name, subject, or email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -120,38 +122,83 @@ function CoordinatorTeacherListContent() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <LoadingSpinner message="Loading teachers..." />
-          ) : error ? (
-            <div className="text-center py-8">
-              <div className="text-red-600 mb-2">Error: {error}</div>
-              <Button onClick={() => window.location.reload()} variant="outline">
-                Try Again
-              </Button>
-            </div>
-          ) : (
-            <Table>
-               <TableHeader>
-                 <TableRow style={{ backgroundColor: '#274c77' }}>
-                   <TableHead className="text-white">Name</TableHead>
-                   <TableHead className="text-white">Subject</TableHead>
-                   <TableHead className="text-white">Email</TableHead>
-                   <TableHead className="text-white">Classes</TableHead>
-                   <TableHead className="text-white">Actions</TableHead>
-                 </TableRow>
-               </TableHeader>
-              <TableBody>
-                {filteredTeachers.map((teacher, index) => (
+          <Table>
+            <TableHeader>
+              <TableRow style={{ backgroundColor: '#274c77' }}>
+                <TableHead className="text-white">Teacher</TableHead>
+                <TableHead className="text-white">Subject</TableHead>
+                <TableHead className="text-white">Email</TableHead>
+                <TableHead className="text-white">Classes</TableHead>
+                <TableHead className="text-white">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-12">
+                    <LoadingSpinner message="Loading teachers..." />
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-12">
+                    <div className="text-red-600 mb-4">Error: {error}</div>
+                    <Button onClick={() => window.location.reload()} variant="outline">
+                      Try Again
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredTeachers.map((teacher, index) => (
                   <TableRow 
                     key={teacher.id}
                     className={`hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : ''}`}
                     style={{ backgroundColor: index % 2 === 0 ? '#e7ecef' : 'white' }}
                   >
-                     <TableCell className="font-medium">{teacher.name}</TableCell>
-                     <TableCell>{truncateList(teacher.subject)}</TableCell>
-                     <TableCell className="text-sm text-gray-600">{teacher.email}</TableCell>
-                     <TableCell>{truncateList(teacher.classes)}</TableCell>
-                     <TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6096ba' }}>
+                            <User className="h-4 w-4 text-white" />
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900 flex items-center space-x-2">
+                            <span>{teacher.name}</span>
+                            {teacher.is_class_teacher && (
+                              <Award className="h-4 w-4 text-yellow-500" />
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-500 flex items-center space-x-1">
+                            <Calendar className="h-3 w-3" />
+                            <span className="capitalize">{teacher.shift || 'Morning'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <GraduationCap className="h-4 w-4" style={{ color: '#6096ba' }} />
+                        <div className="text-sm">
+                          <div className="text-gray-900 truncate max-w-xs">{truncateList(teacher.subject)}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-600">
+                      <div className="flex items-center space-x-2">
+                        <Mail className="h-4 w-4" style={{ color: '#6096ba' }} />
+                        <div className="text-sm text-gray-900 truncate max-w-xs">{teacher.email}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <User className="h-4 w-4" style={{ color: '#6096ba' }} />
+                        <div className="text-sm">
+                          <div className="text-gray-900 truncate max-w-xs">{truncateList(teacher.classes)}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex space-x-2">
                         <Button 
                           size="sm" 
@@ -160,23 +207,24 @@ function CoordinatorTeacherListContent() {
                           onClick={() => router.push(`/admin/teachers/profile?id=${teacher.id}`)}
                           title="View Teacher Profile"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
                         </Button>
                         <Button 
                           size="sm" 
                           variant="outline" 
                           style={{ borderColor: '#6096ba', color: '#274c77' }}
-                          title="Edit Teacher"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
                         </Button>
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
@@ -196,7 +244,7 @@ export default function CoordinatorTeacherListPage() {
       <div className="p-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2" style={{ color: '#274c77' }}>
               <Users className="h-5 w-5" />
               Teacher List
             </CardTitle>

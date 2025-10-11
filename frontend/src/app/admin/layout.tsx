@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { UserProfilePopup } from "@/components/admin/user-profile-popup"
 import ProtectedRoute from "@/components/ProtectedRoute"
@@ -13,6 +13,28 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  // Responsive sidebar behavior
+  useEffect(() => {
+    const handleResize = () => {
+      // Tablet breakpoint: 768px and below
+      if (window.innerWidth <= 768) {
+        setSidebarOpen(false)
+      } else {
+        // Desktop: keep sidebar open by default
+        setSidebarOpen(true)
+      }
+    }
+
+    // Set initial state
+    handleResize()
+
+    // Add event listener
+    window.addEventListener('resize', handleResize)
+
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   return (
     <div className="bg-[#e7ecef] flex h-screen overflow-hidden">

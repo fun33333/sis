@@ -16,6 +16,28 @@ interface AdminSidebarProps {
 export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps) {
   // For smooth text appearance after sidebar opens
   const [showText, setShowText] = useState(sidebarOpen);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Responsive behavior - close sidebar on tablet/mobile
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setSidebarOpen(false);
+      }
+    };
+
+    // Set initial state
+    handleResize();
+
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize);
+  }, [setSidebarOpen]);
+
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (sidebarOpen) {
@@ -130,10 +152,9 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
           { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
           { title: "Result Approval", href: "/admin/coordinator/result-approval" },
-          { title: "Class Assign", href: "/admin/coordinator/class-assign" },
-          { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
+          // { title: "Class Assign", href: "/admin/coordinator/class-assign" },
+          // { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
           { title: "Time Table", href: "/admin/coordinator/time-table" },
-          { title: "Sections Analytics", href: "/admin/coordinator/sections-progress" },
         ],
       },
     ]
@@ -321,7 +342,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
 
   return (
     <aside
-      className={`h-screen fixed left-0 top-0 flex flex-col justify-between rounded-r-3xl shadow-2xl backdrop-blur-lg border-r border-[#8b8c89]/30 z-20 transition-all duration-500 ${sidebarOpen ? "w-72 px-4 py-8" : "w-18 px-2 py-4"}`}
+      className={`h-screen fixed left-0 top-0 flex flex-col justify-between rounded-r-3xl shadow-2xl backdrop-blur-lg border-r border-[#8b8c89]/30 z-20 transition-all duration-500 ${sidebarOpen ? "w-72 px-4 py-8" : "w-18 px-2 py-4"} ${isMobile ? 'md:w-72' : ''}`}
       style={{
         background: sidebarOpen ? "#e7ecef" : "#a3cef1",
         boxShadow: sidebarOpen ? "0 8px 32px 0 #add0e7bc" : "0 2px 8px 0 #a3cef1e8",
