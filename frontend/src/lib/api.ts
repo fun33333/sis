@@ -931,3 +931,64 @@ export async function getLevelAttendanceSummary(levelId: number, startDate?: str
     return null;
   }
 }
+
+// Teacher Statistics API functions
+export async function getTeacherAttendanceSummary(classroomId: number, startDate?: string, endDate?: string) {
+  try {
+    let url = `/api/class/${classroomId}/summary/`;
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (params.toString()) url += `?${params.toString()}`;
+    
+    return await apiGet(url);
+  } catch (error) {
+    console.error('Failed to fetch teacher attendance summary:', error);
+    return [];
+  }
+}
+
+export async function getTeacherWeeklyAttendance(classroomId: number) {
+  try {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+    
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
+    
+    const startDate = startOfWeek.toISOString().split('T')[0];
+    const endDate = endOfWeek.toISOString().split('T')[0];
+    
+    return await getTeacherAttendanceSummary(classroomId, startDate, endDate);
+  } catch (error) {
+    console.error('Failed to fetch weekly attendance:', error);
+    return [];
+  }
+}
+
+export async function getTeacherMonthlyTrend(classroomId: number) {
+  try {
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth() - 5, 1); // Last 6 months
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    const startDate = startOfMonth.toISOString().split('T')[0];
+    const endDate = endOfMonth.toISOString().split('T')[0];
+    
+    return await getTeacherAttendanceSummary(classroomId, startDate, endDate);
+  } catch (error) {
+    console.error('Failed to fetch monthly trend:', error);
+    return [];
+  }
+}
+
+export async function getTeacherTodayAttendance(classroomId: number) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    return await getAttendanceForDate(classroomId, today);
+  } catch (error) {
+    console.error('Failed to fetch today attendance:', error);
+    return null;
+  }
+}

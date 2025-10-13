@@ -134,7 +134,6 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         subItems: [
           { title: "Request / Complain", href: "/admin/teachers/request" },
           { title: "Time Table", href: "/admin/teachers/timetable" },
-          { title: "Attendance", href: "/admin/teachers/attendance" },
           { title: "Class Reasult", href: "/admin/teachers/reasult" },
         ],
       },

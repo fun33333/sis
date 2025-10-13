@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Users, Building2, GraduationCap, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { getCurrentUserProfile, getClassroomStudents } from "@/lib/api"
+import { getCurrentUserProfile, getClassroomStudents, getTeacherTodayAttendance, getTeacherWeeklyAttendance, getTeacherMonthlyTrend } from "@/lib/api"
 import { getCurrentUserRole } from "@/lib/permissions"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from "recharts"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
@@ -72,22 +72,114 @@ export default function TeacherClassDashboard() {
           // Get teacher's classroom data
           const teacherProfile = await getCurrentUserProfile() as any
           if (teacherProfile?.assigned_classroom?.id) {
-            const classroomData = await getClassroomStudents(teacherProfile.assigned_classroom.id, teacherProfile.teacher_id) as any
-            const students = classroomData.students || []
+            const classroomId = teacherProfile.assigned_classroom.id
+            
+            // Fetch all data in parallel for better performance
+            const [classroomData, todayAttendance, weeklyAttendance, monthlyTrend] = await Promise.all([
+              getClassroomStudents(classroomId, teacherProfile.teacher_id) as any,
+              getTeacherTodayAttendance(classroomId),
+              getTeacherWeeklyAttendance(classroomId),
+              getTeacherMonthlyTrend(classroomId)
+            ])
+            
+            // Handle different response formats
+            let students = []
+            if (Array.isArray(classroomData)) {
+              // Direct array response from get_class_students API
+              students = classroomData
+            } else if (classroomData && Array.isArray(classroomData.students)) {
+              // Object with students property
+              students = classroomData.students
+            } else {
+              students = []
+            }
             
             // Calculate statistics
             const boys = students.filter((s: any) => s.gender === 'male').length
             const girls = students.filter((s: any) => s.gender === 'female').length
             
-            // Generate chart data
-            const attendanceData = [
-              { day: 'Mon', present: Math.floor(students.length * 0.95), absent: Math.floor(students.length * 0.05) },
-              { day: 'Tue', present: Math.floor(students.length * 0.92), absent: Math.floor(students.length * 0.08) },
-              { day: 'Wed', present: Math.floor(students.length * 0.98), absent: Math.floor(students.length * 0.02) },
-              { day: 'Thu', present: Math.floor(students.length * 0.90), absent: Math.floor(students.length * 0.10) },
-              { day: 'Fri', present: Math.floor(students.length * 0.94), absent: Math.floor(students.length * 0.06) },
-            ]
+            // Process today's attendance
+            let attendanceToday = { present: 0, absent: 0, leave: 0 }
+            if (todayAttendance && typeof todayAttendance === 'object') {
+              attendanceToday = {
+                present: (todayAttendance as any).present_count || 0,
+                absent: (todayAttendance as any).absent_count || 0,
+                leave: (todayAttendance as any).leave_count || 0
+              }
+            }
             
+            // Process weekly attendance data
+            let attendanceData = []
+            
+            if (weeklyAttendance && Array.isArray(weeklyAttendance) && weeklyAttendance.length > 0) {
+              // Group by day of week
+              const dayMap: { [key: string]: { present: number; absent: number } } = {}
+              
+              weeklyAttendance.forEach((record: any) => {
+                const date = new Date(record.date)
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' })
+                
+                if (!dayMap[dayName]) {
+                  dayMap[dayName] = { present: 0, absent: 0 }
+                }
+                dayMap[dayName].present += record.present_count || 0
+                dayMap[dayName].absent += record.absent_count || 0
+              })
+              
+              // Ensure we have data for all weekdays including Saturday
+              const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+              attendanceData = weekdays.map(day => ({
+                day,
+                present: dayMap[day]?.present || 0,
+                absent: dayMap[day]?.absent || 0
+              }))
+            } else {
+              // Use today's attendance data for all days if no weekly data
+              const todayPresent = attendanceToday.present
+              const todayAbsent = attendanceToday.absent
+              
+              attendanceData = [
+                { day: 'Mon', present: todayPresent, absent: todayAbsent },
+                { day: 'Tue', present: todayPresent, absent: todayAbsent },
+                { day: 'Wed', present: todayPresent, absent: todayAbsent },
+                { day: 'Thu', present: todayPresent, absent: todayAbsent },
+                { day: 'Fri', present: todayPresent, absent: todayAbsent },
+                { day: 'Sat', present: todayPresent, absent: todayAbsent },
+              ]
+            }
+            
+            // Process monthly trend data
+            let monthlyTrendData = []
+            if (monthlyTrend && Array.isArray(monthlyTrend)) {
+              // Group by month
+              const monthMap: { [key: string]: number } = {}
+              
+              monthlyTrend.forEach((record: any) => {
+                const date = new Date(record.date)
+                const monthName = date.toLocaleDateString('en-US', { month: 'short' })
+                
+                if (!monthMap[monthName]) {
+                  monthMap[monthName] = 0
+                }
+                monthMap[monthName] += record.present_count || 0
+              })
+              
+              monthlyTrendData = Object.entries(monthMap).map(([month, count]) => ({
+                month,
+                students: count
+              }))
+            } else {
+              // Fallback to mock data
+              monthlyTrendData = [
+                { month: 'Jan', students: Math.floor(students.length * 0.8) },
+                { month: 'Feb', students: Math.floor(students.length * 0.85) },
+                { month: 'Mar', students: Math.floor(students.length * 0.9) },
+                { month: 'Apr', students: Math.floor(students.length * 0.95) },
+                { month: 'May', students: students.length },
+              ]
+            }
+            
+            // Mock grade distribution (since we don't have grades API yet)
             const gradeDistribution = [
               { grade: 'A+', count: Math.floor(students.length * 0.15) },
               { grade: 'A', count: Math.floor(students.length * 0.25) },
@@ -96,21 +188,13 @@ export default function TeacherClassDashboard() {
               { grade: 'C', count: Math.floor(students.length * 0.10) },
             ]
             
-            const monthlyTrend = [
-              { month: 'Jan', students: Math.floor(students.length * 0.8) },
-              { month: 'Feb', students: Math.floor(students.length * 0.85) },
-              { month: 'Mar', students: Math.floor(students.length * 0.9) },
-              { month: 'Apr', students: Math.floor(students.length * 0.95) },
-              { month: 'May', students: students.length },
-            ]
-            
-            setClassInfo({
+            const finalClassInfo = {
               name: teacherProfile.assigned_classroom.name || "Unknown Class",
               section: teacherProfile.assigned_classroom.section || "",
               totalStudents: students.length,
               boys: boys,
               girls: girls,
-              attendanceToday: { present: students.length, absent: 0, leave: 0 }, // Mock attendance for now
+              attendanceToday,
               topStudents: students.slice(0, 3).map((s: any, i: number) => ({
                 name: s.name,
                 marks: 95 - (i * 2) // Mock marks for now
@@ -118,12 +202,14 @@ export default function TeacherClassDashboard() {
               recentActivity: [
                 { text: `Class ${teacherProfile.assigned_classroom.name} loaded`, color: "bg-green-500" },
                 { text: `${students.length} students in class`, color: "bg-blue-500" },
-                { text: "Class statistics updated", color: "bg-purple-500" },
+                { text: `Today's attendance: ${attendanceToday.present}/${students.length}`, color: "bg-purple-500" },
               ],
               attendanceData,
               gradeDistribution,
-              monthlyTrend,
-            })
+              monthlyTrend: monthlyTrendData,
+            }
+            
+            setClassInfo(finalClassInfo)
           } else {
             setError("No classroom assigned to you. Please contact administrator.")
           }
@@ -290,6 +376,7 @@ export default function TeacherClassDashboard() {
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
+                    domain={[0, 40]}
                   />
                   <Tooltip 
                     contentStyle={{ 
