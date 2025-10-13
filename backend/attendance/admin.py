@@ -6,11 +6,11 @@ from .models import Attendance, StudentAttendance
 class AttendanceAdmin(admin.ModelAdmin):
     list_display = [
         'classroom', 'date', 'marked_by', 'total_students', 
-        'present_count', 'absent_count', 'late_count', 'created_at'
+        'present_count', 'absent_count', 'leave_count', 'created_at'
     ]
     list_filter = ['date', 'classroom__grade__level__campus', 'classroom__grade', 'marked_by']
     search_fields = ['classroom__code', 'marked_by__full_name']
-    readonly_fields = ['total_students', 'present_count', 'absent_count', 'late_count', 'created_at', 'updated_at']
+    readonly_fields = ['total_students', 'present_count', 'absent_count', 'leave_count', 'created_at', 'updated_at']
     date_hierarchy = 'date'
     ordering = ['-date', 'classroom']
     
@@ -19,7 +19,7 @@ class AttendanceAdmin(admin.ModelAdmin):
             'fields': ('classroom', 'date', 'marked_by')
         }),
         ('Attendance Summary', {
-            'fields': ('total_students', 'present_count', 'absent_count', 'late_count'),
+            'fields': ('total_students', 'present_count', 'absent_count', 'leave_count'),
             'classes': ('collapse',)
         }),
         ('Timestamps', {

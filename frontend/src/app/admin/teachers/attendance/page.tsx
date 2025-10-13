@@ -4,6 +4,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar, Clock, Users, CheckCircle, XCircle, AlertCircle, Save, RefreshCw, Edit3, History } from "lucide-react";
 import { getCurrentUserRole } from "@/lib/permissions";
 import { getCurrentUserProfile, getClassStudents, markBulkAttendance, getAttendanceHistory, getAttendanceForDate, editAttendance } from "@/lib/api";
@@ -68,6 +69,7 @@ export default function TeacherAttendancePage() {
   const [attendanceHistory] = useState<unknown[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [existingAttendanceId, setExistingAttendanceId] = useState<number | null>(null);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const router = useRouter();
 
   const userRole = getCurrentUserRole();
@@ -102,12 +104,12 @@ export default function TeacherAttendancePage() {
       }
 
       // Set class info
-      setClassInfo({
+          setClassInfo({
         id: teacherProfile.assigned_classroom.id,
-        name: teacherProfile.assigned_classroom.name || "Unknown Class",
+            name: teacherProfile.assigned_classroom.name || "Unknown Class",
         code: teacherProfile.assigned_classroom.code || "",
         grade: teacherProfile.assigned_classroom.grade?.name || "",
-        section: teacherProfile.assigned_classroom.section || "",
+            section: teacherProfile.assigned_classroom.section || "",
         shift: teacherProfile.assigned_classroom.shift || "",
         campus: teacherProfile.assigned_classroom.campus?.campus_name || ""
       });
@@ -132,13 +134,10 @@ export default function TeacherAttendancePage() {
     try {
       const attendanceData = await getAttendanceForDate(classroomId, date) as any;
       if (attendanceData && attendanceData.id) {
-        const existingAttendance: Record<number, AttendanceStatus> = {};
-        attendanceData.student_attendance.forEach((record: any) => {
-          existingAttendance[record.student_id] = record.status;
-        });
-        setAttendance(existingAttendance);
-        setIsEditMode(true);
+        // Store the attendance ID but don't load the data automatically
         setExistingAttendanceId(attendanceData.id);
+        setAttendance({}); // Keep sheet blank
+        setIsEditMode(false); // Not in edit mode initially
       } else {
         setAttendance({});
         setIsEditMode(false);
@@ -170,15 +169,27 @@ export default function TeacherAttendancePage() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
+    // Check if attendance already exists for this date
+    if (!isEditMode && existingAttendanceId) {
+      alert('Attendance already marked for this date! Please use "Update Attendance" button to make changes.');
+      return;
+    }
+    
+    // Show confirmation modal instead of directly submitting
+    setShowConfirmationModal(true);
+  };
+
+  const confirmSubmit = async () => {
     if (!classInfo) return;
 
     try {
       setSaving(true);
+      setShowConfirmationModal(false);
       
       // Prepare student attendance data
       const studentAttendanceData = Object.entries(attendance).map(([studentId, status]) => ({
-        student_id: parseInt(studentId),
+          student_id: parseInt(studentId),
         status: status,
         remarks: ''
       }));
@@ -192,21 +203,19 @@ export default function TeacherAttendancePage() {
         });
       } else {
         // Mark new attendance
-        const presentStudents = Object.entries(attendance)
-          .filter(([_, status]) => status === 'present')
-          .map(([studentId, _]) => parseInt(studentId));
-
         result = await markBulkAttendance({
           classroom_id: classInfo.id,
           date: selectedDate,
-          present_students: presentStudents
+          student_attendance: studentAttendanceData
         });
       }
 
       alert(`Attendance ${isEditMode ? 'updated' : 'marked'} successfully!`);
       
-      // Refresh data
-      await fetchTeacherData();
+      // Reset the sheet to blank after successful save
+      setAttendance({});
+      setIsEditMode(false);
+      setExistingAttendanceId(null);
       
     } catch (err: unknown) {
       console.error('Error marking attendance:', err);
@@ -230,6 +239,33 @@ export default function TeacherAttendancePage() {
       newAttendance[student.id] = 'absent';
     });
     setAttendance(newAttendance);
+  };
+
+  const loadSavedAttendance = async () => {
+    if (!classInfo) return;
+    
+    try {
+      setLoading(true);
+      const attendanceData = await getAttendanceForDate(classInfo.id, selectedDate) as any;
+      
+      if (attendanceData && attendanceData.id) {
+        const existingAttendance: Record<number, AttendanceStatus> = {};
+        attendanceData.student_attendance.forEach((record: any) => {
+          existingAttendance[record.student_id] = record.status;
+        });
+        setAttendance(existingAttendance);
+        setIsEditMode(true);
+        setExistingAttendanceId(attendanceData.id);
+        alert('Saved attendance loaded successfully! You can now make changes and update.');
+      } else {
+        alert('No saved attendance found for this date.');
+      }
+    } catch (error: unknown) {
+      console.error('Error loading saved attendance:', error);
+      alert('Failed to load saved attendance. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Calculate stats
@@ -262,8 +298,8 @@ export default function TeacherAttendancePage() {
   }
 
   if (error) {
-    return (
-      <div className="max-w-6xl mx-auto mt-12 p-10 bg-[#e7ecef] rounded-2xl shadow-2xl border-2 border-[#a3cef1]">
+	return (
+		<div className="max-w-6xl mx-auto mt-12 p-10 bg-[#e7ecef] rounded-2xl shadow-2xl border-2 border-[#a3cef1]">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
@@ -383,24 +419,40 @@ export default function TeacherAttendancePage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            <Button 
-              onClick={markAllPresent} 
+            <Button
+              onClick={markAllPresent}
               className="bg-green-600 hover:bg-green-700 text-white"
               disabled={!isDateEditable()}
             >
               <CheckCircle className="h-4 w-4 mr-2" />
               Mark All Present
             </Button>
-            <Button 
-              onClick={markAllAbsent} 
-              variant="outline" 
+            <Button
+              onClick={markAllAbsent}
+              variant="outline"
               className="border-red-500 text-red-500 hover:bg-red-50"
               disabled={!isDateEditable()}
             >
               <XCircle className="h-4 w-4 mr-2" />
               Mark All Absent
             </Button>
-            <Button 
+            {/* Show Load Saved Attendance button only if attendance exists for this date */}
+            {existingAttendanceId && !isEditMode && (
+              <Button
+                onClick={loadSavedAttendance}
+                variant="outline"
+                className="border-blue-500 text-blue-500 hover:bg-blue-50"
+                disabled={loading || !isDateEditable()}
+              >
+                {loading ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Edit3 className="h-4 w-4 mr-2" />
+                )}
+                Load Saved Attendance
+              </Button>
+            )}
+            <Button
               onClick={handleSubmit} 
               className="bg-[#6096ba] hover:bg-[#274c77] text-white"
               disabled={saving || !isDateEditable()}
@@ -429,17 +481,17 @@ export default function TeacherAttendancePage() {
               <p className="text-gray-500 text-sm">Please contact administrator to add students to this classroom</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+				<div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+						<TableHeader>
                   <TableRow>
                     <TableHead>Student</TableHead>
                     <TableHead>Student Code</TableHead>
                     <TableHead>Gender</TableHead>
                     <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
                   {students.map((student) => (
                     <TableRow key={student.id}>
                       <TableCell className="font-medium">
@@ -452,68 +504,159 @@ export default function TeacherAttendancePage() {
                             />
                           ) : (
                             <div className="h-8 w-8 rounded-full bg-[#6096ba] flex items-center justify-center text-white text-sm font-medium">
-                              {student.name.charAt(0).toUpperCase()}
-                            </div>
+                            {student.name.charAt(0).toUpperCase()}
+                          </div>
                           )}
                           <span>{student.name}</span>
-                        </div>
-                      </TableCell>
+										</div>
+									</TableCell>
                       <TableCell>{student.student_code}</TableCell>
                       <TableCell>{student.gender}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          <Button
+                        <Button
                             size="sm"
-                            variant={attendance[student.id] === 'present' ? 'default' : 'outline'}
+                          variant={attendance[student.id] === 'present' ? 'default' : 'outline'}
                             className={`${
-                              attendance[student.id] === 'present' 
-                                ? 'bg-green-600 hover:bg-green-700 text-white' 
+                            attendance[student.id] === 'present'
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
                                 : 'border-green-500 text-green-500 hover:bg-green-50'
-                            }`}
+                          }`}
                             onClick={() => handleAttendanceChange(student.id, 'present')}
                             disabled={!isDateEditable()}
-                          >
+                        >
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Present
-                          </Button>
-                          <Button
+                        </Button>
+                        <Button
                             size="sm"
-                            variant={attendance[student.id] === 'absent' ? 'default' : 'outline'}
+                          variant={attendance[student.id] === 'absent' ? 'default' : 'outline'}
                             className={`${
-                              attendance[student.id] === 'absent' 
-                                ? 'bg-red-600 hover:bg-red-700 text-white' 
+                            attendance[student.id] === 'absent'
+                              ? 'bg-red-600 hover:bg-red-700 text-white'
                                 : 'border-red-500 text-red-500 hover:bg-red-50'
-                            }`}
+                          }`}
                             onClick={() => handleAttendanceChange(student.id, 'absent')}
                             disabled={!isDateEditable()}
-                          >
+                        >
                             <XCircle className="h-3 w-3 mr-1" />
                             Absent
-                          </Button>
-                          <Button
+                        </Button>
+                        <Button
                             size="sm"
-                            variant={attendance[student.id] === 'leave' ? 'default' : 'outline'}
+                          variant={attendance[student.id] === 'leave' ? 'default' : 'outline'}
                             className={`${
-                              attendance[student.id] === 'leave' 
+                            attendance[student.id] === 'leave'
                                 ? 'bg-blue-600 hover:bg-blue-700 text-white' 
                                 : 'border-blue-500 text-blue-500 hover:bg-blue-50'
-                            }`}
+                          }`}
                             onClick={() => handleAttendanceChange(student.id, 'leave')}
                             disabled={!isDateEditable()}
-                          >
+                        >
                             <Calendar className="h-3 w-3 mr-1" />
                             Leave
-                          </Button>
+                        </Button>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+									</TableCell>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+				</div>
           )}
         </CardContent>
       </Card>
-    </div>
-  );
+
+      {/* Confirmation Modal */}
+      <Dialog open={showConfirmationModal} onOpenChange={setShowConfirmationModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#274c77] text-xl font-bold">
+              Confirm Attendance
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Are you sure you want to {isEditMode ? 'update' : 'mark'} attendance for {classInfo?.name} on {selectedDate}?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="grid grid-cols-2 gap-4">
+              {/* Present Count */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+                <div className="text-2xl font-bold text-green-700">{presentCount}</div>
+                <div className="text-sm text-green-600 font-medium">Present</div>
+              </div>
+
+              {/* Absent Count */}
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <XCircle className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="text-2xl font-bold text-red-700">{absentCount}</div>
+                <div className="text-sm text-red-600 font-medium">Absent</div>
+              </div>
+
+              {/* Leave Count */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <Calendar className="h-6 w-6 text-blue-600" />
+                </div>
+                <div className="text-2xl font-bold text-blue-700">{leaveCount}</div>
+                <div className="text-sm text-blue-600 font-medium">Leave</div>
+              </div>
+
+              {/* Total Count */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <Users className="h-6 w-6 text-gray-600" />
+                </div>
+                <div className="text-2xl font-bold text-gray-700">{totalStudents}</div>
+                <div className="text-sm text-gray-600 font-medium">Total</div>
+              </div>
+            </div>
+
+            {/* Attendance Percentage */}
+            <div className="mt-4 bg-[#274c77] text-white rounded-lg p-3 text-center">
+              <div className="text-lg font-semibold">
+                Attendance: {attendancePercentage}%
+              </div>
+              <div className="text-sm opacity-90">
+                {presentCount} out of {totalStudents} students
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowConfirmationModal(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={confirmSubmit}
+              className="bg-[#6096ba] hover:bg-[#274c77] text-white"
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  {isEditMode ? 'Updating...' : 'Saving...'}
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  {isEditMode ? 'Update Attendance' : 'Save Attendance'}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+		</div>
+	);
 }

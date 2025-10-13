@@ -33,8 +33,8 @@ export const API_ENDPOINTS = {
   GRADE_CHOICES: "/api/grades/choices/",
   CLASSROOM_CHOICES: "/api/classrooms/choices/",
   CLASSROOM_SECTIONS: "/api/classrooms/sections/",
-  CLASSROOM_STUDENTS: "/api/classrooms/{id}/students/",
-  AVAILABLE_STUDENTS: "/api/classrooms/{id}/available-students/",
+  CLASSROOM_STUDENTS: "/api/class/{id}/students/",
+  AVAILABLE_STUDENTS: "/api/class/{id}/available-students/",
   CURRENT_USER_PROFILE: "/api/current-user/",
 } as const;
 
@@ -855,7 +855,11 @@ export async function getClassStudents(classroomId: number) {
 export async function markBulkAttendance(data: {
   classroom_id: number;
   date: string;
-  present_students: number[];
+  student_attendance: Array<{
+    student_id: number;
+    status: string;
+    remarks?: string;
+  }>;
 }) {
   try {
     return await apiPost('/api/mark-bulk/', data);

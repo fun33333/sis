@@ -206,8 +206,8 @@ export default function AttendanceReviewPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-[#274c77] to-[#6096ba] rounded-2xl p-6 text-white shadow-xl">
-        <div className="flex items-center justify-between">
-          <div>
+      <div className="flex items-center justify-between">
+        <div>
             <h1 className="text-3xl font-bold mb-2">Attendance Review</h1>
             <div className="flex items-center space-x-4 text-lg">
               <div className="flex items-center space-x-2">
@@ -308,8 +308,8 @@ export default function AttendanceReviewPage() {
                   </div>
                   <CheckCircle className="h-8 w-8 opacity-80" />
                 </div>
-              </CardContent>
-            </Card>
+          </CardContent>
+        </Card>
 
             <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
               <CardContent className="p-4">
@@ -320,19 +320,19 @@ export default function AttendanceReviewPage() {
                   </div>
                   <AlertCircle className="h-8 w-8 opacity-80" />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+          </CardContent>
+        </Card>
+      </div>
 
           {/* Class-wise Attendance Table */}
           <Card>
-            <CardHeader>
+        <CardHeader>
               <CardTitle className="text-[#274c77]">Class-wise Attendance Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
                     <tr className="border-b">
                       <th className="text-left p-2">Class</th>
                       <th className="text-left p-2">Teacher</th>
@@ -343,9 +343,9 @@ export default function AttendanceReviewPage() {
                       <th className="text-left p-2">Average %</th>
                       <th className="text-left p-2">Last Attendance</th>
                       <th className="text-left p-2">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                </tr>
+              </thead>
+              <tbody>
                     {attendanceSummary.classrooms.map((classData) => (
                       <tr key={classData.classroom.id} className="border-b hover:bg-gray-50">
                         <td className="p-2 font-medium">{classData.classroom.name}</td>
@@ -365,8 +365,8 @@ export default function AttendanceReviewPage() {
                         <td className="p-2">
                           <Badge className={getAttendanceColor(classData.average_percentage)}>
                             {classData.average_percentage}%
-                          </Badge>
-                        </td>
+                      </Badge>
+                    </td>
                         <td className="p-2">
                           {classData.last_attendance 
                             ? new Date(classData.last_attendance).toLocaleDateString()
@@ -382,8 +382,8 @@ export default function AttendanceReviewPage() {
                               className="border-[#6096ba] text-[#6096ba] hover:bg-[#6096ba] hover:text-white"
                             >
                               <Eye className="h-3 w-3 mr-1" />
-                              Review
-                            </Button>
+                        Review
+                      </Button>
                             <Button
                               size="sm"
                               variant="outline"
@@ -394,14 +394,14 @@ export default function AttendanceReviewPage() {
                               Edit
                             </Button>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
         </>
       )}
     </div>

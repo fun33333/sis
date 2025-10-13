@@ -92,7 +92,7 @@ def mark_bulk_attendance(request):
     try:
         classroom_id = request.data.get('classroom_id')
         date_str = request.data.get('date')
-        present_student_ids = request.data.get('present_students', [])
+        student_attendance_data = request.data.get('student_attendance', [])
         
         if not classroom_id or not date_str:
             return Response({
@@ -125,13 +125,27 @@ def mark_bulk_attendance(request):
             attendance.student_attendances.all().delete()
             
             # Create student attendance records
-            for student_id in all_student_ids:
-                attendance_status = 'present' if student_id in present_student_ids else 'absent'
-                StudentAttendance.objects.create(
-                    attendance=attendance,
-                    student_id=student_id,
-                    status=attendance_status
-                )
+            for student_data in student_attendance_data:
+                student_id = student_data.get('student_id')
+                attendance_status = student_data.get('status', 'present')
+                remarks = student_data.get('remarks', '')
+                
+                if not student_id:
+                    continue
+                
+                # Verify student belongs to this classroom
+                try:
+                    student = Student.objects.get(id=student_id, classroom=classroom)
+                    StudentAttendance.objects.create(
+                        attendance=attendance,
+                        student=student,
+                        status=attendance_status,
+                        remarks=remarks,
+                        created_by=request.user,
+                        updated_by=request.user
+                    )
+                except Student.DoesNotExist:
+                    continue
             
             # Update attendance summary
             attendance.update_counts()
@@ -142,6 +156,7 @@ def mark_bulk_attendance(request):
             'total_students': attendance.total_students,
             'present_count': attendance.present_count,
             'absent_count': attendance.absent_count,
+            'leave_count': attendance.leave_count,
             'attendance_percentage': round((attendance.present_count / attendance.total_students) * 100, 2) if attendance.total_students > 0 else 0
         }, status=status.HTTP_201_CREATED)
         
@@ -424,7 +439,7 @@ def edit_attendance(request, attendance_id):
             # Create new student attendance records
             for student_data in student_attendance_data:
                 student_id = student_data.get('student_id')
-                status = student_data.get('status', 'present')
+                attendance_status = student_data.get('status', 'present')
                 remarks = student_data.get('remarks', '')
                 
                 if not student_id:
@@ -435,7 +450,7 @@ def edit_attendance(request, attendance_id):
                     StudentAttendance.objects.create(
                         student=student,
                         attendance=attendance,
-                        status=status,
+                        status=attendance_status,
                         remarks=remarks,
                         created_by=user,
                         updated_by=user
@@ -460,8 +475,8 @@ def edit_attendance(request, attendance_id):
             # Update marked_by if it's a teacher
             if user.is_teacher():
                 attendance.marked_by = user
-            
-            attendance.save()
+                # Save only specific fields to avoid updating created_at
+                attendance.save(update_fields=['marked_by', 'updated_at'])
         
         # Return updated attendance data
         serializer = AttendanceSerializer(attendance)
