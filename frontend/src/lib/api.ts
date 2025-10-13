@@ -825,11 +825,105 @@ export async function getCampusDashboardStats(campusId: number) {
 
 
 
-function getCampusTeachers(campusId: number): any {
+function getCampusTeachers(_campusId: number): any {
   throw new Error("Function not implemented.");
 }
 
-function getPrincipalCampusData(campusId: number): any {
+function getPrincipalCampusData(_campusId: number): any {
   throw new Error("Function not implemented.");
 }
 
+// Attendance API functions
+export async function getTeacherClasses() {
+  try {
+    return await apiGet('/api/teacher/classes/');
+  } catch (error) {
+    console.error('Failed to fetch teacher classes:', error);
+    return [];
+  }
+}
+
+export async function getClassStudents(classroomId: number) {
+  try {
+    return await apiGet(`/api/class/${classroomId}/students/`);
+  } catch (error) {
+    console.error('Failed to fetch class students:', error);
+    return [];
+  }
+}
+
+export async function markBulkAttendance(data: {
+  classroom_id: number;
+  date: string;
+  present_students: number[];
+}) {
+  try {
+    return await apiPost('/api/mark-bulk/', data);
+  } catch (error) {
+    console.error('Failed to mark attendance:', error);
+    throw error;
+  }
+}
+
+export async function getAttendanceHistory(classroomId: number, startDate?: string, endDate?: string) {
+  try {
+    let url = `/api/class/${classroomId}/`;
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (params.toString()) url += `?${params.toString()}`;
+    
+    return await apiGet(url);
+  } catch (error) {
+    console.error('Failed to fetch attendance history:', error);
+    return [];
+  }
+}
+
+export async function getAttendanceForDate(classroomId: number, date: string) {
+  try {
+    return await apiGet(`/api/class/${classroomId}/attendance/${date}/`);
+  } catch (error) {
+    console.error('Failed to fetch attendance for date:', error);
+    return null;
+  }
+}
+
+export async function editAttendance(attendanceId: number, data: {
+  student_attendance: Array<{
+    student_id: number;
+    status: string;
+    remarks?: string;
+  }>;
+}) {
+  try {
+    return await apiPut(`/api/edit/${attendanceId}/`, data);
+  } catch (error) {
+    console.error('Failed to edit attendance:', error);
+    throw error;
+  }
+}
+
+export async function getCoordinatorClasses() {
+  try {
+    return await apiGet('/api/coordinator/classes/');
+  } catch (error) {
+    console.error('Failed to fetch coordinator classes:', error);
+    return [];
+  }
+}
+
+export async function getLevelAttendanceSummary(levelId: number, startDate?: string, endDate?: string) {
+  try {
+    let url = `/api/level/${levelId}/summary/`;
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (params.toString()) url += `?${params.toString()}`;
+    
+    return await apiGet(url);
+  } catch (error) {
+    console.error('Failed to fetch level attendance summary:', error);
+    return null;
+  }
+}

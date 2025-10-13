@@ -23,22 +23,34 @@ class CanMarkAttendance(permissions.BasePermission):
             return True
         
         # Check if user has teacher profile
-        if hasattr(request.user, 'teacher'):
-            teacher = request.user.teacher
-            if teacher and teacher.assigned_classroom:
-                return True
+        if request.user.is_teacher():
+            try:
+                from teachers.models import Teacher
+                teacher = Teacher.objects.get(email=request.user.email)
+                if teacher and teacher.assigned_classroom:
+                    return True
+            except:
+                pass
         
         # Check if user has coordinator profile
-        if hasattr(request.user, 'coordinator'):
-            coordinator = request.user.coordinator
-            if coordinator and coordinator.is_currently_active:
-                return True
+        if request.user.is_coordinator():
+            try:
+                from coordinator.models import Coordinator
+                coordinator = Coordinator.objects.get(email=request.user.email)
+                if coordinator and coordinator.is_currently_active:
+                    return True
+            except:
+                pass
         
         # Check if user has principal profile
-        if hasattr(request.user, 'principal'):
-            principal = request.user.principal
-            if principal and principal.is_currently_active:
-                return True
+        if request.user.is_principal():
+            try:
+                from principals.models import Principal
+                principal = Principal.objects.get(email=request.user.email)
+                if principal and principal.is_currently_active:
+                    return True
+            except:
+                pass
         
         return False
     
@@ -51,24 +63,36 @@ class CanMarkAttendance(permissions.BasePermission):
             return True
         
         # Check teacher permissions
-        if hasattr(request.user, 'teacher'):
-            teacher = request.user.teacher
-            if teacher and teacher.assigned_classroom == obj.classroom:
-                return True
+        if request.user.is_teacher():
+            try:
+                from teachers.models import Teacher
+                teacher = Teacher.objects.get(email=request.user.email)
+                if teacher and teacher.assigned_classroom == obj.classroom:
+                    return True
+            except:
+                pass
         
         # Check coordinator permissions
-        if hasattr(request.user, 'coordinator'):
-            coordinator = request.user.coordinator
-            if (coordinator and coordinator.is_currently_active and 
-                coordinator.level == obj.classroom.grade.level):
-                return True
+        if request.user.is_coordinator():
+            try:
+                from coordinator.models import Coordinator
+                coordinator = Coordinator.objects.get(email=request.user.email)
+                if (coordinator and coordinator.is_currently_active and 
+                    coordinator.level == obj.classroom.grade.level):
+                    return True
+            except:
+                pass
         
         # Check principal permissions
-        if hasattr(request.user, 'principal'):
-            principal = request.user.principal
-            if (principal and principal.is_currently_active and 
-                principal.campus == obj.classroom.campus):
-                return True
+        if request.user.is_principal():
+            try:
+                from principals.models import Principal
+                principal = Principal.objects.get(email=request.user.email)
+                if (principal and principal.is_currently_active and 
+                    principal.campus == obj.classroom.campus):
+                    return True
+            except:
+                pass
         
         return False
 
@@ -89,9 +113,9 @@ class CanEditAttendance(permissions.BasePermission):
             return True
         
         # Check if user has teacher, coordinator, or principal profile
-        return (hasattr(request.user, 'teacher') or 
-                hasattr(request.user, 'coordinator') or 
-                hasattr(request.user, 'principal'))
+        return (request.user.is_teacher() or 
+                request.user.is_coordinator() or 
+                request.user.is_principal())
     
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
@@ -104,38 +128,58 @@ class CanEditAttendance(permissions.BasePermission):
         # Check if attendance is editable (within 7 days and not final)
         if not obj.is_editable:
             # Only coordinators+ can edit old attendance
-            if hasattr(request.user, 'coordinator') or hasattr(request.user, 'principal'):
+            if request.user.is_coordinator() or request.user.is_principal():
                 # Check scope permissions
-                if hasattr(request.user, 'coordinator'):
-                    coordinator = request.user.coordinator
-                    return (coordinator and coordinator.is_currently_active and 
-                           coordinator.level == obj.classroom.grade.level)
-                elif hasattr(request.user, 'principal'):
-                    principal = request.user.principal
-                    return (principal and principal.is_currently_active and 
-                           principal.campus == obj.classroom.campus)
+                if request.user.is_coordinator():
+                    try:
+                        from coordinator.models import Coordinator
+                        coordinator = Coordinator.objects.get(email=request.user.email)
+                        return (coordinator and coordinator.is_currently_active and 
+                               coordinator.level == obj.classroom.grade.level)
+                    except:
+                        pass
+                elif request.user.is_principal():
+                    try:
+                        from principals.models import Principal
+                        principal = Principal.objects.get(email=request.user.email)
+                        return (principal and principal.is_currently_active and 
+                               principal.campus == obj.classroom.campus)
+                    except:
+                        pass
             return False
         
         # For recent attendance, check if user can edit
         # Teacher can edit their own classroom's attendance
-        if hasattr(request.user, 'teacher'):
-            teacher = request.user.teacher
-            if teacher and teacher.assigned_classroom == obj.classroom:
-                return True
+        if request.user.is_teacher():
+            try:
+                from teachers.models import Teacher
+                teacher = Teacher.objects.get(email=request.user.email)
+                if teacher and teacher.assigned_classroom == obj.classroom:
+                    return True
+            except:
+                pass
         
         # Coordinator can edit classrooms in their level
-        if hasattr(request.user, 'coordinator'):
-            coordinator = request.user.coordinator
-            if (coordinator and coordinator.is_currently_active and 
-                coordinator.level == obj.classroom.grade.level):
-                return True
+        if request.user.is_coordinator():
+            try:
+                from coordinator.models import Coordinator
+                coordinator = Coordinator.objects.get(email=request.user.email)
+                if (coordinator and coordinator.is_currently_active and 
+                    coordinator.level == obj.classroom.grade.level):
+                    return True
+            except:
+                pass
         
         # Principal can edit classrooms in their campus
-        if hasattr(request.user, 'principal'):
-            principal = request.user.principal
-            if (principal and principal.is_currently_active and 
-                principal.campus == obj.classroom.campus):
-                return True
+        if request.user.is_principal():
+            try:
+                from principals.models import Principal
+                principal = Principal.objects.get(email=request.user.email)
+                if (principal and principal.is_currently_active and 
+                    principal.campus == obj.classroom.campus):
+                    return True
+            except:
+                pass
         
         return False
 
@@ -154,9 +198,9 @@ class CanViewAttendance(permissions.BasePermission):
             return False
         
         # All authenticated users with profiles can view attendance
-        return (hasattr(request.user, 'teacher') or 
-                hasattr(request.user, 'coordinator') or 
-                hasattr(request.user, 'principal') or 
+        return (request.user.is_teacher() or 
+                request.user.is_coordinator() or 
+                request.user.is_principal() or 
                 request.user.is_superuser)
     
     def has_object_permission(self, request, view, obj):
@@ -168,24 +212,36 @@ class CanViewAttendance(permissions.BasePermission):
             return True
         
         # Teacher can view their own classroom's attendance
-        if hasattr(request.user, 'teacher'):
-            teacher = request.user.teacher
-            if teacher and teacher.assigned_classroom == obj.classroom:
-                return True
+        if request.user.is_teacher():
+            try:
+                from teachers.models import Teacher
+                teacher = Teacher.objects.get(email=request.user.email)
+                if teacher and teacher.assigned_classroom == obj.classroom:
+                    return True
+            except:
+                pass
         
         # Coordinator can view classrooms in their level
-        if hasattr(request.user, 'coordinator'):
-            coordinator = request.user.coordinator
-            if (coordinator and coordinator.is_currently_active and 
-                coordinator.level == obj.classroom.grade.level):
-                return True
+        if request.user.is_coordinator():
+            try:
+                from coordinator.models import Coordinator
+                coordinator = Coordinator.objects.get(email=request.user.email)
+                if (coordinator and coordinator.is_currently_active and 
+                    coordinator.level == obj.classroom.grade.level):
+                    return True
+            except:
+                pass
         
         # Principal can view classrooms in their campus
-        if hasattr(request.user, 'principal'):
-            principal = request.user.principal
-            if (principal and principal.is_currently_active and 
-                principal.campus == obj.classroom.campus):
-                return True
+        if request.user.is_principal():
+            try:
+                from principals.models import Principal
+                principal = Principal.objects.get(email=request.user.email)
+                if (principal and principal.is_currently_active and 
+                    principal.campus == obj.classroom.campus):
+                    return True
+            except:
+                pass
         
         return False
 
@@ -206,8 +262,8 @@ class CanDeleteAttendance(permissions.BasePermission):
             return True
         
         # Only coordinators and principals can delete
-        return (hasattr(request.user, 'coordinator') or 
-                hasattr(request.user, 'principal'))
+        return (request.user.is_coordinator() or 
+                request.user.is_principal())
     
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
@@ -218,18 +274,26 @@ class CanDeleteAttendance(permissions.BasePermission):
             return True
         
         # Coordinator can delete attendance in their level
-        if hasattr(request.user, 'coordinator'):
-            coordinator = request.user.coordinator
-            if (coordinator and coordinator.is_currently_active and 
-                coordinator.level == obj.classroom.grade.level):
-                return True
+        if request.user.is_coordinator():
+            try:
+                from coordinator.models import Coordinator
+                coordinator = Coordinator.objects.get(email=request.user.email)
+                if (coordinator and coordinator.is_currently_active and 
+                    coordinator.level == obj.classroom.grade.level):
+                    return True
+            except:
+                pass
         
         # Principal can delete attendance in their campus
-        if hasattr(request.user, 'principal'):
-            principal = request.user.principal
-            if (principal and principal.is_currently_active and 
-                principal.campus == obj.classroom.campus):
-                return True
+        if request.user.is_principal():
+            try:
+                from principals.models import Principal
+                principal = Principal.objects.get(email=request.user.email)
+                if (principal and principal.is_currently_active and 
+                    principal.campus == obj.classroom.campus):
+                    return True
+            except:
+                pass
         
         return False
 
@@ -248,9 +312,7 @@ class CanExportAttendance(permissions.BasePermission):
             return False
         
         # All authenticated users with profiles can export
-        return (hasattr(request.user, 'teacher') or 
-                hasattr(request.user, 'coordinator') or 
-                hasattr(request.user, 'principal') or 
+        return (request.user.is_teacher() or 
+                request.user.is_coordinator() or 
+                request.user.is_principal() or 
                 request.user.is_superuser)
-
-

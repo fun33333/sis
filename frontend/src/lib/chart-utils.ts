@@ -16,8 +16,8 @@ export function getMotherTongueDistribution(students: any[]): ChartData[] {
       return acc
     },
     {} as Record<string, number>,
-  )cha ni 
-  
+  )
+
   // Group languages with count < 10 into "Others"
   const result: ChartData[] = []
   let othersCount = 0
