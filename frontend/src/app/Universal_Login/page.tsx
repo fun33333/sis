@@ -4,6 +4,13 @@ import { useState, useEffect } from "react";
 // For navigation after login (if needed)
 import { useRouter } from "next/navigation";
 import { FaLock, FaEnvelope } from "react-icons/fa";
+import { 
+  GraduationCap, 
+  Users, 
+  Crown, 
+  Shield,
+  User
+} from "lucide-react";
 import { loginWithEmailPassword } from "@/lib/api";
 
 
@@ -31,6 +38,17 @@ export default function LoginPage() {
     const timer = setTimeout(() => setAnimate(true), 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Function to get role-specific icon
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'Teacher': return <GraduationCap className="h-5 w-5" />;
+      case 'Coordinator': return <Users className="h-5 w-5" />;
+      case 'Principal': return <Crown className="h-5 w-5" />;
+      case 'Super Admin': return <Shield className="h-5 w-5" />;
+      default: return <User className="h-5 w-5" />;
+    }
+  };
 
   // Function to detect role from employee code
   const detectRoleFromCode = (code: string): string => {
@@ -138,8 +156,9 @@ export default function LoginPage() {
                 {/* Role Detection Display */}
                 {detectedRole && (
                   <div className="w-full mb-6">
-                    <div className="w-full h-12 rounded-xl px-5 text-base text-[#274c77] font-semibold shadow border-2 border-[#6096ba] bg-[#a3cef1] flex items-center justify-center">
-                      <span className="text-lg">🎯 {detectedRole}</span>
+                    <div className="w-full h-12 rounded-xl px-5 text-base text-[#274c77] font-semibold shadow border-2 border-[#6096ba] bg-[#a3cef1] flex items-center justify-center gap-2">
+                      {getRoleIcon(detectedRole)}
+                      <span>{detectedRole}</span>
                     </div>
                   </div>
                 )}

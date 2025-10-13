@@ -57,6 +57,8 @@ INSTALLED_APPS = [
     'principals',
     'services',
     'student_status',
+    'requests',
+    'result',
 ]
 
 MIDDLEWARE = [

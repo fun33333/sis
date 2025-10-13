@@ -149,7 +149,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
           { title: "Student List", href: "/admin/coordinator/student-list" },
           { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
-          { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
+          { title: "Request Management", href: "/admin/coordinator/requests" },
           { title: "Result Approval", href: "/admin/coordinator/result-approval" },
           // { title: "Class Assign", href: "/admin/coordinator/class-assign" },
           // { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },

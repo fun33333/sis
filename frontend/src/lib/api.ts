@@ -424,6 +424,25 @@ export async function getAllStudents() {
   }
 }
 
+export async function getTeacherStudents() {
+  try {
+    // Don't use cache for teacher-specific students
+    // Backend will filter students based on teacher's assigned classroom
+    const data = await apiGet(`${API_ENDPOINTS.STUDENTS}?page=1&page_size=1000`);
+    
+    if (Array.isArray(data)) {
+      return data;
+    } else if (data && Array.isArray((data as any).results)) {
+      return (data as any).results;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Failed to fetch teacher students:', error);
+    return [];
+  }
+}
+
 export async function getFilteredStudents(params: {
   page?: number;
   page_size?: number;
@@ -679,7 +698,7 @@ export async function getCoordinatorTeachers(coordinatorId: number) {
   }
 }
 
-export async function getCoordinatorDashboardStats(coordinatorId: number) {
+export async function getCoordinatorGeneralStats(coordinatorId: number) {
   try {
     return await apiGet(`${API_ENDPOINTS.COORDINATORS}${coordinatorId}/dashboard_stats/`);
   } catch (error) {
@@ -929,6 +948,271 @@ export async function getLevelAttendanceSummary(levelId: number, startDate?: str
   } catch (error) {
     console.error('Failed to fetch level attendance summary:', error);
     return null;
+  }
+}
+
+// Request/Complaint API functions
+export interface RequestData {
+  category: string;
+  subject: string;
+  description: string;
+  priority?: string;
+}
+
+export interface RequestUpdateData {
+  status?: string;
+  priority?: string;
+  coordinator_notes?: string;
+  resolution_notes?: string;
+}
+
+export async function createRequest(data: RequestData) {
+  try {
+    return await apiPost('/api/requests/create/', data);
+  } catch (error) {
+    console.error('Failed to create request:', error);
+    throw error;
+  }
+}
+
+export async function getMyRequests() {
+  try {
+    return await apiGet('/api/requests/my-requests/');
+  } catch (error) {
+    console.error('Failed to fetch my requests:', error);
+    return [];
+  }
+}
+
+export async function getRequestDetail(requestId: number) {
+  try {
+    return await apiGet(`/api/requests/${requestId}/`);
+  } catch (error) {
+    console.error('Failed to fetch request detail:', error);
+    return null;
+  }
+}
+
+export async function getCoordinatorRequests(filters?: {
+  status?: string;
+  priority?: string;
+  category?: string;
+}) {
+  try {
+    let url = '/api/requests/coordinator/requests/';
+    if (filters) {
+      const params = new URLSearchParams();
+      if (filters.status) params.append('status', filters.status);
+      if (filters.priority) params.append('priority', filters.priority);
+      if (filters.category) params.append('category', filters.category);
+      if (params.toString()) url += `?${params.toString()}`;
+    }
+    return await apiGet(url);
+  } catch (error) {
+    console.error('Failed to fetch coordinator requests:', error);
+    return [];
+  }
+}
+
+export async function getCoordinatorDashboardStats() {
+  try {
+    return await apiGet('/api/requests/coordinator/dashboard-stats/');
+  } catch (error) {
+    console.error('Failed to fetch coordinator dashboard stats:', error);
+    return {
+      total_requests: 0,
+      submitted: 0,
+      under_review: 0,
+      in_progress: 0,
+      waiting: 0,
+      resolved: 0,
+      rejected: 0
+    };
+  }
+}
+
+// Result Management API functions
+export interface SubjectMark {
+  subject_name: string;
+  total_marks: number;
+  obtained_marks: number;
+  has_practical: boolean;
+  practical_total?: number;
+  practical_obtained?: number;
+  is_pass: boolean;
+}
+
+export interface ResultData {
+  student: number;
+  exam_type: 'mid_term' | 'final_term';
+  academic_year: string;
+  semester: string;
+  subject_marks: SubjectMark[];
+}
+
+export interface Result {
+  id: number;
+  student: {
+    id: number;
+    full_name: string;
+    student_code: string;
+  };
+  teacher: {
+    id: number;
+    full_name: string;
+  };
+  coordinator?: {
+    id: number;
+    full_name: string;
+  };
+  exam_type: string;
+  exam_type_display: string;
+  academic_year: string;
+  semester: string;
+  status: string;
+  status_display: string;
+  edit_count: number;
+  total_marks: number;
+  obtained_marks: number;
+  percentage: number;
+  grade: string;
+  result_status: string;
+  result_status_display: string;
+  coordinator_comments?: string;
+  subject_marks: SubjectMark[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Student {
+  id: number;
+  name: string; // Backend uses 'name' field
+  full_name?: string; // Keep for backward compatibility
+  student_code: string;
+  student_id?: string; // Alternative ID field
+  gr_no?: string; // Alternative ID field
+  roll_number?: string;
+  father_name: string;
+  phone_number?: string;
+  email?: string;
+  address?: string;
+  date_of_birth?: string;
+  gender: string;
+  admission_date?: string;
+  class_name?: string;
+  section?: string;
+  campus_name?: string;
+}
+
+export interface MidTermCheck {
+  student_id: number;
+  student_name: string;
+  mid_term_exists: boolean;
+  mid_term_approved: boolean;
+}
+
+export async function createResult(data: ResultData) {
+  try {
+    return await apiPost('/api/result/create/', data);
+  } catch (error) {
+    console.error('Failed to create result:', error);
+    throw error;
+  }
+}
+
+export async function getMyResults() {
+  try {
+    return await apiGet('/api/result/my-results/');
+  } catch (error) {
+    console.error('Failed to fetch my results:', error);
+    return [];
+  }
+}
+
+export async function getResultDetail(resultId: number) {
+  try {
+    return await apiGet(`/api/result/${resultId}/`);
+  } catch (error) {
+    console.error('Failed to fetch result detail:', error);
+    throw error;
+  }
+}
+
+export async function updateResult(resultId: number, data: Partial<ResultData>) {
+  try {
+    return await apiPut(`/api/result/${resultId}/update/`, data);
+  } catch (error) {
+    console.error('Failed to update result:', error);
+    throw error;
+  }
+}
+
+export async function submitResult(resultId: number) {
+  try {
+    return await apiPut(`/api/result/${resultId}/submit/`, { status: 'submitted' });
+  } catch (error) {
+    console.error('Failed to submit result:', error);
+    throw error;
+  }
+}
+
+export async function checkMidTerm(studentId: number): Promise<MidTermCheck> {
+  try {
+    return await apiGet(`/api/result/check-midterm/${studentId}/`);
+  } catch (error) {
+    console.error('Failed to check mid-term:', error);
+    throw error;
+  }
+}
+
+export async function getCoordinatorPendingResults() {
+  try {
+    return await apiGet('/api/result/coordinator/pending/');
+  } catch (error) {
+    console.error('Failed to fetch pending results:', error);
+    return [];
+  }
+}
+
+export async function approveResult(resultId: number, comments?: string) {
+  try {
+    return await apiPut(`/api/result/${resultId}/approve/`, {
+      status: 'approved',
+      coordinator_comments: comments || ''
+    });
+  } catch (error) {
+    console.error('Failed to approve result:', error);
+    throw error;
+  }
+}
+
+export async function rejectResult(resultId: number, comments: string) {
+  try {
+    return await apiPut(`/api/result/${resultId}/approve/`, {
+      status: 'rejected',
+      coordinator_comments: comments
+    });
+  } catch (error) {
+    console.error('Failed to reject result:', error);
+    throw error;
+  }
+}
+
+export async function updateRequestStatus(requestId: number, data: RequestUpdateData) {
+  try {
+    return await apiPut(`/api/requests/${requestId}/update-status/`, data);
+  } catch (error) {
+    console.error('Failed to update request status:', error);
+    throw error;
+  }
+}
+
+export async function addRequestComment(requestId: number, comment: string) {
+  try {
+    return await apiPost(`/api/requests/${requestId}/comment/`, { comment });
+  } catch (error) {
+    console.error('Failed to add comment:', error);
+    throw error;
   }
 }
 
