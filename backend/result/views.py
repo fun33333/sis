@@ -2,6 +2,8 @@ from rest_framework import viewsets, generics, status, serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from .models import Result, SubjectMark
@@ -153,4 +155,132 @@ class ResultApprovalView(generics.UpdateAPIView):
             id=self.kwargs['pk'], 
             coordinator=coordinator
         )
+
+class CoordinatorResultListView(generics.ListAPIView):
+    """Get all results assigned to coordinator for review"""
+    serializer_class = ResultSerializer
+    permission_classes = [IsAuthenticated, IsCoordinator]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ['student__name', 'student__student_code', 'teacher__full_name']
+    ordering_fields = ['created_at', 'status', 'student__name']
+    ordering = ['-created_at']
+    pagination_class = None  # Disable pagination to return direct array
+
+    def get_queryset(self):
+        print(f"🔍 Request user: {self.request.user}")
+        print(f"🔍 User email: {self.request.user.email}")
+        print(f"🔍 User is coordinator: {self.request.user.is_coordinator()}")
+        print(f"🔍 User is authenticated: {self.request.user.is_authenticated}")
+        
+        try:
+            coordinator = get_object_or_404(Coordinator, email=self.request.user.email)
+            print(f"🔍 Coordinator found: {coordinator.email}")
+            print(f"🔍 Coordinator name: {coordinator.full_name}")
+        except Exception as e:
+            print(f"❌ Error finding coordinator: {e}")
+            print(f"❌ Available coordinators:")
+            for c in Coordinator.objects.all():
+                print(f"    - {c.email} ({c.full_name})")
+            return Result.objects.none()
+        
+        # Check total results in database
+        total_results = Result.objects.count()
+        print(f"🔍 Total results in database: {total_results}")
+        
+        # Check results with coordinators
+        results_with_coordinators = Result.objects.filter(coordinator__isnull=False).count()
+        print(f"🔍 Results with coordinators: {results_with_coordinators}")
+        
+        # First check all results assigned to this coordinator
+        all_results = Result.objects.filter(coordinator=coordinator).select_related('student', 'teacher', 'coordinator').prefetch_related('subject_marks')
+        print(f"🔍 All results for coordinator: {all_results.count()}")
+        
+        # Check results by status
+        for status in ['draft', 'submitted', 'pending', 'under_review', 'approved', 'rejected']:
+            count = all_results.filter(status=status).count()
+            print(f"🔍 Results with status '{status}': {count}")
+        
+        # Return ALL results for this coordinator (no status filter)
+        print(f"🔍 Returning all results for coordinator: {all_results.count()}")
+        
+        return all_results
+
+    @action(detail=False, methods=['get'])
+    def pending(self, request):
+        """Get only pending results for review"""
+        coordinator = get_object_or_404(Coordinator, email=request.user.email)
+        pending_results = Result.objects.filter(
+            coordinator=coordinator,
+            status__in=['pending', 'submitted', 'under_review']
+        ).select_related('student', 'teacher', 'coordinator').prefetch_related('subject_marks')
+        
+        serializer = self.get_serializer(pending_results, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def by_grade(self, request):
+        """Get results grouped by grade/section"""
+        coordinator = get_object_or_404(Coordinator, email=request.user.email)
+        grade = request.query_params.get('grade')
+        section = request.query_params.get('section')
+        
+        queryset = Result.objects.filter(coordinator=coordinator)
+        
+        if grade:
+            queryset = queryset.filter(student__classroom__grade__name=grade)
+        if section:
+            queryset = queryset.filter(student__classroom__section=section)
+            
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def bulk_approve(self, request):
+        """Bulk approve multiple results"""
+        coordinator = get_object_or_404(Coordinator, email=request.user.email)
+        result_ids = request.data.get('result_ids', [])
+        comments = request.data.get('comments', '')
+        
+        if not result_ids:
+            return Response({'error': 'No result IDs provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Update results
+        updated_count = Result.objects.filter(
+            id__in=result_ids,
+            coordinator=coordinator,
+            status__in=['pending', 'submitted', 'under_review']
+        ).update(
+            status='approved',
+            coordinator_comments=comments
+        )
+        
+        return Response({
+            'message': f'Successfully approved {updated_count} results',
+            'updated_count': updated_count
+        })
+
+    @action(detail=False, methods=['post'])
+    def bulk_reject(self, request):
+        """Bulk reject multiple results"""
+        coordinator = get_object_or_404(Coordinator, email=request.user.email)
+        result_ids = request.data.get('result_ids', [])
+        comments = request.data.get('comments', '')
+        
+        if not result_ids:
+            return Response({'error': 'No result IDs provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Update results
+        updated_count = Result.objects.filter(
+            id__in=result_ids,
+            coordinator=coordinator,
+            status__in=['pending', 'submitted', 'under_review']
+        ).update(
+            status='rejected',
+            coordinator_comments=comments
+        )
+        
+        return Response({
+            'message': f'Successfully rejected {updated_count} results',
+            'updated_count': updated_count
+        })
 

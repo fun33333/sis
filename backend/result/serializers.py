@@ -73,6 +73,10 @@ class ResultCreateSerializer(serializers.ModelSerializer):
         # Calculate totals
         result.calculate_totals()
         
+        # Auto-submit to coordinator (change status from draft to submitted)
+        result.status = 'submitted'
+        result.save()
+        
         return result
 
 class ResultUpdateSerializer(serializers.ModelSerializer):
@@ -117,16 +121,26 @@ class ResultSubmitSerializer(serializers.ModelSerializer):
         fields = ['status']
     
     def update(self, instance, validated_data):
-        if instance.status != 'draft':
-            raise serializers.ValidationError("Only draft results can be submitted")
+        # With new workflow, results are auto-submitted on creation
+        # This endpoint is now used for forwarding to coordinator
+        if instance.status not in ['draft', 'submitted']:
+            raise serializers.ValidationError("Only draft or submitted results can be forwarded")
         
-        # Validate all subjects pass
+        # Allow both pass and fail results to be forwarded
+        # Just log the failed subjects for record keeping
         failed_subjects = instance.subject_marks.filter(is_pass=False)
         if failed_subjects.exists():
             failed_names = [sm.get_subject_name_display() for sm in failed_subjects]
-            raise serializers.ValidationError(f"Student failed in: {', '.join(failed_names)}")
+            print(f"⚠️ Student failed in: {', '.join(failed_names)} - but allowing forwarding for record keeping")
         
-        instance.status = 'submitted'
+        # Set status based on what's being requested
+        new_status = validated_data.get('status', 'submitted')
+        if new_status == 'pending':
+            instance.status = 'pending'
+        elif new_status == 'submitted':
+            instance.status = 'submitted'
+        else:
+            instance.status = new_status
         instance.save()
         
         return instance
@@ -137,8 +151,8 @@ class ResultApprovalSerializer(serializers.ModelSerializer):
         fields = ['status', 'coordinator_comments']
     
     def update(self, instance, validated_data):
-        if instance.status not in ['submitted', 'under_review']:
-            raise serializers.ValidationError("Only submitted results can be approved/rejected")
+        if instance.status not in ['submitted', 'under_review', 'pending']:
+            raise serializers.ValidationError("Only submitted, under_review, or pending results can be approved/rejected")
         
         instance.status = validated_data.get('status')
         instance.coordinator_comments = validated_data.get('coordinator_comments', '')

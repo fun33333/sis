@@ -13,12 +13,13 @@ class StudentSerializer(serializers.ModelSerializer):
     # Computed fields
     campus_name = serializers.SerializerMethodField()
     classroom_name = serializers.SerializerMethodField()
+    class_name = serializers.SerializerMethodField()
     age = serializers.SerializerMethodField()
     
     class Meta:
         model = Student
         fields = '__all__'
-        extra_fields = ['campus_data', 'classroom_data', 'campus_name', 'classroom_name', 'age']
+        extra_fields = ['campus_data', 'classroom_data', 'campus_name', 'classroom_name', 'class_name', 'age']
     
     def get_campus_name(self, obj):
         """Get campus name for display"""
@@ -28,6 +29,12 @@ class StudentSerializer(serializers.ModelSerializer):
         """Get classroom name for display"""
         if obj.classroom:
             return f"{obj.classroom.grade.name} - {obj.classroom.section}"
+        return None
+    
+    def get_class_name(self, obj):
+        """Get class name for display"""
+        if obj.classroom and obj.classroom.grade:
+            return f"{obj.classroom.grade.name} {obj.classroom.section}"
         return None
     
     def get_age(self, obj):

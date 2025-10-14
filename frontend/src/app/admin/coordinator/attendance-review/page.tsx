@@ -104,7 +104,7 @@ export default function AttendanceReviewPage() {
         return;
       }
       
-      if (!profile.level) {
+      if (!profile.level || !profile.level.name) {
         setError("No level assigned to you. Please contact administrator.");
         return;
       }

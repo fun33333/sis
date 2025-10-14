@@ -204,6 +204,12 @@ def current_user_profile(request):
             user_data.update({
                 'coordinator_id': coordinator.id,
                 'full_name': coordinator.full_name,
+                'level': {
+                    'id': coordinator.level.id,
+                    'name': coordinator.level.name,
+                } if coordinator.level else None,
+                'employee_code': coordinator.employee_code,
+                'is_currently_active': coordinator.is_currently_active,
             })
         except Coordinator.DoesNotExist:
             pass

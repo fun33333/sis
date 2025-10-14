@@ -95,11 +95,24 @@ export async function authorizedFetch(path: string, init: RequestInit = {}, alre
 
   const headers = new Headers(init.headers || {});
   const token = getAccessToken();
-  if (token) headers.set('Authorization', `Bearer ${token}`);
+  console.log('🔑 Token check:', token ? 'Token exists' : 'No token');
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+    console.log('🔑 Authorization header set');
+  } else {
+    console.log('❌ No token available for authorization');
+  }
 
+  console.log('🌐 Making fetch request to:', url);
+  console.log('🌐 Headers:', Object.fromEntries(headers.entries()));
+  
   const res = await fetch(url, { ...init, headers, credentials: 'omit' });
+  
+  console.log('📡 Fetch response status:', res.status, res.statusText);
 
   if (res.status !== 401) return res;
+  
+  console.log('🔄 Got 401, attempting token refresh...');
 
   // Attempt token refresh once
   if (!alreadyRetried) {
@@ -127,13 +140,13 @@ export async function authorizedFetch(path: string, init: RequestInit = {}, alre
 }
 
 // Auth APIs
-export async function loginWithEmailPassword(email: string, password: string) {
+export async function loginWithEmailPassword(emailOrCode: string, password: string) {
   const base = getApiBaseUrl();
   const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
   const res = await fetch(`${cleanBase}${API_ENDPOINTS.AUTH_LOGIN}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email: emailOrCode, password }),
     credentials: 'omit'
   });
   if (!res.ok) {
@@ -1120,6 +1133,103 @@ export async function createResult(data: ResultData) {
   }
 }
 
+// Coordinator Result Functions
+export async function getCoordinatorResults() {
+  try {
+    console.log('🌐 Making API call to /api/result/coordinator/results/');
+    console.log('🔑 Current token:', localStorage.getItem('sis_access_token') ? 'Token exists' : 'No token');
+    
+    const response = await apiGet('/api/result/coordinator/results/');
+    console.log('🌐 API response received:', response);
+    console.log('🌐 Response type:', typeof response);
+    console.log('🌐 Is array?', Array.isArray(response));
+    
+    // Handle paginated response
+    if (response && typeof response === 'object' && 'results' in response) {
+      console.log('📄 Paginated response detected, returning results array');
+      return response.results;
+    }
+    
+    // Handle direct array response
+    if (Array.isArray(response)) {
+      console.log('📄 Direct array response detected');
+      return response;
+    }
+    
+    console.log('⚠️ Unexpected response format:', response);
+    return [];
+    
+  } catch (error: any) {
+    console.error('❌ Failed to fetch coordinator results:', error);
+    console.error('❌ Error details:', error?.message);
+    console.error('❌ Error status:', error?.status);
+    console.error('❌ Error response:', error?.response);
+    
+    // If it's an authentication error, clear tokens and redirect
+    if (error?.status === 401) {
+      console.log('🔐 Authentication error detected, clearing tokens');
+      localStorage.removeItem('sis_access_token');
+      localStorage.removeItem('sis_refresh_token');
+      localStorage.removeItem('sis_user');
+      window.location.href = '/Universal_Login';
+      return [];
+    }
+    
+    throw error;
+  }
+}
+
+export async function getCoordinatorPendingResults() {
+  try {
+    return await apiGet('/api/result/coordinator/pending/');
+  } catch (error) {
+    console.error('Failed to fetch pending results:', error);
+    throw error;
+  }
+}
+
+export async function approveResult(resultId: number, data: { status: string; coordinator_comments: string }) {
+  try {
+    return await apiPut(`/api/result/${resultId}/approve/`, data);
+  } catch (error) {
+    console.error('Failed to approve result:', error);
+    throw error;
+  }
+}
+
+export async function rejectResult(resultId: number, data: { status: string; coordinator_comments: string }) {
+  try {
+    return await apiPut(`/api/result/${resultId}/approve/`, data);
+  } catch (error) {
+    console.error('Failed to reject result:', error);
+    throw error;
+  }
+}
+
+export async function bulkApproveResults(resultIds: number[], comments: string) {
+  try {
+    return await apiPost('/api/result/coordinator/results/bulk_approve/', {
+      result_ids: resultIds,
+      comments: comments
+    });
+  } catch (error) {
+    console.error('Failed to bulk approve results:', error);
+    throw error;
+  }
+}
+
+export async function bulkRejectResults(resultIds: number[], comments: string) {
+  try {
+    return await apiPost('/api/result/coordinator/results/bulk_reject/', {
+      result_ids: resultIds,
+      comments: comments
+    });
+  } catch (error) {
+    console.error('Failed to bulk reject results:', error);
+    throw error;
+  }
+}
+
 export async function getMyResults() {
   try {
     return await apiGet('/api/result/my-results/');
@@ -1156,6 +1266,15 @@ export async function submitResult(resultId: number) {
   }
 }
 
+export async function forwardResult(resultId: number) {
+  try {
+    return await apiPut(`/api/result/${resultId}/submit/`, { status: 'pending' });
+  } catch (error) {
+    console.error('Failed to forward result:', error);
+    throw error;
+  }
+}
+
 export async function checkMidTerm(studentId: number): Promise<MidTermCheck> {
   try {
     return await apiGet(`/api/result/check-midterm/${studentId}/`);
@@ -1165,38 +1284,6 @@ export async function checkMidTerm(studentId: number): Promise<MidTermCheck> {
   }
 }
 
-export async function getCoordinatorPendingResults() {
-  try {
-    return await apiGet('/api/result/coordinator/pending/');
-  } catch (error) {
-    console.error('Failed to fetch pending results:', error);
-    return [];
-  }
-}
-
-export async function approveResult(resultId: number, comments?: string) {
-  try {
-    return await apiPut(`/api/result/${resultId}/approve/`, {
-      status: 'approved',
-      coordinator_comments: comments || ''
-    });
-  } catch (error) {
-    console.error('Failed to approve result:', error);
-    throw error;
-  }
-}
-
-export async function rejectResult(resultId: number, comments: string) {
-  try {
-    return await apiPut(`/api/result/${resultId}/approve/`, {
-      status: 'rejected',
-      coordinator_comments: comments
-    });
-  } catch (error) {
-    console.error('Failed to reject result:', error);
-    throw error;
-  }
-}
 
 export async function updateRequestStatus(requestId: number, data: RequestUpdateData) {
   try {

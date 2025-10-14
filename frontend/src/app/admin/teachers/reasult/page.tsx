@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { 
   Edit3, 
-  Save, 
   X, 
   Plus, 
   Users, 
@@ -19,16 +18,17 @@ import {
   CheckCircle,
   AlertCircle,
   Eye,
-  Send
+  Send,
+  CheckSquare,
+  Square
 } from "lucide-react";
 import { 
-  getClassroomStudents, 
   getCurrentUserProfile,
   createResult,
   getMyResults,
   checkMidTerm,
   submitResult,
-  getAllStudents,
+  forwardResult,
   getTeacherStudents,
   ResultData,
   Result,
@@ -69,6 +69,12 @@ export default function TeacherResultPage() {
   const [subjectMarks, setSubjectMarks] = useState<SubjectMark[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [midTermCheck, setMidTermCheck] = useState<any>(null);
+  
+  // Bulk actions
+  const [selectedResults, setSelectedResults] = useState<number[]>([]);
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkComments, setBulkComments] = useState("");
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -96,7 +102,7 @@ export default function TeacherResultPage() {
       console.log('👥 Is array?', Array.isArray(studentsData));
       console.log('👥 Students length:', studentsData?.length);
       console.log('👥 First student:', studentsData?.[0]);
-      setStudents(studentsData as Student[]);
+        setStudents(studentsData as Student[]);
         
         // Fetch existing results
         const resultsData = await getMyResults();
@@ -255,10 +261,71 @@ export default function TeacherResultPage() {
     }
   };
 
+  const handleForwardResult = async (resultId: number) => {
+    try {
+      setSubmitting(true);
+      await forwardResult(resultId);
+      toast.success('Result forwarded to coordinator');
+      await fetchData();
+    } catch (error: any) {
+      console.error('Error forwarding result:', error);
+      toast.error(error?.response?.data?.error || 'Failed to forward result');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Bulk actions
+  const handleSelectResult = (resultId: number) => {
+    setSelectedResults(prev =>
+      prev.includes(resultId)
+        ? prev.filter(id => id !== resultId)
+        : [...prev, resultId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    const forwardableResults = safeResults.filter(r => r.status === 'submitted');
+    if (selectedResults.length === forwardableResults.length) {
+      setSelectedResults([]);
+    } else {
+      setSelectedResults(forwardableResults.map(r => r.id));
+    }
+  };
+
+  const handleBulkForward = async () => {
+    if (selectedResults.length === 0) {
+      toast.error('Please select results to forward');
+      return;
+    }
+
+    try {
+      setBulkProcessing(true);
+      
+      // Forward each selected result
+      for (const resultId of selectedResults) {
+        await submitResult(resultId);
+      }
+      
+      toast.success(`Successfully forwarded ${selectedResults.length} results to coordinator!`);
+      setShowBulkModal(false);
+      setSelectedResults([]);
+      setBulkComments("");
+      await fetchData();
+      
+    } catch (error: any) {
+      console.error('Error forwarding results:', error);
+      toast.error('Failed to forward results');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft': return 'bg-gray-100 text-gray-800';
       case 'submitted': return 'bg-blue-100 text-blue-800';
+      case 'pending': return 'bg-orange-100 text-orange-800';
       case 'under_review': return 'bg-yellow-100 text-yellow-800';
       case 'approved': return 'bg-green-100 text-green-800';
       case 'rejected': return 'bg-red-100 text-red-800';
@@ -355,8 +422,36 @@ export default function TeacherResultPage() {
         </Card>
       </div>
 
-      {/* Create Result Button */}
-      <div className="flex justify-end">
+      {/* Action Buttons */}
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          {safeResults.filter(r => r.status === 'submitted').length > 0 && (
+            <>
+              <Button
+                onClick={handleSelectAll}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                {selectedResults.length === safeResults.filter(r => r.status === 'submitted').length ? (
+                  <Square className="h-4 w-4" />
+                ) : (
+                  <CheckSquare className="h-4 w-4" />
+                )}
+                Select All Forwardable
+              </Button>
+              
+              <Button
+                onClick={() => setShowBulkModal(true)}
+                disabled={selectedResults.length === 0}
+                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+              >
+                <Send className="h-4 w-4" />
+                Bulk Forward ({selectedResults.length})
+              </Button>
+            </>
+          )}
+        </div>
+        
         <Button
           onClick={() => setShowCreateForm(true)}
           className="bg-[#274c77] hover:bg-[#1e3a5f] text-white"
@@ -384,6 +479,7 @@ export default function TeacherResultPage() {
               <table className="w-full text-center border-collapse">
 					<thead>
 						<tr className="bg-[#a3cef1] text-[#274c77]">
+                    <th className="py-3 px-4 border font-semibold">Select</th>
                     <th className="py-3 px-4 border font-semibold">Student</th>
                     <th className="py-3 px-4 border font-semibold">Exam Type</th>
                     <th className="py-3 px-4 border font-semibold">Total Marks</th>
@@ -398,6 +494,16 @@ export default function TeacherResultPage() {
 					<tbody>
                   {safeResults.map((result) => (
                     <tr key={result.id} className="hover:bg-gray-50">
+                      <td className="border py-3 px-4">
+                        {result.status === 'submitted' && (
+                          <input
+                            type="checkbox"
+                            checked={selectedResults.includes(result.id)}
+                            onChange={() => handleSelectResult(result.id)}
+                            className="h-4 w-4 text-[#274c77] focus:ring-[#274c77] border-gray-300 rounded"
+                          />
+                        )}
+                      </td>
                       <td className="border py-3 px-4 font-medium">
                         {result.student.student_code} - {result.student.full_name}
                       </td>
@@ -412,11 +518,11 @@ export default function TeacherResultPage() {
                       </td>
                       <td className="border py-3 px-4">
                         <Badge className={getStatusColor(result.status)}>
-                          {result.status_display}
+                          {result.status.charAt(0).toUpperCase() + result.status.slice(1).replace('_', ' ')}
                         </Badge>
                       </td>
                       <td className="border py-3 px-4">
-                        {result.status === 'draft' ? '∞' : Math.max(0, 3 - result.edit_count)}
+                        {result.status === 'submitted' || result.status === 'pending' ? '∞' : Math.max(0, 3 - result.edit_count)}
                       </td>
                       <td className="border py-3 px-4">
                         <div className="flex gap-2 justify-center">
@@ -427,24 +533,29 @@ export default function TeacherResultPage() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {result.status === 'draft' && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {/* Edit result */}}
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
+                          {result.status === 'submitted' && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {/* Edit result */}}
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleForwardResult(result.id)}
+                                disabled={submitting}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
-                          {result.status === 'draft' && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleSubmitResult(result.id)}
-                              disabled={submitting}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              <Send className="h-4 w-4" />
-                            </Button>
+                          {result.status === 'pending' && (
+                            <Badge className="bg-orange-100 text-orange-800">
+                              Forwarded
+                            </Badge>
                           )}
                         </div>
                       </td>
@@ -488,9 +599,9 @@ export default function TeacherResultPage() {
                       students.map((student, index) => {
                         console.log(`Student ${index}:`, student);
                         return (
-                          <option key={student.id} value={student.id}>
+                    <option key={student.id} value={student.id}>
                             {student.student_code || student.student_id || student.gr_no} - {student.name || student.full_name}
-                          </option>
+                    </option>
                         );
                       })
                     ) : (
@@ -764,6 +875,52 @@ export default function TeacherResultPage() {
                   className="flex-1 py-3 text-lg font-semibold rounded-xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
                 >
                   <X className="h-5 w-5 mr-2" />
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Bulk Forward Modal */}
+      {showBulkModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Send className="h-5 w-5" />
+                Bulk Forward Results
+              </CardTitle>
+              <CardDescription>
+                Forward {selectedResults.length} selected results to coordinator
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Comments (Optional)</label>
+                <textarea
+                  value={bulkComments}
+                  onChange={(e) => setBulkComments(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#274c77]"
+                  rows={3}
+                  placeholder="Add comments for coordinator..."
+                />
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={handleBulkForward}
+                  disabled={bulkProcessing}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {bulkProcessing ? <LoadingSpinner /> : 'Forward All'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowBulkModal(false)}
+                  className="flex-1"
+                >
                   Cancel
                 </Button>
               </div>
