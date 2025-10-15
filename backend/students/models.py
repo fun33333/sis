@@ -179,10 +179,21 @@ class Student(models.Model):
 
         if not self.student_id and all([self.campus, self.shift, self.enrollment_year, self.student_number]):
             from users.utils import generate_student_id, get_shift_code
-            campus_code = self.campus.code or f"C{self.campus.id:02d}"
+            campus_code = self.campus.campus_code or f"C{self.campus.id:02d}"
             shift_code = get_shift_code(self.shift)
             year = str(self.enrollment_year)[-2:]
             self.student_id = generate_student_id(campus_code, shift_code, year, self.student_number)
+
+        # Auto-generate GR No. from Student ID (last 5 digits)
+        if self.student_id and not self.gr_no:
+            # Extract last 5 digits from student_id
+            if len(self.student_id) >= 5:
+                last_5_digits = self.student_id[-5:]
+                self.gr_no = f"GR-{last_5_digits}"
+            else:
+                # If student_id is shorter than 5 digits, pad with zeros
+                padded_id = self.student_id.zfill(5)
+                self.gr_no = f"GR-{padded_id}"
 
         super().save(*args, **kwargs)
 

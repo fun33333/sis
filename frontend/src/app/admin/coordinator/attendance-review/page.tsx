@@ -232,40 +232,106 @@ export default function AttendanceReviewPage() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Enhanced Filters */}
       <Card style={{ backgroundColor: 'white', borderColor: '#a3cef1' }}>
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-4">
+        <CardHeader>
+          <CardTitle className="text-[#274c77] flex items-center">
+            <Calendar className="h-5 w-5 mr-2" />
+            Filter & Search Options
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Week Selection */}
             <div>
-              <label className="text-sm font-medium text-gray-600">Time Period</label>
+              <label className="text-sm font-medium text-gray-600 mb-2 block">Week Selection</label>
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="current">Current Month</SelectItem>
-                  <SelectItem value="last30">Last 30 Days</SelectItem>
-                  <SelectItem value="2024-01">January 2024</SelectItem>
-                  <SelectItem value="2024-02">February 2024</SelectItem>
-                  <SelectItem value="2024-03">March 2024</SelectItem>
+                  <SelectItem value="current">Current Week</SelectItem>
+                  <SelectItem value="lastweek">Last Week</SelectItem>
+                  <SelectItem value="week1">Week 1 (Jan 1-7)</SelectItem>
+                  <SelectItem value="week2">Week 2 (Jan 8-14)</SelectItem>
+                  <SelectItem value="week3">Week 3 (Jan 15-21)</SelectItem>
+                  <SelectItem value="week4">Week 4 (Jan 22-28)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Grade Filter */}
             <div>
-              <label className="text-sm font-medium text-gray-600">Class Filter</label>
+              <label className="text-sm font-medium text-gray-600 mb-2 block">Grade Filter</label>
               <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Classes</SelectItem>
-                  {classrooms.map((cls) => (
-                    <SelectItem key={cls.id} value={cls.id.toString()}>
-                      {cls.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">All Grades</SelectItem>
+                  {(() => {
+                    // Get unique grades from classrooms in coordinator's level
+                    const uniqueGrades = [...new Set(classrooms.map(cls => cls.grade).filter(Boolean))];
+                    return uniqueGrades.map(grade => (
+                      <SelectItem key={grade} value={grade}>
+                        {grade}
+                      </SelectItem>
+                    ));
+                  })()}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Section Filter */}
+            <div>
+              <label className="text-sm font-medium text-gray-600 mb-2 block">Section Filter</label>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sections</SelectItem>
+                  {(() => {
+                    // Get unique sections from classrooms in coordinator's level
+                    const uniqueSections = [...new Set(classrooms.map(cls => cls.section).filter(Boolean))];
+                    return uniqueSections.map(section => (
+                      <SelectItem key={section} value={section}>
+                        Section {section}
+                      </SelectItem>
+                    ));
+                  })()}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="flex space-x-2">
+              <Button 
+                onClick={fetchAttendanceSummary}
+                className="bg-[#6096ba] hover:bg-[#274c77] text-white"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Data
+              </Button>
+              <Button 
+                variant="outline"
+                className="border-green-500 text-green-500 hover:bg-green-50"
+              >
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Export PDF
+              </Button>
+              <Button 
+                variant="outline"
+                className="border-blue-500 text-blue-500 hover:bg-blue-50"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Export Excel
+              </Button>
+            </div>
+            <div className="text-sm text-gray-500">
+              Last updated: {new Date().toLocaleString()}
             </div>
           </div>
         </CardContent>
@@ -274,55 +340,91 @@ export default function AttendanceReviewPage() {
       {/* Summary Cards */}
       {attendanceSummary && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-              <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Overall Attendance Card */}
+            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm opacity-90">Overall Attendance</p>
-                    <p className="text-2xl font-bold">{attendanceSummary.summary.overall_percentage}%</p>
+                    <p className="text-sm opacity-90 mb-1">Overall Attendance</p>
+                    <p className="text-3xl font-bold">{attendanceSummary.summary.overall_percentage}%</p>
+                    <p className="text-xs opacity-75 mt-1">This Week</p>
                   </div>
-                  <TrendingUp className="h-8 w-8 opacity-80" />
+                  <TrendingUp className="h-10 w-10 opacity-80" />
+                </div>
+                <div className="mt-4 bg-white/20 rounded-lg p-2">
+                  <div className="flex justify-between text-xs">
+                    <span>Target: 90%</span>
+                    <span className={attendanceSummary.summary.overall_percentage >= 90 ? 'text-green-200' : 'text-yellow-200'}>
+                      {attendanceSummary.summary.overall_percentage >= 90 ? '✓ Achieved' : '⚠ Below Target'}
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-              <CardContent className="p-4">
+            {/* Total Students Card */}
+            <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm opacity-90">Total Students</p>
-                    <p className="text-2xl font-bold">{attendanceSummary.summary.total_students}</p>
+                    <p className="text-sm opacity-90 mb-1">Total Students</p>
+                    <p className="text-3xl font-bold">{attendanceSummary.summary.total_students}</p>
+                    <p className="text-xs opacity-75 mt-1">Across All Classes</p>
                   </div>
-                  <Users className="h-8 w-8 opacity-80" />
+                  <Users className="h-10 w-10 opacity-80" />
+                </div>
+                <div className="mt-4 bg-white/20 rounded-lg p-2">
+                  <div className="flex justify-between text-xs">
+                    <span>Classes: {attendanceSummary.summary.total_classrooms}</span>
+                    <span>Avg/Class: {Math.round(attendanceSummary.summary.total_students / attendanceSummary.summary.total_classrooms)}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-              <CardContent className="p-4">
+            {/* Present Students Card */}
+            <Card className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm opacity-90">Present</p>
-                    <p className="text-2xl font-bold">{attendanceSummary.summary.total_present}</p>
+                    <p className="text-sm opacity-90 mb-1">Present Students</p>
+                    <p className="text-3xl font-bold">{attendanceSummary.summary.total_present}</p>
+                    <p className="text-xs opacity-75 mt-1">This Week</p>
                   </div>
-                  <CheckCircle className="h-8 w-8 opacity-80" />
+                  <CheckCircle className="h-10 w-10 opacity-80" />
                 </div>
-          </CardContent>
-        </Card>
+                <div className="mt-4 bg-white/20 rounded-lg p-2">
+                  <div className="flex justify-between text-xs">
+                    <span>Percentage: {Math.round((attendanceSummary.summary.total_present / attendanceSummary.summary.total_students) * 100)}%</span>
+                    <span className="text-green-200">✓ Good</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-            <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
-              <CardContent className="p-4">
+            {/* Absent Students Card */}
+            <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm opacity-90">Absent</p>
-                    <p className="text-2xl font-bold">{attendanceSummary.summary.total_absent}</p>
+                    <p className="text-sm opacity-90 mb-1">Absent Students</p>
+                    <p className="text-3xl font-bold">{attendanceSummary.summary.total_absent}</p>
+                    <p className="text-xs opacity-75 mt-1">This Week</p>
                   </div>
-                  <AlertCircle className="h-8 w-8 opacity-80" />
+                  <AlertCircle className="h-10 w-10 opacity-80" />
                 </div>
-          </CardContent>
-        </Card>
-      </div>
+                <div className="mt-4 bg-white/20 rounded-lg p-2">
+                  <div className="flex justify-between text-xs">
+                    <span>Percentage: {Math.round((attendanceSummary.summary.total_absent / attendanceSummary.summary.total_students) * 100)}%</span>
+                    <span className={attendanceSummary.summary.total_absent > 20 ? 'text-red-200' : 'text-yellow-200'}>
+                      {attendanceSummary.summary.total_absent > 20 ? '⚠ High' : '✓ Normal'}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Class-wise Attendance Table */}
           <Card>

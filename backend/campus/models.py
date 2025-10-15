@@ -153,5 +153,5 @@ class Campus(models.Model):
 
         super().save(*args, **kwargs)
 
-    def _str_(self):
+    def __str__(self):
         return f"{self.campus_name} ({self.campus_code})"

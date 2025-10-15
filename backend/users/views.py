@@ -61,15 +61,85 @@ class UserLoginView(generics.GenericAPIView):
             user.last_login_ip = self.get_client_ip(request)
             user.save()
             
+            # Get complete user profile
+            user_profile = self.get_complete_user_profile(user)
+            
             return Response({
                 'access': str(refresh.access_token),
                 'refresh': str(refresh),
-                'user': UserSerializer(user).data
+                'user': user_profile
             }, status=status.HTTP_200_OK)
         
         return Response({
             'error': 'Invalid credentials'
         }, status=status.HTTP_401_UNAUTHORIZED)
+    
+    def get_complete_user_profile(self, user):
+        """Get complete user profile based on role"""
+        profile_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'role': user.role,
+            'is_active': user.is_active,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        }
+        
+        if user.role == 'principal':
+            try:
+                from principals.models import Principal
+                principal = Principal.objects.get(employee_code=user.username)
+                profile_data.update({
+                    'principal_id': principal.id,
+                    'campus_id': principal.campus.id if principal.campus else None,
+                    'campus_name': principal.campus.campus_name if principal.campus else None,
+                    'campus_code': principal.campus.campus_code if principal.campus else None,
+                    'full_name': principal.full_name,
+                    'contact_number': principal.contact_number,
+                    'employee_code': principal.employee_code,
+                    'shift': principal.shift,
+                })
+            except Principal.DoesNotExist:
+                pass
+                
+        elif user.role == 'coordinator':
+            try:
+                from coordinator.models import Coordinator
+                coordinator = Coordinator.objects.get(employee_code=user.username)
+                profile_data.update({
+                    'coordinator_id': coordinator.id,
+                    'campus_id': coordinator.campus.id if coordinator.campus else None,
+                    'campus_name': coordinator.campus.campus_name if coordinator.campus else None,
+                    'campus_code': coordinator.campus.campus_code if coordinator.campus else None,
+                    'level_id': coordinator.level.id if coordinator.level else None,
+                    'level_name': coordinator.level.name if coordinator.level else None,
+                    'full_name': coordinator.full_name,
+                    'contact_number': coordinator.contact_number,
+                    'employee_code': coordinator.employee_code,
+                })
+            except Coordinator.DoesNotExist:
+                pass
+                
+        elif user.role == 'teacher':
+            try:
+                from teachers.models import Teacher
+                teacher = Teacher.objects.get(employee_code=user.username)
+                profile_data.update({
+                    'teacher_id': teacher.id,
+                    'campus_id': teacher.current_campus.id if teacher.current_campus else None,
+                    'campus_name': teacher.current_campus.campus_name if teacher.current_campus else None,
+                    'full_name': teacher.full_name,
+                    'contact_number': teacher.contact_number,
+                    'employee_code': teacher.employee_code,
+                    'assigned_classroom_id': teacher.assigned_classroom.id if teacher.assigned_classroom else None,
+                    'assigned_classroom_name': f"{teacher.assigned_classroom.grade.name}-{teacher.assigned_classroom.section}" if teacher.assigned_classroom else None,
+                    'is_class_teacher': teacher.is_class_teacher,
+                })
+            except Teacher.DoesNotExist:
+                pass
+        
+        return profile_data
     
     def get_client_ip(self, request):
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -162,7 +232,7 @@ def current_user_profile(request):
     if user.role == 'teacher':
         try:
             from teachers.models import Teacher
-            teacher = Teacher.objects.get(email=user.email)
+            teacher = Teacher.objects.get(employee_code=user.username)
             user_data.update({
                 'teacher_id': teacher.id,
                 'full_name': teacher.full_name,
@@ -180,10 +250,28 @@ def current_user_profile(request):
             })
         except Teacher.DoesNotExist:
             pass
+    elif user.role == 'coordinator':
+        try:
+            from coordinator.models import Coordinator
+            coordinator = Coordinator.objects.get(employee_code=user.username)
+            user_data.update({
+                'coordinator_id': coordinator.id,
+                'full_name': coordinator.full_name,
+                'level': {
+                    'id': coordinator.level.id,
+                    'name': coordinator.level.name,
+                } if coordinator.level else None,
+                'campus': {
+                    'id': coordinator.campus.id,
+                    'campus_name': coordinator.campus.campus_name,
+                } if coordinator.campus else None,
+            })
+        except Coordinator.DoesNotExist:
+            pass
     elif user.role == 'principal':
         try:
             from principals.models import Principal
-            principal = Principal.objects.get(email=user.email)
+            principal = Principal.objects.get(employee_code=user.username)
             user_data.update({
                 'principal_id': principal.id,
                 'full_name': principal.full_name,

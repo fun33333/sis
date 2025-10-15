@@ -168,6 +168,13 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         subItems: [],
       },
       {
+        key: "campus-management",
+        title: "Campus Management",
+        icon: Building2,
+        href: "/admin/principal/campus-management",
+        subItems: [],
+      },
+      {
         key: "students",
         title: "Students",
         icon: Users,

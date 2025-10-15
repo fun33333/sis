@@ -37,13 +37,13 @@ function CoordinatorStudentListContent() {
            
            // Backend automatically filters students based on logged-in coordinator
            // No need to find coordinator separately
-           const studentsData = await getAllStudents();
+           const studentsData = await getAllStudents(true); // Force refresh to get latest data
            
            // Map student data to the expected format
            const mappedStudents = studentsData.map((student: any) => ({
              id: student.id,
              name: student.name || 'Unknown',
-             student_code: student.student_code || 'Not Assigned',
+             student_code: student.student_id || student.student_code || 'Not Assigned',
              gr_no: student.gr_no || 'Not Assigned',
              father_name: student.father_name || 'Not provided',
              email: student.email || 'Not provided',
@@ -97,7 +97,7 @@ function CoordinatorStudentListContent() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search students by name, code, or father's name..."
+                  placeholder="Search students by name, ID, or father's name..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 w-80"
@@ -126,7 +126,7 @@ function CoordinatorStudentListContent() {
                <TableHeader>
                  <TableRow style={{ backgroundColor: '#274c77' }}>
                    <TableHead className="text-white">Name</TableHead>
-                   <TableHead className="text-white">Student Code</TableHead>
+                   <TableHead className="text-white">Student ID</TableHead>
                    <TableHead className="text-white">GR No</TableHead>
                    <TableHead className="text-white">Father Name</TableHead>
                    <TableHead className="text-white">Grade</TableHead>

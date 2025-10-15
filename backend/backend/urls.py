@@ -33,6 +33,7 @@ urlpatterns = [
     path("api/", include("attendance.urls")),
     path("api/requests/", include("requests.urls")),
     path("api/result/", include("result.urls")),
+    path('api/', include('classes.urls')),
     # GraphQL endpoint
     path("graphql/", csrf_exempt(GraphQLView.as_view(graphiql=True))),
     # Removed services.urls - not needed for utility apps

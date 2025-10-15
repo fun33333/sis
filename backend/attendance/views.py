@@ -250,9 +250,9 @@ def get_class_students(request, classroom_id):
     user = request.user
     if user.is_teacher():
         try:
-            # Find teacher by email since there's no direct relationship
+            # Find teacher by employee code (username)
             from teachers.models import Teacher
-            teacher = Teacher.objects.get(email=user.email)
+            teacher = Teacher.objects.get(employee_code=user.username)
             if teacher.assigned_classroom != classroom:
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         except Teacher.DoesNotExist:

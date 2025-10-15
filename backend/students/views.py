@@ -33,10 +33,10 @@ class StudentViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(campus=user.campus)
         elif user.is_teacher():
             # Teacher: Only show students from their assigned classroom
-            # Find teacher by email
+            # Find teacher by employee code (username)
             from teachers.models import Teacher
             try:
-                teacher_obj = Teacher.objects.get(email=user.email)
+                teacher_obj = Teacher.objects.get(employee_code=user.username)
                 if teacher_obj.assigned_classroom:
                     queryset = queryset.filter(classroom=teacher_obj.assigned_classroom)
                 else:
@@ -49,13 +49,13 @@ class StudentViewSet(viewsets.ModelViewSet):
             # Coordinator: Show students from classrooms under their assigned level
             from coordinator.models import Coordinator
             try:
-                coordinator_obj = Coordinator.objects.get(email=user.email)
+                coordinator_obj = Coordinator.objects.get(employee_code=user.username)
                 
                 # Get all classrooms under this coordinator's level
                 from classes.models import ClassRoom
                 coordinator_classrooms = ClassRoom.objects.filter(
                     grade__level=coordinator_obj.level,
-                    grade__level__campus=coordinator_obj.campus
+                    grade__campus=coordinator_obj.campus
                 ).values_list('id', flat=True)
                 
                 # Filter students from these classrooms

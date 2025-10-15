@@ -54,8 +54,35 @@ export class ApiError extends Error {
 
 // Generic API error handler
 function handleApiError(response: Response, errorText: string): never {
-  const errorMessage = `API Error (${response.status}): ${response.statusText}`;
-  console.error(errorMessage, errorText);
+  let errorMessage = `API Error (${response.status}): ${response.statusText}`;
+  
+  // Try to parse JSON error response for specific error message
+  try {
+    const errorData = JSON.parse(errorText);
+    
+    // Handle different error response formats
+    if (errorData.error) {
+      // Simple error field
+      errorMessage = errorData.error;
+    } else if (errorData.detail) {
+      // DRF detail field
+      errorMessage = errorData.detail;
+    } else if (typeof errorData === 'object') {
+      // Handle ValidationError format - extract first field error
+      const fieldErrors = Object.values(errorData);
+      if (fieldErrors.length > 0) {
+        const firstError = Array.isArray(fieldErrors[0]) ? fieldErrors[0][0] : fieldErrors[0];
+        errorMessage = firstError;
+      }
+    }
+  } catch {
+    // If not JSON, use the error text as is
+    if (errorText) {
+      errorMessage = errorText;
+    }
+  }
+  
+  // Don't log here - let the calling component decide how to handle it
   throw new ApiError(errorMessage, response.status, response.statusText, errorText);
 }
 
@@ -167,7 +194,38 @@ export function logoutClientOnly() {
   clearAuthTokens();
   if (typeof window !== 'undefined') {
     window.localStorage.removeItem('sis_user');
+    window.localStorage.removeItem('userProfile'); // Clear userProfile too
   }
+}
+
+// Helper function to get user profile from localStorage
+export function getStoredUserProfile() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const profile = window.localStorage.getItem('sis_user');
+    return profile ? JSON.parse(profile) : null;
+  } catch (error) {
+    console.error('Error parsing user profile:', error);
+    return null;
+  }
+}
+
+// Helper function to get campus ID for principals
+export function getUserCampusId(): number | null {
+  const profile = getStoredUserProfile();
+  return profile?.campus_id || null;
+}
+
+// Helper function to get level ID for coordinators
+export function getUserLevelId(): number | null {
+  const profile = getStoredUserProfile();
+  return profile?.level_id || null;
+}
+
+// Helper function to get user role
+export function getUserRole(): string | null {
+  const profile = getStoredUserProfile();
+  return profile?.role || null;
 }
 
 //post api call for creating a new campus; and other JSON POSTs
@@ -399,12 +457,14 @@ export async function getDashboardStudents(pageSize: number = 50) {
   }
 }
 
-export async function getAllStudents() {
+export async function getAllStudents(forceRefresh: boolean = false) {
   try {
-    // Try to get from cache first
-    const cached = CacheManager.get(CacheManager.KEYS.STUDENTS);
-    if (cached) {
-      return cached;
+    // Try to get from cache first (unless force refresh)
+    if (!forceRefresh) {
+      const cached = CacheManager.get(CacheManager.KEYS.STUDENTS);
+      if (cached) {
+        return cached;
+      }
     }
 
     // Fetch all students with pagination
@@ -757,16 +817,6 @@ export async function findCoordinatorByEmail(email: string) {
   }
 }
 
-export async function createLevel(levelData: any) {
-  try {
-    return await apiPost(API_ENDPOINTS.LEVELS, levelData);
-  } catch (error) {
-    console.error('Failed to create level:', error);
-    return null;
-  }
-}
-
-
 export async function getCampusStudents(campusId: number) {
   try {
     return await apiGet(`${API_ENDPOINTS.STUDENTS}?campus=${campusId}`);
@@ -817,11 +867,173 @@ export async function getAllCoordinators() {
 
 // List functions for displaying data
 
-export async function getLevels() {
+// Level Management APIs
+export async function getLevels(campusId?: number) {
   try {
-    return await apiGet(API_ENDPOINTS.LEVELS);
+    const url = campusId ? `${API_ENDPOINTS.LEVELS}?campus_id=${campusId}` : API_ENDPOINTS.LEVELS;
+    return await apiGet(url);
   } catch (error) {
     console.error('Failed to fetch levels:', error);
+    return [];
+  }
+}
+
+export async function createLevel(data: any) {
+  try {
+    return await apiPost(API_ENDPOINTS.LEVELS, data);
+  } catch (error) {
+    console.error('Failed to create level:', error);
+    throw error;
+  }
+}
+
+export async function updateLevel(id: number, data: any) {
+  try {
+    return await apiPut(`${API_ENDPOINTS.LEVELS}${id}/`, data);
+  } catch (error) {
+    console.error('Failed to update level:', error);
+    throw error;
+  }
+}
+
+export async function deleteLevel(id: number) {
+  try {
+    return await apiDelete(`${API_ENDPOINTS.LEVELS}${id}/`);
+  } catch (error) {
+    console.error('Failed to delete level:', error);
+    throw error;
+  }
+}
+
+// Grade Management APIs
+export async function getGrades(levelId?: number, campusId?: number) {
+  try {
+    let url = API_ENDPOINTS.GRADES;
+    const params = new URLSearchParams();
+    if (levelId) params.append('level_id', levelId.toString());
+    if (campusId) params.append('campus_id', campusId.toString());
+    if (params.toString()) url += `?${params.toString()}`;
+    return await apiGet(url);
+  } catch (error) {
+    console.error('Failed to fetch grades:', error);
+    return [];
+  }
+}
+
+export async function createGrade(data: any) {
+  try {
+    return await apiPost(API_ENDPOINTS.GRADES, data);
+  } catch (error) {
+    console.error('Failed to create grade:', error);
+    throw error;
+  }
+}
+
+export async function updateGrade(id: number, data: any) {
+  try {
+    return await apiPut(`${API_ENDPOINTS.GRADES}${id}/`, data);
+  } catch (error) {
+    console.error('Failed to update grade:', error);
+    throw error;
+  }
+}
+
+export async function deleteGrade(id: number) {
+  try {
+    return await apiDelete(`${API_ENDPOINTS.GRADES}${id}/`);
+  } catch (error) {
+    console.error('Failed to delete grade:', error);
+    throw error;
+  }
+}
+
+// Classroom Management APIs
+export async function getClassrooms(gradeId?: number, levelId?: number, campusId?: number) {
+  try {
+    let url = API_ENDPOINTS.CLASSROOMS;
+    const params = new URLSearchParams();
+    if (gradeId) params.append('grade_id', gradeId.toString());
+    if (levelId) params.append('level_id', levelId.toString());
+    if (campusId) params.append('campus_id', campusId.toString());
+    if (params.toString()) url += `?${params.toString()}`;
+    return await apiGet(url);
+  } catch (error) {
+    console.error('Failed to fetch classrooms:', error);
+    return [];
+  }
+}
+
+export async function createClassroom(data: any) {
+  try {
+    return await apiPost(API_ENDPOINTS.CLASSROOMS, data);
+  } catch (error) {
+    console.error('Failed to create classroom:', error);
+    throw error;
+  }
+}
+
+export async function updateClassroom(id: number, data: any) {
+  try {
+    return await apiPut(`${API_ENDPOINTS.CLASSROOMS}${id}/`, data);
+  } catch (error) {
+    console.error('Failed to update classroom:', error);
+    throw error;
+  }
+}
+
+export async function deleteClassroom(id: number) {
+  try {
+    return await apiDelete(`${API_ENDPOINTS.CLASSROOMS}${id}/`);
+  } catch (error) {
+    console.error('Failed to delete classroom:', error);
+    throw error;
+  }
+}
+
+// Teacher Assignment APIs
+export async function assignTeacherToClassroom(classroomId: number, teacherId: number) {
+  try {
+    return await apiPost(`${API_ENDPOINTS.CLASSROOMS}${classroomId}/assign_teacher/`, {
+      teacher_id: teacherId
+    });
+  } catch (error) {
+    console.error('Failed to assign teacher to classroom:', error);
+    throw error;
+  }
+}
+
+export async function getAvailableTeachers(campusId?: number) {
+  try {
+    const url = campusId 
+      ? `${API_ENDPOINTS.CLASSROOMS}available_teachers/?campus_id=${campusId}`
+      : `${API_ENDPOINTS.CLASSROOMS}available_teachers/`;
+    return await apiGet(url);
+  } catch (error) {
+    console.error('Failed to fetch available teachers:', error);
+    return [];
+  }
+}
+
+// Coordinator Assignment APIs
+export async function assignCoordinatorToLevel(levelId: number, coordinatorId: number) {
+  try {
+    return await apiPost(`${API_ENDPOINTS.LEVELS}${levelId}/assign_coordinator/`, {
+      coordinator_id: coordinatorId
+    });
+  } catch (error) {
+    console.error('Failed to assign coordinator to level:', error);
+    throw error;
+  }
+}
+
+export async function getAvailableCoordinators(campusId?: number) {
+  try {
+    const url = campusId 
+      ? `/api/coordinators/?campus_id=${campusId}&level__isnull=true`
+      : '/api/coordinators/?level__isnull=true';
+    return await apiGet(url);
+  } catch (error) {
+    console.error('Failed to fetch available coordinators:', error);
     return [];
   }
 }

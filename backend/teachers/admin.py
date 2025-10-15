@@ -15,8 +15,8 @@ class TeacherAdmin(admin.ModelAdmin):
         "shift",
         "employee_code",
     )
-    list_filter = ("is_class_teacher", "shift", "current_campus", "assigned_classroom", "assigned_coordinator")
-    search_fields = ("full_name", "email", "contact_number", "employee_code", "assigned_coordinator__full_name")
+    list_filter = ("is_class_teacher", "shift", "current_campus", "assigned_classroom", "assigned_coordinators")
+    search_fields = ("full_name", "email", "contact_number", "employee_code", "assigned_coordinators__full_name")
     ordering = ("-date_created",)
     
     # FIX: Exclude non-editable fields
@@ -56,7 +56,7 @@ class TeacherAdmin(admin.ModelAdmin):
             'fields': (
                 'joining_date', 'current_role_title', 'current_campus', 'shift',
                 'current_subjects', 'current_classes_taught', 'current_extra_responsibilities',
-                'assigned_coordinator', 'role_start_date', 'role_end_date', 'is_currently_active'
+                'assigned_coordinators', 'assigned_coordinator', 'role_start_date', 'role_end_date', 'is_currently_active'
             )
         }),
         ('Class Teacher Information', {
@@ -71,11 +71,15 @@ class TeacherAdmin(admin.ModelAdmin):
 
     def get_coordinator_info(self, obj):
         """Display coordinator information with level"""
-        if obj.assigned_coordinator:
-            return f"{obj.assigned_coordinator.full_name} ({obj.assigned_coordinator.level.name})"
+        coordinators = obj.assigned_coordinators.all()
+        if coordinators:
+            coordinator_names = []
+            for coordinator in coordinators:
+                coordinator_names.append(f"{coordinator.full_name} ({coordinator.level.name})")
+            return ", ".join(coordinator_names)
         return "Not Assigned"
-    get_coordinator_info.short_description = "Coordinator"
-    get_coordinator_info.admin_order_field = "assigned_coordinator__full_name"
+    get_coordinator_info.short_description = "Coordinators"
+    get_coordinator_info.admin_order_field = "assigned_coordinators__full_name"
 
     def clean(self):
         cleaned_data = super().clean()

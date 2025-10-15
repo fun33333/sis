@@ -138,6 +138,17 @@ class Teacher(models.Model):
         help_text="Classroom assigned to this class teacher"
     )
     
+    # Assignment tracking
+    classroom_assigned_by = models.ForeignKey(
+        'users.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='teacher_assignments_made',
+        help_text="User who assigned this teacher to classroom"
+    )
+    classroom_assigned_at = models.DateTimeField(null=True, blank=True)
+    
     def save(self, *args, **kwargs):
         # Auto-generate employee_code (teacher_code) if not provided
         if not self.employee_code and self.current_campus:

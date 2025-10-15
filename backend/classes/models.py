@@ -6,12 +6,23 @@ from django.db.models import Q
 # Teacher model assumed in 'teachers' app
 TEACHER_MODEL = "teachers.Teacher"
 
+# Level choices
+LEVEL_CHOICES = [
+    ('Pre-Primary', 'Pre-Primary'),
+    ('Primary', 'Primary'),
+    ('Secondary', 'Secondary'),
+]
+
 # ----------------------
 class Level(models.Model):
     """
     School levels: Pre-Primary, Primary, Secondary, etc.
     """
-    name = models.CharField(max_length=50)
+    name = models.CharField(
+        max_length=50, 
+        choices=LEVEL_CHOICES,
+        help_text="Select educational level"
+    )
     code = models.CharField(max_length=25, unique=True, blank=True, null=True, editable=False)
     
     # Campus connection
@@ -23,41 +34,33 @@ class Level(models.Model):
     )
     
     # Coordinator (1 per campus per level) - FIXED
-    coordinator = models.OneToOneField(
+    coordinator = models.ForeignKey(
         'coordinator.Coordinator',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='assigned_level_coordinator',
-        help_text="Coordinator for this level"
+        related_name='assigned_level',
+        help_text="Level coordinator"
     )
+    coordinator_assigned_by = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='level_coordinator_assignments'
+    )
+    coordinator_assigned_at = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.code:
-            # Generate campus code: C01, C02, C03, etc.
-            campus_id = self.campus.id if self.campus else 1
-            campus_code = f"C{campus_id:02d}"
-            
-            # Map level names to codes: L1, L2, L3
-            level_name = self.name.lower()
-            if "pre" in level_name:
-                level_code = "L1"
-            elif "primary" in level_name:
-                level_code = "L2"
-            elif "secondary" in level_name:
-                level_code = "L3"
-            else:
-                level_code = "L1"  # Default
-            
-            # Generate level code: C01-L1, C01-L2, C01-L3
-            self.code = f"{campus_code}-{level_code}"
-            
-            # Ensure uniqueness
-            original_code = self.code
-            suffix = 1
-            while Level.objects.filter(code=self.code).exists():
-                self.code = f"{original_code}-{suffix:02d}"
-                suffix += 1
+            campus_code = self.campus.campus_code
+            level_mapping = {
+                'Pre-Primary': 'L1',
+                'Primary': 'L2', 
+                'Secondary': 'L3'
+            }
+            level_num = level_mapping.get(self.name, 'L1')
+            self.code = f"{campus_code}-{level_num}"
         super().save(*args, **kwargs)
 
     class Meta:
@@ -83,54 +86,25 @@ class Grade(models.Model):
     )
 
     def save(self, *args, **kwargs):
-        if not self.code:
-            # Generate campus code: C01, C02, C03, etc.
-            campus_id = self.level.campus.id if self.level and self.level.campus else 1
-            campus_code = f"C{campus_id:02d}"
-            
-            # Level code mapping: Pre-Primary=L1, Primary=L2, Secondary=L3
-            level_name = self.level.name.lower() if self.level else "unknown"
-            if "pre" in level_name:
-                level_code = "L1"
-            elif "primary" in level_name:
-                level_code = "L2"
-            elif "secondary" in level_name:
-                level_code = "L3"
-            else:
-                level_code = "L1"  # Default
-            
-            # Grade mapping
-            grade_name = self.name.replace("Grade", "").strip()
-            
-            # Try to extract number from grade name
-            import re
-            numbers = re.findall(r'\d+', grade_name)
-            if numbers:
-                grade_num = numbers[0].zfill(2)  # Pad with zero if needed
-            else:
-                # If no number found, try to extract from name patterns
-                if "nursery" in grade_name.lower():
-                    grade_num = "00"
-                elif "kg" in grade_name.lower():
-                    # Extract KG number
-                    kg_match = re.search(r'kg[-\s]*(\d+)', grade_name.lower())
-                    if kg_match:
-                        grade_num = f"0{kg_match.group(1)}"
-                    else:
-                        grade_num = "01"
-                else:
-                    grade_num = "01"
-            
-            # Generate grade code: C01-L1-G00, C01-L1-G01, C01-L1-G02
-            self.code = f"{campus_code}-{level_code}-G{grade_num}"
-            
-            # Ensure uniqueness
-            original_code = self.code
-            suffix = 1
-            while Grade.objects.filter(code=self.code).exists():
-                self.code = f"{original_code}-{suffix:02d}"
-                suffix += 1
-        
+        if not self.code and self.level:
+            level_code = self.level.code
+            grade_mapping = {
+                'Nursery': 'N',
+                'KG-I': 'KG1',
+                'KG-II': 'KG2',
+                'Grade-1': 'G01',
+                'Grade-2': 'G02',
+                'Grade-3': 'G03',
+                'Grade-4': 'G04',
+                'Grade-5': 'G05',
+                'Grade-6': 'G06',
+                'Grade-7': 'G07',
+                'Grade-8': 'G08',
+                'Grade-9': 'G09',
+                'Grade-10': 'G10',
+            }
+            grade_code = grade_mapping.get(self.name, self.name[:3].upper())
+            self.code = f"{level_code}-{grade_code}"
         super().save(*args, **kwargs)
 
     class Meta:
@@ -175,6 +149,17 @@ class ClassRoom(models.Model):
     )
     capacity = models.PositiveIntegerField(default=30)
     code = models.CharField(max_length=30, unique=True, editable=False)
+    
+    # Assignment tracking
+    assigned_by = models.ForeignKey(
+        'users.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='classroom_assignments_made',
+        help_text="User who assigned the class teacher"
+    )
+    assigned_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -205,88 +190,11 @@ class ClassRoom(models.Model):
             ).first()
         return None
 
-    def clean(self):
-        """
-        Validate that teacher is not already assigned to another classroom
-        """
-        if self.class_teacher:
-            # Check if this teacher is already assigned to another classroom
-            existing_classroom = ClassRoom.objects.filter(
-                class_teacher=self.class_teacher
-            ).exclude(pk=self.pk).first()
-            
-            if existing_classroom:
-                # Show warning with coordinator info
-                expected_coordinator = self.get_expected_coordinator()
-                old_coordinator = self.class_teacher.assigned_coordinator
-                
-                warning_msg = (
-                    f"Teacher {self.class_teacher.full_name} is already assigned to {existing_classroom}. "
-                    f"Reassigning will update coordinator from {old_coordinator} to {expected_coordinator}. "
-                    "Continue?"
-                )
-                raise ValidationError(warning_msg)
-
     def save(self, *args, **kwargs):
-        # Run validation
-        self.clean()
-        
-        if not self.code:
-            # Generate campus code: C01, C02, C03, etc.
-            campus_id = self.grade.level.campus.id if self.grade and self.grade.level and self.grade.level.campus else 1
-            campus_code = f"C{campus_id:02d}"
-            
-            # Get shift code from classroom shift field
-            shift_map = {
-                'morning': 'M',
-                'afternoon': 'A', 
-                'evening': 'E',
-                'both': 'B',
-                'all': 'ALL'
-            }
-            shift_code = shift_map.get(self.shift.lower(), 'M')
-            
-            # Level code mapping: Pre-Primary=L1, Primary=L2, Secondary=L3
-            level_name = self.grade.level.name.lower() if self.grade and self.grade.level else "unknown"
-            if "pre" in level_name:
-                level_code = "L1"
-            elif "primary" in level_name:
-                level_code = "L2"
-            elif "secondary" in level_name:
-                level_code = "L3"
-            else:
-                level_code = "L1"  # Default
-            
-            grade_name = self.grade.name.replace("Grade", "").strip()
-            
-            # Extract grade number
-            import re
-            numbers = re.findall(r'\d+', grade_name)
-            if numbers:
-                grade_num = numbers[0].zfill(2)
-            else:
-                # If no number found, try to extract from name patterns
-                if "nursery" in grade_name.lower():
-                    grade_num = "00"
-                elif "kg" in grade_name.lower():
-                    # Extract KG number
-                    kg_match = re.search(r'kg[-\s]*(\d+)', grade_name.lower())
-                    if kg_match:
-                        grade_num = f"0{kg_match.group(1)}"
-                    else:
-                        grade_num = "01"
-                else:
-                    grade_num = "01"
-            
-            # Generate class code: C01-M-G1-A, C01-M-G1-B, C01-M-G1-C
-            self.code = f"{campus_code}-{shift_code}-G{grade_num}-{self.section}"
-            
-            # Ensure uniqueness
-            original_code = self.code
-            suffix = 1
-            while ClassRoom.objects.filter(code=self.code).exists():
-                self.code = f"{original_code}-{suffix:02d}"
-                suffix += 1
+        if not self.code and self.grade:
+            grade_code = self.grade.code
+            section = self.section
+            self.code = f"{grade_code}-{section}"
         super().save(*args, **kwargs)
     
     # Properties for easy access

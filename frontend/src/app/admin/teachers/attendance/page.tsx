@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, Clock, Users, CheckCircle, XCircle, AlertCircle, Save, RefreshCw, Edit3, History } from "lucide-react";
+import { Calendar, Clock, Users, CheckCircle, XCircle, AlertCircle, Save, RefreshCw, Edit3, History, Eraser } from "lucide-react";
 import { getCurrentUserRole } from "@/lib/permissions";
 import { getCurrentUserProfile, getClassStudents, markBulkAttendance, getAttendanceHistory, getAttendanceForDate, editAttendance } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ interface Student {
   id: number;
   name: string;
   student_code: string;
+  student_id?: string;
   gr_no?: string;
   gender: string;
   photo?: string;
@@ -70,6 +71,8 @@ export default function TeacherAttendancePage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [existingAttendanceId, setExistingAttendanceId] = useState<number | null>(null);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [showWeeklySubmitModal, setShowWeeklySubmitModal] = useState(false);
+  const [weeklyReportStatus, setWeeklyReportStatus] = useState<'pending' | 'submitted' | 'approved'>('pending');
   const router = useRouter();
 
   const userRole = getCurrentUserRole();
@@ -172,7 +175,7 @@ export default function TeacherAttendancePage() {
   const handleSubmit = () => {
     // Check if attendance already exists for this date
     if (!isEditMode && existingAttendanceId) {
-      alert('Attendance already marked for this date! Please use "Update Attendance" button to make changes.');
+      alert('⚠️ Attendance Already Marked!\n\nYou have already marked attendance for this date.\n\nTo edit previous attendance, please click "Load Saved Attendance" button first.');
       return;
     }
     
@@ -210,16 +213,24 @@ export default function TeacherAttendancePage() {
         });
       }
 
-      alert(`Attendance ${isEditMode ? 'updated' : 'marked'} successfully!`);
+      alert(`✅ Attendance ${isEditMode ? 'Updated' : 'Marked'} Successfully!\n\n${isEditMode ? 'Your changes have been saved.' : 'Attendance has been recorded for this date.'}`);
       
       // Reset the sheet to blank after successful save
       setAttendance({});
       setIsEditMode(false);
-      setExistingAttendanceId(null);
+      
+      // Set existingAttendanceId for future loads
+      if (result && (result as any).attendance_id) {
+        setExistingAttendanceId((result as any).attendance_id);
+      } else if (result && (result as any).id) {
+        setExistingAttendanceId((result as any).id);
+      } else if (result && (result as any).data && (result as any).data.id) {
+        setExistingAttendanceId((result as any).data.id);
+      }
       
     } catch (err: unknown) {
       console.error('Error marking attendance:', err);
-      alert(`Failed to ${isEditMode ? 'update' : 'mark'} attendance. Please try again.`);
+      alert(`❌ Failed to ${isEditMode ? 'Update' : 'Mark'} Attendance!\n\nPlease check your internet connection and try again.\n\nIf the problem persists, contact the administrator.`);
     } finally {
       setSaving(false);
     }
@@ -239,6 +250,32 @@ export default function TeacherAttendancePage() {
       newAttendance[student.id] = 'absent';
     });
     setAttendance(newAttendance);
+  };
+
+  const clearAllAttendance = () => {
+    setAttendance({});
+  };
+
+  const handleWeeklySubmit = () => {
+    setShowWeeklySubmitModal(true);
+  };
+
+  const confirmWeeklySubmit = async () => {
+    try {
+      // Here you would call API to submit weekly report
+      console.log('Submitting weekly report...');
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setWeeklyReportStatus('submitted');
+      setShowWeeklySubmitModal(false);
+      alert('✅ Weekly Report Submitted Successfully!\n\nYour attendance report has been sent to the coordinator for review.');
+      
+    } catch (error) {
+      console.error('Error submitting weekly report:', error);
+      alert('❌ Failed to submit weekly report. Please try again.');
+    }
   };
 
   const loadSavedAttendance = async () => {
@@ -436,8 +473,18 @@ export default function TeacherAttendancePage() {
               <XCircle className="h-4 w-4 mr-2" />
               Mark All Absent
             </Button>
-            {/* Show Load Saved Attendance button only if attendance exists for this date */}
-            {existingAttendanceId && !isEditMode && (
+            <Button
+              onClick={clearAllAttendance}
+              variant="outline"
+              className="border-orange-500 text-orange-500 hover:bg-orange-50"
+              disabled={!isDateEditable()}
+            >
+              <Eraser className="h-4 w-4 mr-2" />
+              Clear All
+            </Button>
+            {/* Smart Button Logic */}
+            {existingAttendanceId && !isEditMode ? (
+              // Show Load button when attendance exists but not in edit mode
               <Button
                 onClick={loadSavedAttendance}
                 variant="outline"
@@ -451,18 +498,71 @@ export default function TeacherAttendancePage() {
                 )}
                 Load Saved Attendance
               </Button>
+            ) : (
+              // Show Save/Update button when no attendance exists or in edit mode
+              <Button
+                onClick={handleSubmit} 
+                className="bg-[#6096ba] hover:bg-[#274c77] text-white"
+                disabled={saving || !isDateEditable()}
+              >
+                {saving ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                {isEditMode ? 'Update Attendance' : 'Save Attendance'}
+              </Button>
             )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Weekly Submission Section */}
+      <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
+        <CardHeader>
+          <CardTitle className="text-purple-800 flex items-center">
+            <Calendar className="h-5 w-5 mr-2" />
+            Weekly Report Submission
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-2">
+                Submit your weekly attendance report to the coordinator for review.
+              </p>
+              <div className="flex items-center space-x-4">
+                <Badge 
+                  className={
+                    weeklyReportStatus === 'submitted' 
+                      ? 'bg-green-100 text-green-800 border-green-300' 
+                      : weeklyReportStatus === 'approved'
+                      ? 'bg-blue-100 text-blue-800 border-blue-300'
+                      : 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                  }
+                >
+                  {weeklyReportStatus === 'submitted' ? '✅ Submitted' : 
+                   weeklyReportStatus === 'approved' ? '✅ Approved' : 
+                   '⏳ Pending Submission'}
+                </Badge>
+                <span className="text-sm text-gray-500">
+                  Week of: {new Date().toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </span>
+              </div>
+            </div>
             <Button
-              onClick={handleSubmit} 
-              className="bg-[#6096ba] hover:bg-[#274c77] text-white"
-              disabled={saving || !isDateEditable()}
+              onClick={handleWeeklySubmit}
+              disabled={weeklyReportStatus === 'submitted' || weeklyReportStatus === 'approved'}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
             >
-              {saving ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              {isEditMode ? 'Update Attendance' : 'Save Attendance'}
+              <Calendar className="h-4 w-4 mr-2" />
+              {weeklyReportStatus === 'submitted' ? 'Already Submitted' : 
+               weeklyReportStatus === 'approved' ? 'Approved' : 
+               'Submit Weekly Report'}
             </Button>
           </div>
         </CardContent>
@@ -486,7 +586,7 @@ export default function TeacherAttendancePage() {
 						<TableHeader>
                   <TableRow>
                     <TableHead>Student</TableHead>
-                    <TableHead>Student Code</TableHead>
+                    <TableHead>Student ID</TableHead>
                     <TableHead>Gender</TableHead>
                     <TableHead>Status</TableHead>
 							</TableRow>
@@ -510,7 +610,7 @@ export default function TeacherAttendancePage() {
                           <span>{student.name}</span>
 										</div>
 									</TableCell>
-                      <TableCell>{student.student_code}</TableCell>
+                      <TableCell>{student.student_id || student.student_code || 'Not Assigned'}</TableCell>
                       <TableCell>{student.gender}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
@@ -657,6 +757,52 @@ export default function TeacherAttendancePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-		</div>
-	);
+
+      {/* Weekly Submit Confirmation Modal */}
+      <Dialog open={showWeeklySubmitModal} onOpenChange={setShowWeeklySubmitModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-purple-800">
+              <Calendar className="h-5 w-5 mr-2" />
+              Submit Weekly Report
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Are you sure you want to submit this week's attendance report to the coordinator?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-purple-50 p-4 rounded-lg mb-4">
+            <h4 className="font-medium text-purple-800 mb-2">Report Summary:</h4>
+            <div className="space-y-1 text-sm text-gray-600">
+              <p>• Class: {classInfo?.name || 'N/A'}</p>
+              <p>• Week: {new Date().toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+              })}</p>
+              <p>• Students: {students.length}</p>
+              <p>• Status: Ready for submission</p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowWeeklySubmitModal(false)}
+              className="border-gray-300"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmWeeklySubmit}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Submit Report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }

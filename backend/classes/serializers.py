@@ -4,14 +4,17 @@ from .models import Level, Grade, ClassRoom
 class LevelSerializer(serializers.ModelSerializer):
     campus_name = serializers.CharField(source='campus.campus_name', read_only=True)
     coordinator_name = serializers.CharField(source='coordinator.full_name', read_only=True)
+    coordinator_code = serializers.CharField(source='coordinator.employee_code', read_only=True)
+    assigned_by_name = serializers.CharField(source='coordinator_assigned_by.username', read_only=True)
     
     class Meta:
         model = Level
         fields = [
             'id', 'name', 'code', 'campus', 'campus_name', 
-            'coordinator', 'coordinator_name'
+            'coordinator', 'coordinator_name', 'coordinator_code',
+            'coordinator_assigned_by', 'assigned_by_name', 'coordinator_assigned_at'
         ]
-        read_only_fields = ['id', 'code']
+        read_only_fields = ['id', 'code', 'coordinator_assigned_by', 'coordinator_assigned_at']
 
 class GradeSerializer(serializers.ModelSerializer):
     level_name = serializers.CharField(source='level.name', read_only=True)
@@ -34,12 +37,14 @@ class ClassRoomSerializer(serializers.ModelSerializer):
     campus_name = serializers.CharField(source='grade.level.campus.campus_name', read_only=True)
     class_teacher_name = serializers.CharField(source='class_teacher.full_name', read_only=True)
     class_teacher_code = serializers.CharField(source='class_teacher.employee_code', read_only=True)
+    assigned_by_name = serializers.CharField(source='assigned_by.username', read_only=True)
     
     class Meta:
         model = ClassRoom
         fields = [
-            'id', 'grade', 'grade_name', 'grade_code', 'section', 'class_teacher', 
+            'id', 'grade', 'grade_name', 'grade_code', 'section', 'shift', 'class_teacher', 
             'class_teacher_name', 'class_teacher_code', 'capacity', 'code', 
-            'level_name', 'level_code', 'campus_name', 'created_at', 'updated_at'
+            'level_name', 'level_code', 'campus_name', 'assigned_by', 'assigned_by_name', 
+            'assigned_at', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'code', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'code', 'assigned_by', 'assigned_at', 'created_at', 'updated_at']
