@@ -72,6 +72,11 @@ class Attendance(models.Model):
     reopened_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reopened_attendances')
     reopen_reason = models.TextField(null=True, blank=True)
     
+    # Archive fields for holiday replacement
+    replaced_by_holiday = models.BooleanField(default=False)
+    replaced_at = models.DateTimeField(null=True, blank=True)
+    archived_data = models.JSONField(null=True, blank=True)
+    
     # Calculated fields
     total_students = models.PositiveIntegerField(default=0)
     present_count = models.PositiveIntegerField(default=0)
@@ -335,3 +340,22 @@ class AuditLog(models.Model):
     
     def __str__(self):
         return f"{self.feature} - {self.action} by {self.user.username if self.user else 'System'}"
+
+
+class Weekend(models.Model):
+    """Model to track weekends (Sundays) for each level"""
+    date = models.DateField(unique=True)
+    level = models.ForeignKey('classes.Level', on_delete=models.CASCADE, related_name='weekends')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_weekends')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-date']
+        indexes = [
+            models.Index(fields=['date']),
+            models.Index(fields=['level', 'date']),
+        ]
+        unique_together = ['date', 'level']
+    
+    def __str__(self):
+        return f"Weekend - {self.date} ({self.level.name})"

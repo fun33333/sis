@@ -109,6 +109,16 @@ def mark_bulk_attendance(request):
         
         classroom = get_object_or_404(ClassRoom, id=classroom_id)
         
+        # Check if it's a Sunday and auto-create weekend entry
+        if date_obj.weekday() == 6:  # Sunday is 6 in Python's weekday()
+            from classes.models import Level
+            level = classroom.grade.level
+            Weekend.objects.get_or_create(
+                date=date_obj,
+                level=level,
+                defaults={'created_by': request.user}
+            )
+        
         # Get all students in this class
         all_students = Student.objects.filter(classroom=classroom)
         all_student_ids = list(all_students.values_list('id', flat=True))
@@ -1026,6 +1036,46 @@ def create_holiday(request):
         date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
         
         from .models import Holiday, AuditLog
+        from classes.models import ClassRoom
+        from django.utils import timezone
+        
+        # Check if date is in the past and archive existing attendance
+        if date_obj < timezone.now().date():
+            # Find all classrooms in this level
+            classrooms = ClassRoom.objects.filter(grade__level=coordinator.level)
+            
+            for classroom in classrooms:
+                # Find existing attendance for this date
+                try:
+                    existing_attendance = Attendance.objects.get(
+                        classroom=classroom,
+                        date=date_obj,
+                        is_deleted=False
+                    )
+                    
+                    # Archive the attendance data
+                    archived_data = {
+                        'student_attendance': list(existing_attendance.student_attendances.values()),
+                        'marked_by': existing_attendance.marked_by.get_full_name() if existing_attendance.marked_by else None,
+                        'marked_at': existing_attendance.marked_at.isoformat(),
+                        'status': existing_attendance.status,
+                        'total_students': existing_attendance.total_students,
+                        'present_count': existing_attendance.present_count,
+                        'absent_count': existing_attendance.absent_count,
+                        'late_count': existing_attendance.late_count,
+                        'leave_count': existing_attendance.leave_count
+                    }
+                    
+                    # Mark as replaced by holiday
+                    existing_attendance.replaced_by_holiday = True
+                    existing_attendance.replaced_at = timezone.now()
+                    existing_attendance.archived_data = archived_data
+                    existing_attendance.save()
+                    
+                except Attendance.DoesNotExist:
+                    # No existing attendance, continue
+                    pass
+        
         holiday, created = Holiday.objects.get_or_create(
             date=date_obj,
             level=coordinator.level,

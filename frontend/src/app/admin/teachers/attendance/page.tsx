@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, Clock, Users, CheckCircle, XCircle, AlertCircle, Save, RefreshCw, Edit3, History, Eraser, Send, Clock3, Bell, Eye, ChevronDown, EyeOff } from "lucide-react";
+import { Calendar, Clock, Users, CheckCircle, XCircle, AlertCircle, Save, RefreshCw, Edit3, History, Eraser, Send, Clock3, Bell, Eye, ChevronDown, EyeOff, X } from "lucide-react";
+import { Skeleton, TableSkeleton } from "@/components/ui/skeleton";
 import { getCurrentUserRole } from "@/lib/permissions";
 import { getCurrentUserProfile, getClassStudents, markBulkAttendance, getAttendanceHistory, getAttendanceForDate, editAttendance, submitAttendance, getBackfillPermissions, finalizeAttendance, reviewAttendance } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -80,6 +81,13 @@ export default function TeacherAttendancePage() {
   const [last6DaysAttendance, setLast6DaysAttendance] = useState<any[]>([]);
   const [loadingLast6Days, setLoadingLast6Days] = useState(false);
   const [expandedAttendance, setExpandedAttendance] = useState<number | null>(null);
+  const [showApprovalNotification, setShowApprovalNotification] = useState(false);
+  const [approvedDate, setApprovedDate] = useState<string>('');
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [attendanceHistoryData, setAttendanceHistoryData] = useState<any[]>([]);
+  const [attendanceSubmitted, setAttendanceSubmitted] = useState(false);
+  const [attendanceLoaded, setAttendanceLoaded] = useState(false);
+  const [loadingStudents, setLoadingStudents] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -94,13 +102,46 @@ export default function TeacherAttendancePage() {
     } else if (userRole === 'coordinator' && classroomId) {
       document.title = "View Attendance | IAK SMS";
       fetchCoordinatorClassData();
-      fetchLast6DaysAttendance();
+      fetchCurrentMonthAttendance();
     }
   }, [userRole, classroomId]);
+
+  // Check for approved attendance notifications
+  useEffect(() => {
+    if (userRole === 'teacher' && attendanceHistory) {
+      checkForApprovedAttendance();
+    }
+  }, [attendanceHistory, userRole]);
+
+  // Periodic check for approval status updates (every 30 seconds)
+  useEffect(() => {
+    if (userRole === 'teacher' && existingAttendanceId) {
+      const interval = setInterval(async () => {
+        try {
+          const attendanceData = await getAttendanceForDate(classInfo?.id || 0, selectedDate) as any;
+          if (attendanceData && attendanceData.status === 'final' && !showApprovalNotification) {
+            console.log('Attendance approved detected!');
+            setShowApprovalNotification(true);
+            setApprovedDate(attendanceData.date);
+            
+            // Auto-hide notification after 5 seconds
+            setTimeout(() => {
+              setShowApprovalNotification(false);
+            }, 5000);
+          }
+        } catch (error) {
+          console.error('Error checking approval status:', error);
+        }
+      }, 30000); // Check every 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [userRole, existingAttendanceId, classInfo?.id, selectedDate, showApprovalNotification]);
 
   const fetchTeacherData = async () => {
     try {
       setLoading(true);
+      setLoadingStudents(true);
       setError("");
       
       // Get teacher's profile and classroom
@@ -135,6 +176,7 @@ export default function TeacherAttendancePage() {
       const studentsData = await getClassStudents(teacherProfile.assigned_classroom.id) as Student[];
       console.log('Fetched students:', studentsData);
       setStudents(studentsData);
+      setLoadingStudents(false);
 
       // Load existing attendance for today if any
       await loadExistingAttendance(teacherProfile.assigned_classroom.id, selectedDate);
@@ -144,6 +186,7 @@ export default function TeacherAttendancePage() {
       setError("Failed to load class data. Please try again.");
     } finally {
       setLoading(false);
+      setLoadingStudents(false);
     }
   };
 
@@ -151,24 +194,38 @@ export default function TeacherAttendancePage() {
     try {
       const attendanceData = await getAttendanceForDate(classroomId, date) as any;
       if (attendanceData && attendanceData.id) {
-        // Store the attendance ID but don't load the data automatically
+        // Load the attendance data to show as read-only
+        const existingAttendance: Record<number, AttendanceStatus> = {};
+        if (attendanceData.student_attendance) {
+          attendanceData.student_attendance.forEach((record: any) => {
+            existingAttendance[record.student_id] = record.status;
+          });
+        }
+        setAttendance(existingAttendance);
         setExistingAttendanceId(attendanceData.id);
-        setAttendance({}); // Keep sheet blank
-        setIsEditMode(false); // Not in edit mode initially
+        setIsEditMode(false); // Not in edit mode initially - read-only
+        setAttendanceLoaded(false); // Not loaded for editing yet
       } else {
         setAttendance({});
         setIsEditMode(false);
         setExistingAttendanceId(null);
+        setAttendanceLoaded(false);
       }
     } catch (error: unknown) {
       console.error('Error loading existing attendance:', error);
       setAttendance({});
       setIsEditMode(false);
       setExistingAttendanceId(null);
+      setAttendanceLoaded(false);
     }
   };
 
   const handleAttendanceChange = (studentId: number, status: AttendanceStatus) => {
+    // Allow changes if in edit mode OR if no existing attendance (new attendance)
+    if (!isEditMode && existingAttendanceId) {
+      return;
+    }
+    
     setAttendance(prev => ({
       ...prev,
       [studentId]: status
@@ -190,6 +247,26 @@ export default function TeacherAttendancePage() {
     // Check if attendance already exists for this date
     if (!isEditMode && existingAttendanceId) {
       alert('⚠️ Attendance Already Marked!\n\nYou have already marked attendance for this date.\n\nTo edit previous attendance, please click "Load Saved Attendance" button first.');
+      return;
+    }
+    
+    // Check if all students have attendance marked
+    if (students.length === 0) {
+      alert('❌ No Students Found!\n\nPlease make sure students are loaded for this classroom.');
+      return;
+    }
+    
+    const markedStudents = Object.keys(attendance).length;
+    const totalStudents = students.length;
+    
+    if (markedStudents < totalStudents) {
+      const unmarkedCount = totalStudents - markedStudents;
+      alert(
+        `❌ Incomplete Attendance!\n\n` +
+        `You have marked attendance for ${markedStudents} out of ${totalStudents} students.\n\n` +
+        `Please mark attendance for all ${unmarkedCount} remaining students before submitting.\n\n` +
+        `All students must have their attendance status marked (Present, Absent, or Leave).`
+      );
       return;
     }
     
@@ -229,8 +306,8 @@ export default function TeacherAttendancePage() {
 
       alert(`✅ Attendance ${isEditMode ? 'Updated' : 'Marked'} Successfully!\n\n${isEditMode ? 'Your changes have been saved.' : 'Attendance has been recorded for this date.'}`);
       
-      // Reset the sheet to blank after successful save
-      setAttendance({});
+      // Keep the sheet filled after saving - don't clear it
+      // setAttendance({}); // Removed - keep sheet filled
       setIsEditMode(false);
       
       // Set existingAttendanceId for future loads
@@ -240,6 +317,16 @@ export default function TeacherAttendancePage() {
         setExistingAttendanceId((result as any).id);
       } else if (result && (result as any).data && (result as any).data.id) {
         setExistingAttendanceId((result as any).data.id);
+      }
+      
+      // If in edit mode, auto-submit for review
+      if (isEditMode && existingAttendanceId) {
+        try {
+          await handleSubmitForReview();
+        } catch (error) {
+          console.error('Error auto-submitting for review:', error);
+          // Don't show error here as the update was successful
+        }
       }
       
     } catch (err: unknown) {
@@ -274,10 +361,37 @@ export default function TeacherAttendancePage() {
   const handleSubmitForReview = async () => {
     if (!existingAttendanceId) return;
     
+    // Check if all students have attendance marked
+    if (students.length === 0) {
+      alert('❌ No Students Found!\n\nPlease make sure students are loaded for this classroom.');
+      return;
+    }
+    
+    const markedStudents = Object.keys(attendance).length;
+    const totalStudents = students.length;
+    
+    if (markedStudents < totalStudents) {
+      const unmarkedCount = totalStudents - markedStudents;
+      alert(
+        `❌ Incomplete Attendance!\n\n` +
+        `You have marked attendance for ${markedStudents} out of ${totalStudents} students.\n\n` +
+        `Please mark attendance for all ${unmarkedCount} remaining students before submitting for review.\n\n` +
+        `All students must have their attendance status marked (Present, Absent, or Leave).`
+      );
+      return;
+    }
+    
     try {
       setSubmitting(true);
       await submitAttendance(existingAttendanceId);
-      alert('✅ Attendance submitted for review successfully!');
+      alert('✅ Attendance submitted for review successfully!\n\nYour attendance has been sent to the coordinator for review.');
+      
+      // Clear the sheet after submitting for review
+      setAttendance({});
+      setIsEditMode(false);
+      setExistingAttendanceId(null);
+      setAttendanceSubmitted(true); // Mark as submitted
+      
       // Refresh data
       fetchTeacherData();
     } catch (error) {
@@ -397,27 +511,27 @@ export default function TeacherAttendancePage() {
     }
   };
 
-  const fetchLast6DaysAttendance = async () => {
+  const fetchCurrentMonthAttendance = async () => {
     try {
       setLoadingLast6Days(true);
       
       if (!classroomId) return;
 
-      // Get last 6 days
+      // Get current month start and end dates
       const today = new Date();
-      const sixDaysAgo = new Date(today);
-      sixDaysAgo.setDate(today.getDate() - 6);
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
       console.log('🔍 Fetching attendance for classroom:', classroomId);
-      console.log('📅 Date range:', sixDaysAgo.toISOString().split('T')[0], 'to', today.toISOString().split('T')[0]);
+      console.log('📅 Current month range:', firstDay.toISOString().split('T')[0], 'to', lastDay.toISOString().split('T')[0]);
 
       const attendanceData = await getAttendanceHistory(
         parseInt(classroomId),
-        sixDaysAgo.toISOString().split('T')[0],
-        today.toISOString().split('T')[0]
+        firstDay.toISOString().split('T')[0],
+        lastDay.toISOString().split('T')[0]
       );
 
-      console.log('📊 Raw attendance data:', attendanceData);
+      console.log('📊 Current month attendance data:', attendanceData);
       console.log('📊 Attendance data type:', typeof attendanceData);
       console.log('📊 Attendance data length:', Array.isArray(attendanceData) ? attendanceData.length : 'Not an array');
 
@@ -489,7 +603,7 @@ export default function TeacherAttendancePage() {
       }
       
       // Refresh the data
-      await fetchLast6DaysAttendance();
+      await fetchCurrentMonthAttendance();
       
     } catch (error) {
       console.error('Error approving attendance:', error);
@@ -501,6 +615,83 @@ export default function TeacherAttendancePage() {
     setExpandedAttendance(expandedAttendance === attendanceId ? null : attendanceId);
   };
 
+  const fetchAttendanceHistory = async () => {
+    if (!classInfo) return;
+    
+    try {
+      const history = await getAttendanceHistory(classInfo.id);
+      setAttendanceHistoryData(history as any[]);
+      setShowHistoryModal(true);
+    } catch (error) {
+      console.error('Error fetching attendance history:', error);
+      alert('Failed to fetch attendance history. Please try again.');
+    }
+  };
+
+  // Check if attendance is approved for the selected date
+  const isAttendanceApproved = async () => {
+    if (!classInfo) return false;
+    
+    try {
+      const attendanceData = await getAttendanceForDate(classInfo.id, selectedDate) as any;
+      return attendanceData && attendanceData.status === 'final';
+    } catch (error) {
+      console.error('Error checking approval status:', error);
+      return false;
+    }
+  };
+
+  // Check for newly approved attendance
+  const checkForApprovedAttendance = () => {
+    if (attendanceHistory && Array.isArray(attendanceHistory)) {
+      const approvedAttendance = attendanceHistory.find((record: any) => 
+        record.status === 'final' && 
+        record.finalized_at && 
+        new Date(record.finalized_at) > new Date(Date.now() - 30000) // Last 30 seconds
+      );
+      
+      if (approvedAttendance) {
+        setApprovedDate((approvedAttendance as any).date);
+        setShowApprovalNotification(true);
+        
+        // Auto-hide notification after 5 seconds
+        setTimeout(() => {
+          setShowApprovalNotification(false);
+        }, 5000);
+      }
+    }
+  };
+
+
+  const enableEditMode = async () => {
+    if (!classInfo) return;
+    
+    try {
+      setLoading(true);
+      const attendanceData = await getAttendanceForDate(classInfo.id, selectedDate) as any;
+      
+      if (attendanceData && attendanceData.id) {
+        // Check if attendance is approved - prevent editing
+        if (attendanceData.status === 'final') {
+          alert('❌ Cannot Edit Approved Attendance!\n\nThis attendance has been approved by the coordinator and cannot be modified.\n\nPlease contact the coordinator if changes are needed.');
+          return;
+        }
+        
+        // Enable edit mode
+        setIsEditMode(true);
+        setAttendanceLoaded(true);
+        
+        alert('✅ Edit Mode Enabled!\n\nYou can now modify the attendance. Click "Update Attendance" to save your changes.');
+      } else {
+        alert('No attendance found for this date.');
+      }
+    } catch (error) {
+      console.error('Error enabling edit mode:', error);
+      alert('Failed to enable edit mode. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadSavedAttendance = async () => {
     if (!classInfo) return;
@@ -510,6 +701,12 @@ export default function TeacherAttendancePage() {
       const attendanceData = await getAttendanceForDate(classInfo.id, selectedDate) as any;
       
       if (attendanceData && attendanceData.id) {
+        // Check if attendance is approved - prevent editing
+        if (attendanceData.status === 'final') {
+          alert('❌ Cannot Edit Approved Attendance!\n\nThis attendance has been approved by the coordinator and cannot be modified.\n\nPlease contact the coordinator if changes are needed.');
+          return;
+        }
+        
         const existingAttendance: Record<number, AttendanceStatus> = {};
         attendanceData.student_attendance.forEach((record: any) => {
           existingAttendance[record.student_id] = record.status;
@@ -517,6 +714,20 @@ export default function TeacherAttendancePage() {
         setAttendance(existingAttendance);
         setIsEditMode(true);
         setExistingAttendanceId(attendanceData.id);
+        setAttendanceLoaded(true);
+        
+        // Check if attendance is approved and show notification
+        if (attendanceData.status === 'final') {
+          console.log('Attendance is approved for date:', attendanceData.date);
+          setShowApprovalNotification(true);
+          setApprovedDate(attendanceData.date);
+          
+          // Auto-hide notification after 5 seconds
+          setTimeout(() => {
+            setShowApprovalNotification(false);
+          }, 5000);
+        }
+        
         alert('Saved attendance loaded successfully! You can now make changes and update.');
       } else {
         alert('No saved attendance found for this date.');
@@ -542,17 +753,26 @@ export default function TeacherAttendancePage() {
     const today = new Date();
     const diffTime = Math.abs(today.getTime() - selectedDateObj.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 7;
+    
+    // Check if date is within 7 days
+    if (diffDays > 7) return false;
+    
+    // Check if attendance is approved (prevent editing approved attendance)
+    // This will be checked in the component when needed
+    return true;
   };
 
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto mt-12 p-10 bg-[#e7ecef] rounded-2xl shadow-2xl border-2 border-[#a3cef1]">
-        <div className="flex items-center justify-center h-64">
-          <div className="flex items-center space-x-2">
-            <RefreshCw className="h-6 w-6 animate-spin text-[#6096ba]" />
-            <span className="text-[#274c77] font-medium">Loading...</span>
+        <div className="space-y-6">
+          <div className="flex items-center justify-center h-16">
+            <div className="flex items-center space-x-2">
+              <RefreshCw className="h-6 w-6 animate-spin text-[#6096ba]" />
+              <span className="text-[#274c77] font-medium">Loading class data...</span>
+            </div>
           </div>
+          <TableSkeleton rows={8} />
         </div>
       </div>
     );
@@ -588,7 +808,7 @@ export default function TeacherAttendancePage() {
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">Attendance Review</h1>
                   <p className="text-sm text-gray-600 mt-1">
-                    {classInfo?.code || classInfo?.name || `Classroom ${classroomId}`} • Last 6 Days
+                    {classInfo?.code || classInfo?.name || `Classroom ${classroomId}`} • {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </p>
                 </div>
                 <Button 
@@ -833,6 +1053,23 @@ export default function TeacherAttendancePage() {
 
   return (
     <div className="max-w-7xl mx-auto mt-8 p-6 space-y-6">
+      {/* Approval Notification */}
+      {showApprovalNotification && (
+        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 animate-pulse">
+          <CheckCircle className="h-6 w-6" />
+          <div>
+            <p className="font-semibold">✅ Attendance Approved!</p>
+            <p className="text-sm">Your attendance for {approvedDate} has been approved by the coordinator.</p>
+          </div>
+          <button 
+            onClick={() => setShowApprovalNotification(false)}
+            className="text-white hover:text-gray-200 ml-2"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="bg-gradient-to-r from-[#274c77] to-[#6096ba] rounded-2xl p-6 text-white shadow-xl">
         <div className="flex items-center justify-between">
@@ -852,6 +1089,15 @@ export default function TeacherAttendancePage() {
                   max={new Date().toISOString().split('T')[0]}
                   className="bg-white/20 border border-white/30 rounded-lg px-3 py-1 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50"
                 />
+                {new Date(selectedDate).getDay() === 0 && (
+                  <span className="text-orange-300 font-medium text-sm">(Weekend)</span>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="h-5 w-5" />
+                <span className="text-sm">
+                  {Object.keys(attendance).length} / {students.length} students marked
+                </span>
               </div>
               <div className="flex items-center space-x-2">
                 <Clock className="h-5 w-5" />
@@ -877,16 +1123,6 @@ export default function TeacherAttendancePage() {
               )}
             </div>
             
-            {existingAttendanceId && (
-              <Button
-                onClick={handleSubmitForReview}
-                disabled={submitting}
-                className="bg-white/20 hover:bg-white/30 text-white border border-white/30 flex items-center gap-2"
-              >
-                <Send className="h-4 w-4" />
-                {submitting ? 'Submitting...' : 'Submit for Review'}
-              </Button>
-            )}
             {isEditMode && (
               <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
                 <Edit3 className="h-4 w-4 mr-1" />
@@ -897,6 +1133,12 @@ export default function TeacherAttendancePage() {
               <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
                 <AlertCircle className="h-4 w-4 mr-1" />
                 Read Only (Older than 7 days)
+              </Badge>
+            )}
+            {new Date(selectedDate).getDay() === 0 && (
+              <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
+                <Calendar className="h-4 w-4 mr-1" />
+                Weekend (Sunday)
               </Badge>
             )}
           </div>
@@ -1059,12 +1301,26 @@ export default function TeacherAttendancePage() {
               Clear All
             </Button>
             {/* Smart Button Logic */}
-            {existingAttendanceId && !isEditMode ? (
-              // Show Load button when attendance exists but not in edit mode
+            {attendanceLoaded && isEditMode ? (
+              // Show Update & Submit button when in edit mode
               <Button
-                onClick={loadSavedAttendance}
+                onClick={handleSubmit}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={saving || !isDateEditable()}
+              >
+                {saving ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Update & Submit
+              </Button>
+            ) : existingAttendanceId && !isEditMode ? (
+              // Show Edit Attendance button when attendance exists but not in edit mode
+              <Button
+                onClick={enableEditMode}
                 variant="outline"
-                className="border-blue-500 text-blue-500 hover:bg-blue-50"
+                className="border-green-500 text-green-500 hover:bg-green-50"
                 disabled={loading || !isDateEditable()}
               >
                 {loading ? (
@@ -1072,7 +1328,7 @@ export default function TeacherAttendancePage() {
                 ) : (
                   <Edit3 className="h-4 w-4 mr-2" />
                 )}
-                Load Saved Attendance
+                Edit Attendance
               </Button>
             ) : (
               // Show Save/Update button when no attendance exists or in edit mode
@@ -1089,6 +1345,16 @@ export default function TeacherAttendancePage() {
               {isEditMode ? 'Update Attendance' : 'Save Attendance'}
               </Button>
             )}
+            
+            {/* Attendance History Button */}
+            <Button
+              onClick={fetchAttendanceHistory}
+              variant="outline"
+              className="border-purple-500 text-purple-500 hover:bg-purple-50"
+            >
+              <History className="h-4 w-4 mr-2" />
+              Attendance History
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -1097,7 +1363,21 @@ export default function TeacherAttendancePage() {
       {/* Students Table */}
       <Card>
         <CardHeader>
+          <div className="flex items-center justify-between">
           <CardTitle className="text-[#274c77]">Students List ({students.length} students)</CardTitle>
+            {existingAttendanceId && !isEditMode && (
+              <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                <Eye className="h-4 w-4 mr-1" />
+                Read-Only Mode - Click "Edit Attendance" to modify
+              </Badge>
+            )}
+            {isEditMode && (
+              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                <Edit3 className="h-4 w-4 mr-1" />
+                Edit Mode - Make your changes
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {students.length === 0 ? (
@@ -1279,6 +1559,114 @@ export default function TeacherAttendancePage() {
                   {isEditMode ? 'Update Attendance' : 'Save Attendance'}
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Attendance History Modal */}
+      <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#274c77] flex items-center">
+              <History className="h-5 w-5 mr-2" />
+              {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} Attendance History
+            </DialogTitle>
+            <DialogDescription>
+              View your attendance records with their approval status
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {attendanceHistoryData && attendanceHistoryData.length > 0 ? (
+              attendanceHistoryData.slice(0, 6).map((record: any, index: number) => (
+                <div key={index} className={`p-4 rounded-lg border ${
+                  record.status === 'final' ? 'bg-green-50 border-green-200' : 
+                  record.status === 'submitted' ? 'bg-blue-50 border-blue-200' :
+                  record.status === 'under_review' ? 'bg-yellow-50 border-yellow-200' :
+                  'bg-gray-50 border-gray-200'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                        record.status === 'final' ? 'bg-green-100' : 
+                        record.status === 'submitted' ? 'bg-blue-100' :
+                        record.status === 'under_review' ? 'bg-yellow-100' :
+                        'bg-gray-100'
+                      }`}>
+                        <Calendar className={`h-5 w-5 ${
+                          record.status === 'final' ? 'text-green-600' : 
+                          record.status === 'submitted' ? 'text-blue-600' :
+                          record.status === 'under_review' ? 'text-yellow-600' :
+                          'text-gray-600'
+                        }`} />
+                      </div>
+                      <div>
+                        <p className={`font-medium ${
+                          record.status === 'final' ? 'text-green-800' : 
+                          record.status === 'submitted' ? 'text-blue-800' :
+                          record.status === 'under_review' ? 'text-yellow-800' :
+                          'text-gray-800'
+                        }`}>
+                          {new Date(record.date).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                year: 'numeric', 
+                            month: 'long', 
+                day: 'numeric' 
+                          })}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {record.present_count || 0} present, {record.absent_count || 0} absent, {record.leave_count || 0} leave
+                        </p>
+                        {record.marked_by && (
+                          <p className="text-xs text-gray-500">
+                            Marked by: {record.marked_by}
+                          </p>
+                        )}
+            </div>
+          </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Badge 
+                        variant="outline"
+                        className={
+                          record.status === 'final' ? 'bg-green-100 text-green-800 border-green-300' :
+                          record.status === 'submitted' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                          record.status === 'under_review' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                          'bg-gray-100 text-gray-800 border-gray-300'
+                        }
+                      >
+                        {record.status === 'final' ? '✅ Approved' : 
+                         record.status === 'submitted' ? '📤 Submitted' : 
+                         record.status === 'under_review' ? '⏳ Under Review' :
+                         '📝 Draft'}
+                      </Badge>
+                      
+                      {record.status === 'final' && record.finalized_at && (
+                        <span className="text-xs text-green-600">
+                          Approved on {new Date(record.finalized_at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No attendance history found</p>
+                <p className="text-sm text-gray-400">Start marking attendance to see your history here</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={() => setShowHistoryModal(false)}
+              variant="outline"
+              className="border-gray-300"
+            >
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

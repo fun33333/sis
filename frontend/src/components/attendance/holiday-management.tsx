@@ -39,6 +39,8 @@ export default function HolidayManagement({ levelId, levelName }: HolidayManagem
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [showPastDateWarning, setShowPastDateWarning] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
   const [formData, setFormData] = useState({
     date: '',
     reason: ''
@@ -69,17 +71,41 @@ export default function HolidayManagement({ levelId, levelName }: HolidayManagem
       return
     }
 
+    // Check if date is in the past
+    const selectedDate = new Date(formData.date)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Reset time to start of day
+    
+    if (selectedDate < today) {
+      setShowPastDateWarning(true)
+      return
+    }
+
+    await createHolidayDirect()
+  }
+
+  const createHolidayDirect = async () => {
     setIsLoading(true)
     try {
       await createHoliday(formData)
       toast.success('Holiday created successfully')
       setFormData({ date: '', reason: '' })
       setShowCreateDialog(false)
+      setShowPastDateWarning(false)
+      setConfirmText('')
       fetchHolidays()
     } catch (error: any) {
       toast.error(error.message || 'Failed to create holiday')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handlePastDateConfirm = () => {
+    if (confirmText === 'CONFIRM') {
+      createHolidayDirect()
+    } else {
+      toast.error('Please type "CONFIRM" to proceed')
     }
   }
 
@@ -165,6 +191,60 @@ export default function HolidayManagement({ levelId, levelName }: HolidayManagem
                   </Button>
                 </div>
               </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Past Date Warning Dialog */}
+          <Dialog open={showPastDateWarning} onOpenChange={setShowPastDateWarning}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-red-600">
+                  <AlertCircle className="w-5 h-5" />
+                  Warning: Past Date Selected
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800 font-medium mb-2">
+                    ⚠️ This will replace existing attendance with Holiday status.
+                  </p>
+                  <p className="text-sm text-red-700">
+                    This action cannot be undone. Existing attendance will be archived.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmText">
+                    Type "CONFIRM" to proceed:
+                  </Label>
+                  <Input
+                    id="confirmText"
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="Type CONFIRM here"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowPastDateWarning(false)
+                      setConfirmText('')
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="button"
+                    onClick={handlePastDateConfirm}
+                    disabled={confirmText !== 'CONFIRM'}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Confirm & Create Holiday
+                  </Button>
+                </div>
+              </div>
             </DialogContent>
           </Dialog>
         </CardTitle>

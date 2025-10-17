@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Attendance, StudentAttendance
+from .models import Attendance, StudentAttendance, Weekend
 from students.models import Student
 from classes.models import ClassRoom
 from teachers.models import Teacher
@@ -29,6 +29,8 @@ class AttendanceSerializer(serializers.ModelSerializer):
     classroom_code = serializers.CharField(source='classroom.code', read_only=True)
     marked_by_name = serializers.SerializerMethodField()
     student_attendance = StudentAttendanceSerializer(source='student_attendances', many=True, read_only=True)
+    is_weekend = serializers.SerializerMethodField()
+    is_holiday = serializers.SerializerMethodField()
     
     class Meta:
         model = Attendance
@@ -36,7 +38,8 @@ class AttendanceSerializer(serializers.ModelSerializer):
             'id', 'classroom', 'classroom_name', 'classroom_code',
             'date', 'marked_by', 'marked_by_name',
             'total_students', 'present_count', 'absent_count', 'late_count', 'leave_count',
-            'student_attendance', 'created_at', 'updated_at', 'status'
+            'student_attendance', 'created_at', 'updated_at', 'status',
+            'is_weekend', 'is_holiday'
         ]
         read_only_fields = [
             'id', 'total_students', 'present_count', 'absent_count', 'late_count',
@@ -47,6 +50,22 @@ class AttendanceSerializer(serializers.ModelSerializer):
         if obj.marked_by:
             return obj.marked_by.get_full_name()
         return None
+    
+    def get_is_weekend(self, obj):
+        """Check if the date is a Sunday (weekend)"""
+        return obj.date.weekday() == 6  # Sunday is 6 in Python's weekday()
+    
+    def get_is_holiday(self, obj):
+        """Check if the date is a holiday for this level"""
+        try:
+            from .models import Holiday
+            level = obj.classroom.grade.level
+            return Holiday.objects.filter(
+                date=obj.date,
+                level=level
+            ).exists()
+        except:
+            return False
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
