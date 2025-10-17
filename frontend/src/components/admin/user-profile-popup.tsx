@@ -195,6 +195,12 @@ export function UserProfilePopup() {
     router.push("/Universal_Login")
   }
 
+  const handleViewFullProfile = () => {
+    const role = userProfile?.role || currentUser.role;
+    router.push(`/${role}/profile`);
+    setIsOpen(false);
+  }
+
   const [currentUser, setCurrentUser] = useState<any>(null)
 
   useEffect(() => {
@@ -358,6 +364,14 @@ export function UserProfilePopup() {
 
               {/* Actions */}
               <div className="border-t bg-gray-50 p-4 space-y-2">
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  onClick={handleViewFullProfile}
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  View Full Profile
+                </Button>
                 <Button 
                   variant="ghost" 
                   className="w-full justify-start text-sm text-red-600 hover:text-red-700 hover:bg-red-50"

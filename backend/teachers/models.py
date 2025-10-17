@@ -79,7 +79,7 @@ class Teacher(models.Model):
     # Current Role Information
     joining_date = models.DateField(blank=True, null=True)
     current_role_title = models.CharField(max_length=150, blank=True, null=True)
-    current_campus = models.ForeignKey(Campus, on_delete=models.CASCADE, related_name="teachers", blank=True, null=True)
+    current_campus = models.ForeignKey(Campus, on_delete=models.SET_NULL, related_name="teachers", blank=True, null=True)
     
     # Coordinator Assignment - NEW FIELD (ManyToMany for multi-level teachers)
     assigned_coordinators = models.ManyToManyField(

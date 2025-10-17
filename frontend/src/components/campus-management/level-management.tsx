@@ -52,6 +52,7 @@ export default function LevelManagement({ campusId }: LevelManagementProps) {
   const [availableCoordinators, setAvailableCoordinators] = useState<any[]>([])
   const [selectedCoordinatorId, setSelectedCoordinatorId] = useState('')
   const [assigning, setAssigning] = useState(false)
+  const [loadingCoordinators, setLoadingCoordinators] = useState(false)
   
   // Get campus ID from localStorage if not provided
   const userCampusId = campusId || getUserCampusId()
@@ -148,13 +149,25 @@ export default function LevelManagement({ campusId }: LevelManagementProps) {
     setSelectedLevel(level)
     setSelectedCoordinatorId('')
     setCoordinatorModalOpen(true)
+    setLoadingCoordinators(true)
+    setAvailableCoordinators([]) // Reset coordinators
     
     try {
       const coordinators = await getAvailableCoordinators(userCampusId || undefined)
-      setAvailableCoordinators(coordinators as any[])
+      
+      // Ensure coordinators is always an array
+      if (Array.isArray(coordinators)) {
+        setAvailableCoordinators(coordinators)
+      } else {
+        console.warn('getAvailableCoordinators returned non-array:', coordinators)
+        setAvailableCoordinators([])
+      }
     } catch (error) {
       console.error('Failed to fetch coordinators:', error)
+      setAvailableCoordinators([]) // Set empty array on error
       alert('Failed to load coordinators')
+    } finally {
+      setLoadingCoordinators(false)
     }
   }
 
@@ -183,12 +196,16 @@ export default function LevelManagement({ campusId }: LevelManagementProps) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold">Manage Levels</h2>
+          <h2 className="text-xl font-semibold" style={{ color: '#1976D2' }}>Manage Levels</h2>
           <p className="text-sm text-gray-600">
             Create and manage educational levels for your campus
           </p>
         </div>
-        <Button onClick={handleCreate} className="flex items-center gap-2">
+        <Button 
+          onClick={handleCreate} 
+          className="flex items-center gap-2"
+          style={{ backgroundColor: '#2196F3', color: 'white' }}
+        >
           <Plus className="h-4 w-4" />
           Create Level
         </Button>
@@ -206,11 +223,11 @@ export default function LevelManagement({ campusId }: LevelManagementProps) {
       ) : (
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Code</TableHead>
-              <TableHead>Coordinator</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow style={{ backgroundColor: '#1976D2' }}>
+              <TableHead className="text-white font-semibold">Name</TableHead>
+              <TableHead className="text-white font-semibold">Code</TableHead>
+              <TableHead className="text-white font-semibold">Coordinator</TableHead>
+              <TableHead className="text-right text-white font-semibold">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -245,6 +262,7 @@ export default function LevelManagement({ campusId }: LevelManagementProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(level)}
+                      className="text-gray-700 hover:text-gray-900"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -252,7 +270,7 @@ export default function LevelManagement({ campusId }: LevelManagementProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDelete(level)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-800"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -336,18 +354,31 @@ export default function LevelManagement({ campusId }: LevelManagementProps) {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Available Coordinators</Label>
-              <Select value={selectedCoordinatorId} onValueChange={setSelectedCoordinatorId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a coordinator" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableCoordinators.map(coord => (
-                    <SelectItem key={coord.id} value={coord.id.toString()}>
-                      {coord.full_name} ({coord.employee_code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {loadingCoordinators ? (
+                <div className="flex items-center gap-2 p-3 border rounded-md">
+                  <LoadingSpinner />
+                  <span className="text-sm text-gray-600">Loading coordinators...</span>
+                </div>
+              ) : (
+                <Select value={selectedCoordinatorId} onValueChange={setSelectedCoordinatorId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a coordinator" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.isArray(availableCoordinators) && availableCoordinators.length > 0 ? (
+                      availableCoordinators.map(coord => (
+                        <SelectItem key={coord.id} value={coord.id.toString()}>
+                          {coord.full_name} ({coord.employee_code})
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-coordinators" disabled>
+                        No available coordinators
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
 

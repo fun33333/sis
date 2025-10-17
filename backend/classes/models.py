@@ -33,22 +33,8 @@ class Level(models.Model):
         help_text="Campus this level belongs to"
     )
     
-    # Coordinator (1 per campus per level) - FIXED
-    coordinator = models.ForeignKey(
-        'coordinator.Coordinator',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='assigned_level',
-        help_text="Level coordinator"
-    )
-    coordinator_assigned_by = models.ForeignKey(
-        'users.User',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='level_coordinator_assignments'
-    )
+    # Coordinator relationship is handled via Coordinator.level field
+    # This avoids circular dependencies
     coordinator_assigned_at = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
@@ -68,6 +54,17 @@ class Level(models.Model):
     
     def __str__(self):
         return f"{self.name} ({self.campus.campus_name})"
+    
+    @property
+    def coordinator(self):
+        """Get the coordinator assigned to this level"""
+        return self.coordinator_set.first()
+    
+    @property
+    def coordinator_name(self):
+        """Get coordinator name for display"""
+        coord = self.coordinator
+        return f"{coord.full_name} ({coord.employee_code})" if coord else None
 
 # ----------------------
 class Grade(models.Model):

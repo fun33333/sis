@@ -26,4 +26,21 @@ urlpatterns = [
     # Coordinator endpoints
     path('coordinator/classes/', views.get_coordinator_classes, name='coordinator_classes'),
     path('level/<int:level_id>/summary/', views.get_level_attendance_summary, name='level_attendance_summary'),
+    
+    # State management
+    path('submit/<int:attendance_id>/', views.submit_attendance, name='submit_attendance'),
+    path('review/<int:attendance_id>/', views.review_attendance, name='review_attendance'),
+    path('finalize/<int:attendance_id>/', views.finalize_attendance, name='finalize_attendance'),
+    path('reopen/<int:attendance_id>/', views.reopen_attendance, name='reopen_attendance'),
+    
+    # Backfill permissions
+    path('backfill/grant/', views.grant_backfill_permission, name='grant_backfill_permission'),
+    path('backfill/permissions/', views.get_backfill_permissions, name='get_backfill_permissions'),
+    
+    # Holiday management
+    path('holidays/create/', views.create_holiday, name='create_holiday'),
+    path('holidays/', views.get_holidays, name='get_holidays'),
+    
+    # Real-time metrics
+    path('metrics/realtime/', views.get_realtime_attendance_metrics, name='realtime_metrics'),
 ]

@@ -20,7 +20,7 @@ class LevelViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         user = self.request.user
-        queryset = Level.objects.select_related('campus', 'coordinator')
+        queryset = Level.objects.select_related('campus')
         
         # Principal: Only their campus
         if user.is_principal() and hasattr(user, 'campus') and user.campus:
@@ -73,6 +73,13 @@ class LevelViewSet(viewsets.ModelViewSet):
             
             # Get the coordinator
             coordinator = Coordinator.objects.get(id=coordinator_id)
+            
+            # Validate coordinator has a campus assigned
+            if not coordinator.campus:
+                return Response(
+                    {'error': 'Coordinator must be assigned to a campus first'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             
             # Validate coordinator belongs to same campus
             if level.campus != coordinator.campus:

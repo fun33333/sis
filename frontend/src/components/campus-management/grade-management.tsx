@@ -62,7 +62,6 @@ export default function GradeManagement({ campusId }: GradeManagementProps) {
     setLoading(true)
     try {
       const levelId = selectedLevel !== 'all' ? parseInt(selectedLevel) : undefined
-      console.log('Fetching grades with levelId:', levelId, 'selectedLevel:', selectedLevel)
       
       const [gradesData, levelsData] = await Promise.all([
         getGrades(levelId, userCampusId || undefined),
@@ -71,9 +70,6 @@ export default function GradeManagement({ campusId }: GradeManagementProps) {
       // Handle paginated responses
       const gradesArray = (gradesData as any)?.results || (Array.isArray(gradesData) ? gradesData : [])
       const levelsArray = (levelsData as any)?.results || (Array.isArray(levelsData) ? levelsData : [])
-      
-      console.log('Fetched grades:', gradesArray)
-      console.log('Fetched levels:', levelsArray)
       
       setGrades(gradesArray)
       setLevels(levelsArray)
@@ -151,13 +147,17 @@ export default function GradeManagement({ campusId }: GradeManagementProps) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold">Manage Grades</h2>
+          <h2 className="text-xl font-semibold" style={{ color: '#1976D2' }}>Manage Grades</h2>
           <p className="text-sm text-gray-600">
             Create and manage grades for each level
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleCreate} className="flex items-center gap-2">
+          <Button 
+            onClick={handleCreate} 
+            className="flex items-center gap-2"
+            style={{ backgroundColor: '#2196F3', color: 'white' }}
+          >
             <Plus className="h-4 w-4" />
             Create Grade
           </Button>
@@ -206,11 +206,11 @@ export default function GradeManagement({ campusId }: GradeManagementProps) {
       ) : (
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Grade Name</TableHead>
-              <TableHead>Code</TableHead>
-              <TableHead>Level</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow style={{ backgroundColor: '#1976D2' }}>
+              <TableHead className="text-white font-semibold">Grade Name</TableHead>
+              <TableHead className="text-white font-semibold">Code</TableHead>
+              <TableHead className="text-white font-semibold">Level</TableHead>
+              <TableHead className="text-right text-white font-semibold">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -229,6 +229,7 @@ export default function GradeManagement({ campusId }: GradeManagementProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(grade)}
+                      className="text-gray-700 hover:text-gray-900"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -236,7 +237,7 @@ export default function GradeManagement({ campusId }: GradeManagementProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDelete(grade)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-800"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -330,10 +331,15 @@ export default function GradeManagement({ campusId }: GradeManagementProps) {
               variant="outline"
               onClick={() => setIsDialogOpen(false)}
               disabled={saving}
+              className="text-gray-700 hover:text-gray-900"
             >
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving || levels.length === 0}>
+            <Button 
+              onClick={handleSave} 
+              disabled={saving || levels.length === 0}
+              style={{ backgroundColor: '#365486', color: 'white' }}
+            >
               {saving ? 'Saving...' : editingGrade ? 'Update' : 'Create'}
             </Button>
           </DialogFooter>

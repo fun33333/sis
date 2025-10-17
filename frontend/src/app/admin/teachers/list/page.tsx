@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions";
 import { getFilteredTeachers, getAllCampuses } from "@/lib/api";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Eye, Edit, MoreVertical, User, Mail, Phone, GraduationCap, MapPin, Calendar, Award } from 'lucide-react';
+import { Eye, Edit, MoreVertical, User, Mail,GraduationCap, MapPin, Calendar, Award } from 'lucide-react';
 
 interface Teacher {
   id: number;
@@ -170,8 +170,8 @@ export default function TeacherListPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
+    <div className="p-3 w-full max-w-full overflow-hidden">
+      <div className="mb-3">
         <h1 className="text-3xl font-bold mb-2" style={{ color: '#274c77' }}>
           Teachers List
         </h1>
@@ -181,7 +181,7 @@ export default function TeacherListPage() {
       </div>
 
        {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6" style={{ borderColor: '#a3cef1' }}>
+      <div className="bg-white rounded-lg shadow p-3 mb-3 w-full" style={{ borderColor: '#a3cef1' }}>
         <div className="mb-4">
           <h3 className="text-lg font-semibold mb-2 flex items-center space-x-2" style={{ color: '#274c77' }}>
             <div className="h-6 w-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6096ba' }}>
@@ -190,7 +190,7 @@ export default function TeacherListPage() {
             <span>Search & Filters</span>
           </h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
           {/* Search */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -201,7 +201,7 @@ export default function TeacherListPage() {
               placeholder="Search by name, code, email..."
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+              className="w-full px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2"
               style={{ borderColor: '#a3cef1' }}
                />
              </div>
@@ -214,7 +214,7 @@ export default function TeacherListPage() {
                  <select
               value={filters.current_campus}
               onChange={(e) => handleFilterChange('current_campus', e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+              className="w-full px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2"
               style={{ borderColor: '#a3cef1' }}
             >
               <option value="">All Campuses</option>
@@ -234,7 +234,7 @@ export default function TeacherListPage() {
                  <select
               value={filters.shift}
               onChange={(e) => handleFilterChange('shift', e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+              className="w-full px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2"
               style={{ borderColor: '#a3cef1' }}
             >
               <option value="">All Shifts</option>
@@ -252,7 +252,7 @@ export default function TeacherListPage() {
                  <select
               value={filters.is_currently_active}
               onChange={(e) => handleFilterChange('is_currently_active', e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+              className="w-full px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2"
               style={{ borderColor: '#a3cef1' }}
             >
               <option value="">All Status</option>
@@ -262,65 +262,14 @@ export default function TeacherListPage() {
                </div>
              </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          {/* Class Teacher Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role
-            </label>
-            <select
-              value={filters.is_class_teacher}
-              onChange={(e) => handleFilterChange('is_class_teacher', e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
-              style={{ borderColor: '#a3cef1' }}
-            >
-              <option value="">All Roles</option>
-              <option value="true">Class Teacher</option>
-              <option value="false">Subject Teacher</option>
-            </select>
-           </div>
-
-          {/* Subjects Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Subjects
-            </label>
-            <input
-              type="text"
-              placeholder="Filter by subjects..."
-              value={filters.current_subjects}
-              onChange={(e) => handleFilterChange('current_subjects', e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
-              style={{ borderColor: '#a3cef1' }}
-            />
-            </div>
-
-          {/* Ordering */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Sort By
-            </label>
-            <select
-              value={filters.ordering}
-              onChange={(e) => handleFilterChange('ordering', e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
-              style={{ borderColor: '#a3cef1' }}
-            >
-              <option value="-joining_date">Joining Date (Newest)</option>
-              <option value="joining_date">Joining Date (Oldest)</option>
-              <option value="full_name">Name (A-Z)</option>
-              <option value="-full_name">Name (Z-A)</option>
-              <option value="-total_experience_years">Experience (High to Low)</option>
-              <option value="total_experience_years">Experience (Low to High)</option>
-            </select>
-                             </div>
-                           </div>
 
         <div className="flex justify-between items-center">
           <button
             onClick={clearFilters}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 transition-all duration-200 shadow-sm hover:shadow-md"
+            style={{ backgroundColor: '#6096ba' }}
           >
+            <span className="mr-1">🔄</span>
             Clear Filters
           </button>
 
@@ -329,31 +278,7 @@ export default function TeacherListPage() {
             <select
               value={pageSize}
               onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
-              className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center">
-          <button
-            onClick={clearFilters}
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 transition-all duration-200 shadow-sm hover:shadow-md"
-            style={{ borderColor: '#a3cef1' }}
-          >
-            <span className="mr-2">🔄</span>
-            Clear Filters
-          </button>
-
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-700">Per page:</label>
-            <select
-              value={pageSize}
-              onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
-              className="px-3 py-1 border rounded-md focus:outline-none focus:ring-2 bg-white shadow-sm"
+              className="px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 bg-white shadow-sm"
               style={{ borderColor: '#a3cef1' }}
             >
               <option value={25}>25</option>
@@ -365,42 +290,36 @@ export default function TeacherListPage() {
       </div>
 
       {/* Teachers Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden" style={{ borderColor: '#a3cef1' }}>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+      <div className="bg-white rounded-lg shadow overflow-hidden w-full" style={{ borderColor: '#a3cef1' }}>
+        <div className="overflow-x-auto w-full">
+          <table className="w-full divide-y divide-gray-200 table-fixed">
             <thead style={{ backgroundColor: '#274c77' }}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider w-1/4">
                   <div className="flex items-center space-x-2">
                     <User className="h-4 w-4" />
                     <span>Teacher</span>
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                  <div className="flex items-center space-x-2">
-                    <Award className="h-4 w-4" />
-                    <span>Employee Code</span>
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider w-1/4">
                   <div className="flex items-center space-x-2">
                     <GraduationCap className="h-4 w-4" />
                     <span>Subjects/Classes</span>
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider w-1/6">
                   <div className="flex items-center space-x-2">
                     <MapPin className="h-4 w-4" />
                     <span>Campus</span>
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider w-1/12">
                   <div className="flex items-center space-x-2">
                     <div className="h-4 w-4 rounded-full bg-green-500"></div>
                     <span>Status</span>
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider w-1/6">
                   <div className="flex items-center space-x-2">
                     <MoreVertical className="h-4 w-4" />
                     <span>Actions</span>
@@ -411,7 +330,7 @@ export default function TeacherListPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {teachers.map((teacher, index) => (
                 <tr key={teacher.id} className={`hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : ''}`} style={{ backgroundColor: index % 2 === 0 ? 'white' : '#e7ecef' }}>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     <div className="flex items-center space-x-3">
                       <div className="flex-shrink-0">
                         <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6096ba' }}>
@@ -427,97 +346,74 @@ export default function TeacherListPage() {
                         </div>
                         <div className="text-sm text-gray-500 flex items-center space-x-1">
                           <Mail className="h-3 w-3" />
-                          <span>{teacher.email}</span>
+                          <span className="truncate max-w-[150px]">
+                            {teacher.email ? teacher.email.substring(0, teacher.email.length / 2) + '...' : 'N/A'}
+                          </span>
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center space-x-2">
-                      <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6096ba' }}>
-                        <span className="text-xs font-bold text-white">
-                          {teacher.employee_code ? teacher.employee_code.slice(-2) : 'N/A'}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {teacher.employee_code || 'N/A'}
-                        </div>
-                        <div className="text-sm text-gray-500 flex items-center space-x-1">
-                          <Calendar className="h-3 w-3" />
-                          <span className="capitalize">{teacher.shift}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="space-y-2">
+                  <td className="px-3 py-3">
+                    <div className="space-y-1">
                       <div className="flex items-center space-x-2">
                         <GraduationCap className="h-4 w-4" style={{ color: '#6096ba' }} />
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900">Subjects:</div>
-                          <div className="text-gray-600 truncate max-w-xs">{teacher.current_subjects || 'N/A'}</div>
-                        </div>
+                        <span className="text-sm font-medium text-gray-900">Subjects:</span>
+                        <span className="text-sm text-gray-600 max-w-[120px] truncate">
+                          {teacher.current_subjects ? teacher.current_subjects.split(',').slice(0, 2).join(', ') : 'N/A'}
+                        </span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <User className="h-4 w-4" style={{ color: '#6096ba' }} />
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900">Classes:</div>
-                          <div className="text-gray-600 truncate max-w-xs">{teacher.current_classes_taught || 'N/A'}</div>
-                        </div>
+                        <span className="text-sm font-medium text-gray-900">Classes:</span>
+                        <span className="text-sm text-gray-600 max-w-[120px] truncate">
+                          {teacher.current_classes_taught ? teacher.current_classes_taught.split(',').slice(0, 2).join(', ') : 'N/A'}
+                        </span>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     <div className="flex items-center space-x-2">
                       <MapPin className="h-4 w-4" style={{ color: '#6096ba' }} />
                       <div>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-bold text-gray-900">
                           {teacher.campus_name || 'N/A'}
                         </div>
                         {teacher.coordinator_names && teacher.coordinator_names.length > 0 && (
-                          <div className="text-sm text-gray-500">
-                            Coord: {teacher.coordinator_names.join(', ')}
+                          <div className="text-sm text-gray-600">
+                            Coord: {teacher.coordinator_names[0]}
+                            {teacher.coordinator_names.length > 1 && '...'}
                           </div>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="space-y-2">
-                      <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full ${
-                        teacher.is_currently_active 
-                          ? 'bg-green-100 text-green-800 border border-green-200'
-                          : 'bg-red-100 text-red-800 border border-red-200'
-                      }`}>
-                        <div className={`h-2 w-2 rounded-full mr-2 ${
-                          teacher.is_currently_active ? 'bg-green-500' : 'bg-red-500'
-                        }`}></div>
-                        {teacher.is_currently_active ? 'Active' : 'Inactive'}
-                      </span>
-                      {teacher.is_class_teacher && (
-                        <span className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
-                          <Award className="h-3 w-3 mr-1" />
-                          Class Teacher
-                        </span>
-                      )}
-                    </div>
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full ${
+                      teacher.is_currently_active 
+                        ? 'bg-green-100 text-green-800 border border-green-200'
+                        : 'bg-red-100 text-red-800 border border-red-200'
+                    }`}>
+                      <div className={`h-2 w-2 rounded-full mr-2 ${
+                        teacher.is_currently_active ? 'bg-green-500' : 'bg-red-500'
+                      }`}></div>
+                      {teacher.is_currently_active ? 'Active' : 'Inactive'}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => router.push(`/admin/teachers/profile?id=${teacher.id}`)}
-                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white transition-all duration-200 shadow-sm hover:shadow-md"
+                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md text-white transition-all duration-200 shadow-sm hover:shadow-md"
                         style={{ backgroundColor: '#6096ba' }}
                       >
-                        <Eye className="h-4 w-4 mr-1" />
+                        <Eye className="h-3 w-3 mr-1" />
                         View
                       </button>
                       <button
-                        className="inline-flex items-center px-3 py-2 border text-sm leading-4 font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                        className="inline-flex items-center px-2 py-1 border text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                         style={{ borderColor: '#6096ba', color: '#274c77' }}
                       >
-                        <Edit className="h-4 w-4 mr-1" />
+                        <Edit className="h-3 w-3 mr-1" />
                         Edit
                       </button>
                     </div>

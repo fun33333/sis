@@ -74,7 +74,6 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
     setLoading(true)
     try {
       const gradeId = selectedGrade !== 'all' ? parseInt(selectedGrade) : undefined
-      console.log('Fetching classrooms with gradeId:', gradeId, 'selectedGrade:', selectedGrade)
       
       const [classroomsData, gradesData, teachersData] = await Promise.all([
         getClassrooms(
@@ -89,9 +88,6 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
       const classroomsArray = (classroomsData as any)?.results || (Array.isArray(classroomsData) ? classroomsData : [])
       const gradesArray = (gradesData as any)?.results || (Array.isArray(gradesData) ? gradesData : [])
       const teachersArray = (teachersData as any)?.results || (Array.isArray(teachersData) ? teachersData : [])
-      
-      console.log('Fetched classrooms:', classroomsArray)
-      console.log('Fetched grades:', gradesArray)
       
       setClassrooms(classroomsArray)
       setGrades(gradesArray)
@@ -222,12 +218,16 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold">Manage Classrooms</h2>
+          <h2 className="text-xl font-semibold" style={{ color: '#1976D2' }}>Manage Classrooms</h2>
           <p className="text-sm text-gray-600">
             Create classrooms and assign teachers
           </p>
         </div>
-        <Button onClick={handleCreate} className="flex items-center gap-2">
+        <Button 
+          onClick={handleCreate} 
+          className="flex items-center gap-2"
+          style={{ backgroundColor: '#2196F3', color: 'white' }}
+        >
           <Plus className="h-4 w-4" />
           Create Classroom
         </Button>
@@ -275,15 +275,15 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
       ) : (
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Classroom</TableHead>
-              <TableHead>Code</TableHead>
-              <TableHead>Grade</TableHead>
-              <TableHead>Section</TableHead>
-              <TableHead>Capacity</TableHead>
-              <TableHead>Class Teacher</TableHead>
-              <TableHead>Assigned By</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow style={{ backgroundColor: '#1976D2' }}>
+              <TableHead className="text-white font-semibold">Classroom</TableHead>
+              <TableHead className="text-white font-semibold">Code</TableHead>
+              <TableHead className="text-white font-semibold">Grade</TableHead>
+              <TableHead className="text-white font-semibold">Section</TableHead>
+              <TableHead className="text-white font-semibold">Capacity</TableHead>
+              <TableHead className="text-white font-semibold">Class Teacher</TableHead>
+              <TableHead className="text-white font-semibold">Assigned By</TableHead>
+              <TableHead className="text-right text-white font-semibold">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -341,6 +341,7 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(classroom)}
+                      className="text-gray-700 hover:text-gray-900"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -348,7 +349,7 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
                       variant="outline"
                       size="sm"
                       onClick={() => handleDelete(classroom)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-800"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -471,10 +472,15 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
               variant="outline"
               onClick={() => setIsDialogOpen(false)}
               disabled={saving}
+              className="text-gray-700 hover:text-gray-900"
             >
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving || grades.length === 0}>
+            <Button 
+              onClick={handleSave} 
+              disabled={saving || grades.length === 0}
+              style={{ backgroundColor: '#2196F3', color: 'white' }}
+            >
               {saving ? 'Saving...' : editingClassroom ? 'Update' : 'Create'}
             </Button>
           </DialogFooter>
@@ -545,12 +551,14 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
               variant="outline"
               onClick={() => setIsTeacherDialogOpen(false)}
               disabled={saving}
+              className="text-gray-700 hover:text-gray-900"
             >
               Cancel
             </Button>
             <Button 
               onClick={handleSaveTeacherAssignment} 
               disabled={saving || !selectedTeacher || availableTeachers.length === 0}
+              style={{ backgroundColor: '#2196F3', color: 'white' }}
             >
               {saving ? 'Assigning...' : 'Assign Teacher'}
             </Button>

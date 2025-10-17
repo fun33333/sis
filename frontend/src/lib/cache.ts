@@ -12,15 +12,48 @@ export class CacheManager {
         ttl
       };
       localStorage.setItem(`${this.CACHE_PREFIX}${key}`, JSON.stringify(cacheData));
-    } catch (error) {
-      console.warn('Failed to set cache:', error);
+    } catch (error: any) {
+      if (error.name === 'QuotaExceededError') {
+        // Evict oldest entries
+        this.evictOldest();
+        try {
+          // Retry
+          const cacheData = {
+            data,
+            timestamp: Date.now(),
+            ttl
+          };
+          localStorage.setItem(`${this.CACHE_PREFIX}${key}`, JSON.stringify(cacheData));
+        } catch {
+          // Fallback to sessionStorage
+          try {
+            const cacheData = {
+              data,
+              timestamp: Date.now(),
+              ttl
+            };
+            sessionStorage.setItem(`${this.CACHE_PREFIX}${key}`, JSON.stringify(cacheData));
+          } catch {
+            console.warn('Failed to cache data - storage full');
+          }
+        }
+      } else {
+        console.warn('Failed to set cache:', error);
+      }
     }
   }
 
   // Get cache if not expired
   static get(key: string): any | null {
     try {
-      const cached = localStorage.getItem(`${this.CACHE_PREFIX}${key}`);
+      // Try localStorage first
+      let cached = localStorage.getItem(`${this.CACHE_PREFIX}${key}`);
+      
+      // If not found in localStorage, try sessionStorage
+      if (!cached) {
+        cached = sessionStorage.getItem(`${this.CACHE_PREFIX}${key}`);
+      }
+      
       if (!cached) return null;
 
       const cacheData = JSON.parse(cached);
@@ -43,6 +76,7 @@ export class CacheManager {
   static remove(key: string): void {
     try {
       localStorage.removeItem(`${this.CACHE_PREFIX}${key}`);
+      sessionStorage.removeItem(`${this.CACHE_PREFIX}${key}`);
     } catch (error) {
       console.warn('Failed to remove cache:', error);
     }
@@ -51,12 +85,14 @@ export class CacheManager {
   // Clear all cache
   static clear(): void {
     try {
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.startsWith(this.CACHE_PREFIX)) {
-          localStorage.removeItem(key);
-        }
-      });
+      for (const store of [localStorage, sessionStorage]) {
+        const keys = Object.keys(store);
+        keys.forEach(key => {
+          if (key.startsWith(this.CACHE_PREFIX)) {
+            store.removeItem(key);
+          }
+        });
+      }
     } catch (error) {
       console.warn('Failed to clear cache:', error);
     }
@@ -82,6 +118,27 @@ export class CacheManager {
     } catch (error) {
       console.error('Failed to fetch data for cache:', error);
       throw error;
+    }
+  }
+
+  // Evict oldest cache entries
+  private static evictOldest(count: number = 5): void {
+    try {
+      const entries = Object.keys(localStorage)
+        .filter(k => k.startsWith(this.CACHE_PREFIX))
+        .map(k => {
+          try {
+            const data = JSON.parse(localStorage.getItem(k) || '{}');
+            return { key: k, timestamp: data.timestamp || 0 };
+          } catch {
+            return { key: k, timestamp: 0 };
+          }
+        })
+        .sort((a, b) => a.timestamp - b.timestamp);
+      
+      entries.slice(0, count).forEach(e => localStorage.removeItem(e.key));
+    } catch (error) {
+      console.warn('Failed to evict oldest cache entries:', error);
     }
   }
 

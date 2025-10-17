@@ -3,18 +3,25 @@ from .models import Level, Grade, ClassRoom
 
 class LevelSerializer(serializers.ModelSerializer):
     campus_name = serializers.CharField(source='campus.campus_name', read_only=True)
-    coordinator_name = serializers.CharField(source='coordinator.full_name', read_only=True)
-    coordinator_code = serializers.CharField(source='coordinator.employee_code', read_only=True)
-    assigned_by_name = serializers.CharField(source='coordinator_assigned_by.username', read_only=True)
+    coordinator_name = serializers.SerializerMethodField()
+    coordinator_code = serializers.SerializerMethodField()
     
     class Meta:
         model = Level
         fields = [
             'id', 'name', 'code', 'campus', 'campus_name', 
-            'coordinator', 'coordinator_name', 'coordinator_code',
-            'coordinator_assigned_by', 'assigned_by_name', 'coordinator_assigned_at'
+            'coordinator_name', 'coordinator_code'
         ]
-        read_only_fields = ['id', 'code', 'coordinator_assigned_by', 'coordinator_assigned_at']
+        read_only_fields = ['id', 'code']
+    
+    def get_coordinator_name(self, obj):
+        """Get coordinator name using the property"""
+        return obj.coordinator_name
+    
+    def get_coordinator_code(self, obj):
+        """Get coordinator code"""
+        coord = obj.coordinator
+        return coord.employee_code if coord else None
 
 class GradeSerializer(serializers.ModelSerializer):
     level_name = serializers.CharField(source='level.name', read_only=True)

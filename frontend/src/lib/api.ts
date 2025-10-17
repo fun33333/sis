@@ -33,8 +33,8 @@ export const API_ENDPOINTS = {
   GRADE_CHOICES: "/api/grades/choices/",
   CLASSROOM_CHOICES: "/api/classrooms/choices/",
   CLASSROOM_SECTIONS: "/api/classrooms/sections/",
-  CLASSROOM_STUDENTS: "/api/class/{id}/students/",
-  AVAILABLE_STUDENTS: "/api/class/{id}/available-students/",
+  CLASSROOM_STUDENTS: "/api/attendance/class/{id}/students/",
+  AVAILABLE_STUDENTS: "/api/attendance/class/{id}/available-students/",
   CURRENT_USER_PROFILE: "/api/current-user/",
 } as const;
 
@@ -487,8 +487,8 @@ export async function getAllStudents(forceRefresh: boolean = false) {
       }
     }
     
-    // Cache the results for 10 minutes
-    CacheManager.set(CacheManager.KEYS.STUDENTS, allStudents, 10 * 60 * 1000);
+    // Disable caching of huge arrays to prevent quota issues
+    // CacheManager.set(CacheManager.KEYS.STUDENTS, allStudents, 10 * 60 * 1000);
     
     return allStudents;
   } catch (error) {
@@ -617,8 +617,8 @@ export async function getAllTeachers() {
       }
     }
     
-    // Cache the results for 10 minutes
-    CacheManager.set(CacheManager.KEYS.TEACHERS, allTeachers, 10 * 60 * 1000);
+    // Disable caching of huge arrays to prevent quota issues
+    // CacheManager.set(CacheManager.KEYS.TEACHERS, allTeachers, 10 * 60 * 1000);
     
     return allTeachers;
   } catch (error) {
@@ -1031,7 +1031,17 @@ export async function getAvailableCoordinators(campusId?: number) {
     const url = campusId 
       ? `/api/coordinators/?campus_id=${campusId}&level__isnull=true`
       : '/api/coordinators/?level__isnull=true';
-    return await apiGet(url);
+    const response = await apiGet(url);
+    
+    // Handle paginated response - return results array or empty array
+    if (response && typeof response === 'object' && 'results' in response) {
+      return response.results || [];
+    } else if (Array.isArray(response)) {
+      return response;
+    } else {
+      console.warn('Unexpected response format from getAvailableCoordinators:', response);
+      return [];
+    }
   } catch (error) {
     console.error('Failed to fetch available coordinators:', error);
     return [];
@@ -1080,7 +1090,7 @@ function getPrincipalCampusData(_campusId: number): any {
 // Attendance API functions
 export async function getTeacherClasses() {
   try {
-    return await apiGet('/api/teacher/classes/');
+    return await apiGet('/api/attendance/teacher/classes/');
   } catch (error) {
     console.error('Failed to fetch teacher classes:', error);
     return [];
@@ -1089,7 +1099,7 @@ export async function getTeacherClasses() {
 
 export async function getClassStudents(classroomId: number) {
   try {
-    return await apiGet(`/api/class/${classroomId}/students/`);
+    return await apiGet(`/api/attendance/class/${classroomId}/students/`);
   } catch (error) {
     console.error('Failed to fetch class students:', error);
     return [];
@@ -1106,7 +1116,7 @@ export async function markBulkAttendance(data: {
   }>;
 }) {
   try {
-    return await apiPost('/api/mark-bulk/', data);
+    return await apiPost('/api/attendance/mark-bulk/', data);
   } catch (error) {
     console.error('Failed to mark attendance:', error);
     throw error;
@@ -1115,7 +1125,7 @@ export async function markBulkAttendance(data: {
 
 export async function getAttendanceHistory(classroomId: number, startDate?: string, endDate?: string) {
   try {
-    let url = `/api/class/${classroomId}/`;
+    let url = `/api/attendance/class/${classroomId}/`;
     const params = new URLSearchParams();
     if (startDate) params.append('start_date', startDate);
     if (endDate) params.append('end_date', endDate);
@@ -1130,7 +1140,9 @@ export async function getAttendanceHistory(classroomId: number, startDate?: stri
 
 export async function getAttendanceForDate(classroomId: number, date: string) {
   try {
-    return await apiGet(`/api/class/${classroomId}/attendance/${date}/`);
+    // Add cache-busting parameter
+    const timestamp = new Date().getTime();
+    return await apiGet(`/api/attendance/class/${classroomId}/attendance/${date}/?t=${timestamp}`);
   } catch (error) {
     console.error('Failed to fetch attendance for date:', error);
     return null;
@@ -1145,7 +1157,7 @@ export async function editAttendance(attendanceId: number, data: {
   }>;
 }) {
   try {
-    return await apiPut(`/api/edit/${attendanceId}/`, data);
+    return await apiPut(`/api/attendance/edit/${attendanceId}/`, data);
   } catch (error) {
     console.error('Failed to edit attendance:', error);
     throw error;
@@ -1154,16 +1166,19 @@ export async function editAttendance(attendanceId: number, data: {
 
 export async function getCoordinatorClasses() {
   try {
-    return await apiGet('/api/coordinator/classes/');
+    console.log('API: Fetching coordinator classes...');
+    const response = await apiGet('/api/attendance/coordinator/classes/');
+    console.log('API: Coordinator classes response:', response);
+    return response;
   } catch (error) {
-    console.error('Failed to fetch coordinator classes:', error);
+    console.error('API: Failed to fetch coordinator classes:', error);
     return [];
   }
 }
 
 export async function getLevelAttendanceSummary(levelId: number, startDate?: string, endDate?: string) {
   try {
-    let url = `/api/level/${levelId}/summary/`;
+    let url = `/api/attendance/level/${levelId}/summary/`;
     const params = new URLSearchParams();
     if (startDate) params.append('start_date', startDate);
     if (endDate) params.append('end_date', endDate);
@@ -1518,7 +1533,7 @@ export async function addRequestComment(requestId: number, comment: string) {
 // Teacher Statistics API functions
 export async function getTeacherAttendanceSummary(classroomId: number, startDate?: string, endDate?: string) {
   try {
-    let url = `/api/class/${classroomId}/summary/`;
+    let url = `/api/attendance/class/${classroomId}/summary/`;
     const params = new URLSearchParams();
     if (startDate) params.append('start_date', startDate);
     if (endDate) params.append('end_date', endDate);
@@ -1573,5 +1588,110 @@ export async function getTeacherTodayAttendance(classroomId: number) {
   } catch (error) {
     console.error('Failed to fetch today attendance:', error);
     return null;
+  }
+}
+
+// Attendance State Management
+export async function submitAttendance(attendanceId: number) {
+  try {
+    return await apiPost(`/api/attendance/submit/${attendanceId}/`, {});
+  } catch (error) {
+    console.error('Failed to submit attendance:', error);
+    throw error;
+  }
+}
+
+export async function reviewAttendance(attendanceId: number) {
+  try {
+    return await apiPost(`/api/attendance/review/${attendanceId}/`, {});
+  } catch (error) {
+    console.error('Failed to review attendance:', error);
+    throw error;
+  }
+}
+
+export async function finalizeAttendance(attendanceId: number) {
+  try {
+    return await apiPost(`/api/attendance/finalize/${attendanceId}/`, {});
+  } catch (error) {
+    console.error('Failed to finalize attendance:', error);
+    throw error;
+  }
+}
+
+export async function reopenAttendance(attendanceId: number, reason: string) {
+  try {
+    return await apiPost(`/api/attendance/reopen/${attendanceId}/`, { reason });
+  } catch (error) {
+    console.error('Failed to reopen attendance:', error);
+    throw error;
+  }
+}
+
+// Backfill Permission Management
+export async function grantBackfillPermission(data: {
+  classroom_id: number;
+  date: string;
+  teacher_id: number;
+  reason: string;
+  deadline: string;
+}) {
+  try {
+    return await apiPost('/api/attendance/backfill/grant/', data);
+  } catch (error) {
+    console.error('Failed to grant backfill permission:', error);
+    throw error;
+  }
+}
+
+export async function getBackfillPermissions() {
+  try {
+    return await apiGet('/api/attendance/backfill/permissions/');
+  } catch (error) {
+    console.error('Failed to fetch backfill permissions:', error);
+    return [];
+  }
+}
+
+// Holiday Management
+export async function createHoliday(data: {
+  date: string;
+  reason: string;
+}) {
+  try {
+    return await apiPost('/api/attendance/holidays/create/', data);
+  } catch (error) {
+    console.error('Failed to create holiday:', error);
+    throw error;
+  }
+}
+
+export async function getHolidays(levelId?: number, startDate?: string, endDate?: string) {
+  try {
+    let url = '/api/attendance/holidays/';
+    const params = new URLSearchParams();
+    
+    if (levelId) params.append('level_id', levelId.toString());
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    return await apiGet(url);
+  } catch (error) {
+    console.error('Failed to fetch holidays:', error);
+    return [];
+  }
+}
+
+// Real-time Metrics
+export async function getRealtimeMetrics() {
+  try {
+    return await apiGet('/api/attendance/metrics/realtime/');
+  } catch (error) {
+    console.error('Failed to fetch real-time metrics:', error);
+    return { today: '', classrooms: [] };
   }
 }

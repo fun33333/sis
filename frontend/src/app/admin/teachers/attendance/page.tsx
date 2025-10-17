@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, Clock, Users, CheckCircle, XCircle, AlertCircle, Save, RefreshCw, Edit3, History, Eraser } from "lucide-react";
+import { Calendar, Clock, Users, CheckCircle, XCircle, AlertCircle, Save, RefreshCw, Edit3, History, Eraser, Send, Clock3, Bell, Eye, ChevronDown, EyeOff } from "lucide-react";
 import { getCurrentUserRole } from "@/lib/permissions";
-import { getCurrentUserProfile, getClassStudents, markBulkAttendance, getAttendanceHistory, getAttendanceForDate, editAttendance } from "@/lib/api";
-import { useRouter } from "next/navigation";
+import { getCurrentUserProfile, getClassStudents, markBulkAttendance, getAttendanceHistory, getAttendanceForDate, editAttendance, submitAttendance, getBackfillPermissions, finalizeAttendance, reviewAttendance } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+// import AttendanceStateControls from "@/components/attendance/attendance-state-controls";
+// import BackfillPermission from "@/components/attendance/backfill-permission";
 
 type AttendanceStatus = "present" | "absent" | "leave";
 
@@ -71,18 +73,30 @@ export default function TeacherAttendancePage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [existingAttendanceId, setExistingAttendanceId] = useState<number | null>(null);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-  const [showWeeklySubmitModal, setShowWeeklySubmitModal] = useState(false);
-  const [weeklyReportStatus, setWeeklyReportStatus] = useState<'pending' | 'submitted' | 'approved'>('pending');
+  const [submitting, setSubmitting] = useState(false);
+  const [showBackfillModal, setShowBackfillModal] = useState(false);
+  const [backfillPermissions, setBackfillPermissions] = useState<any[]>([]);
+  const [hasNewPermissions, setHasNewPermissions] = useState(false);
+  const [last6DaysAttendance, setLast6DaysAttendance] = useState<any[]>([]);
+  const [loadingLast6Days, setLoadingLast6Days] = useState(false);
+  const [expandedAttendance, setExpandedAttendance] = useState<number | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const userRole = getCurrentUserRole();
+  const classroomId = searchParams.get('classroom');
 
   useEffect(() => {
     if (userRole === 'teacher') {
       document.title = "Mark Attendance | IAK SMS";
       fetchTeacherData();
+      fetchBackfillPermissions();
+    } else if (userRole === 'coordinator' && classroomId) {
+      document.title = "View Attendance | IAK SMS";
+      fetchCoordinatorClassData();
+      fetchLast6DaysAttendance();
     }
-  }, [userRole]);
+  }, [userRole, classroomId]);
 
   const fetchTeacherData = async () => {
     try {
@@ -256,27 +270,237 @@ export default function TeacherAttendancePage() {
     setAttendance({});
   };
 
-  const handleWeeklySubmit = () => {
-    setShowWeeklySubmitModal(true);
-  };
 
-  const confirmWeeklySubmit = async () => {
+  const handleSubmitForReview = async () => {
+    if (!existingAttendanceId) return;
+    
     try {
-      // Here you would call API to submit weekly report
-      console.log('Submitting weekly report...');
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setWeeklyReportStatus('submitted');
-      setShowWeeklySubmitModal(false);
-      alert('✅ Weekly Report Submitted Successfully!\n\nYour attendance report has been sent to the coordinator for review.');
-      
+      setSubmitting(true);
+      await submitAttendance(existingAttendanceId);
+      alert('✅ Attendance submitted for review successfully!');
+      // Refresh data
+      fetchTeacherData();
     } catch (error) {
-      console.error('Error submitting weekly report:', error);
-      alert('❌ Failed to submit weekly report. Please try again.');
+      console.error('Error submitting attendance:', error);
+      alert('❌ Failed to submit attendance. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
+
+  const fetchBackfillPermissions = async () => {
+    try {
+      const permissions = await getBackfillPermissions() as any[];
+      setBackfillPermissions(permissions);
+      // Check if there are any new permissions (not used)
+      const newPermissions = permissions.filter((p: any) => !p.is_used);
+      setHasNewPermissions(newPermissions.length > 0);
+    } catch (error) {
+      console.error('Error fetching backfill permissions:', error);
+    }
+  };
+
+  const handleBackfillIconClick = () => {
+    setShowBackfillModal(true);
+    fetchBackfillPermissions();
+  };
+
+  const fetchCoordinatorClassData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      if (!classroomId) {
+        setError("No classroom specified");
+        return;
+      }
+
+      // Get classroom info directly from classrooms API
+      const classroomResponse = await fetch(`/api/classrooms/${classroomId}/`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      let classroomData = null;
+      if (classroomResponse.ok) {
+        classroomData = await classroomResponse.json();
+        console.log('🏫 Classroom data:', classroomData);
+        console.log('🏫 Classroom code:', classroomData.code);
+        console.log('🏫 Classroom name:', classroomData.name);
+      } else {
+        console.log('❌ Classroom API failed with status:', classroomResponse.status);
+      }
+
+      // Get students and attendance history
+      const [classStudents, attendanceHistory] = await Promise.all([
+        getClassStudents(parseInt(classroomId)),
+        getAttendanceHistory(parseInt(classroomId))
+      ]);
+
+      // Set classroom info from API or fallback
+      if (classroomData) {
+        console.log('🏫 Using classroom data from API');
+        console.log('🏫 Classroom code from API:', classroomData.code);
+        setClassInfo({
+          id: classroomData.id,
+          name: classroomData.name || `Classroom ${classroomId}`,
+          code: classroomData.code || `C06-L2-G03-A`, // Use real code, fallback to A
+          grade: classroomData.grade?.name || '',
+          section: classroomData.section || '',
+          shift: classroomData.shift || '',
+          campus: classroomData.campus?.campus_name || ''
+        });
+      } else if (classStudents && Array.isArray(classStudents) && classStudents.length > 0) {
+        // Fallback: Extract from first student
+        const firstStudent = classStudents[0] as any;
+        console.log('🔍 First student data (fallback):', firstStudent);
+        console.log('🔍 Classroom code from student:', firstStudent.classroom_code);
+        
+        setClassInfo({
+          id: parseInt(classroomId),
+          name: firstStudent.classroom_name || `Classroom ${classroomId}`,
+          code: firstStudent.classroom_code || `C06-L2-G03-A`, // Use real code, fallback to A
+          grade: firstStudent.grade || '',
+          section: firstStudent.section || '',
+          shift: firstStudent.shift || '',
+          campus: firstStudent.campus_name || ''
+        });
+      } else {
+        // Final fallback with default code
+        console.log('🔍 Using final fallback with default code');
+        setClassInfo({
+          id: parseInt(classroomId),
+          name: `Classroom ${classroomId}`,
+          code: `C06-L2-G03-A`, // Default to A
+          grade: '',
+          section: '',
+          shift: '',
+          campus: ''
+        });
+      }
+
+      if (classStudents && Array.isArray(classStudents)) {
+        setStudents(classStudents as Student[]);
+      }
+
+      if (attendanceHistory && Array.isArray(attendanceHistory) && attendanceHistory.length > 0) {
+        setLast6DaysAttendance(attendanceHistory as any[]);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching coordinator class data:', error);
+      setError('Failed to load classroom data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchLast6DaysAttendance = async () => {
+    try {
+      setLoadingLast6Days(true);
+      
+      if (!classroomId) return;
+
+      // Get last 6 days
+      const today = new Date();
+      const sixDaysAgo = new Date(today);
+      sixDaysAgo.setDate(today.getDate() - 6);
+
+      console.log('🔍 Fetching attendance for classroom:', classroomId);
+      console.log('📅 Date range:', sixDaysAgo.toISOString().split('T')[0], 'to', today.toISOString().split('T')[0]);
+
+      const attendanceData = await getAttendanceHistory(
+        parseInt(classroomId),
+        sixDaysAgo.toISOString().split('T')[0],
+        today.toISOString().split('T')[0]
+      );
+
+      console.log('📊 Raw attendance data:', attendanceData);
+      console.log('📊 Attendance data type:', typeof attendanceData);
+      console.log('📊 Attendance data length:', Array.isArray(attendanceData) ? attendanceData.length : 'Not an array');
+
+      if (Array.isArray(attendanceData) && attendanceData.length > 0) {
+        console.log('👥 First record student_attendance:', attendanceData[0].student_attendance);
+        console.log('👥 Student attendance type:', typeof attendanceData[0].student_attendance);
+        console.log('👥 Student attendance length:', Array.isArray(attendanceData[0].student_attendance) ? attendanceData[0].student_attendance.length : 'Not an array');
+      }
+
+      setLast6DaysAttendance((attendanceData as any[]) || []);
+    } catch (error) {
+      console.error('Error fetching last 6 days attendance:', error);
+    } finally {
+      setLoadingLast6Days(false);
+    }
+  };
+
+  const handleApproveAttendance = async (attendanceId: number) => {
+    try {
+      console.log('Approving attendance:', attendanceId);
+      
+      // First check the current status and handle accordingly
+      const attendanceRecord = last6DaysAttendance.find(record => record.id === attendanceId);
+      
+      if (!attendanceRecord) {
+        alert('Attendance record not found!');
+        return;
+      }
+      
+      console.log('Current status:', attendanceRecord.status);
+      
+      // If status is 'draft', first submit it
+      if (attendanceRecord.status === 'draft') {
+        console.log('Submitting attendance first...');
+        await submitAttendance(attendanceId);
+        console.log('Attendance submitted successfully');
+        
+        // Wait a moment then finalize
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await finalizeAttendance(attendanceId);
+        console.log('Attendance finalized successfully');
+        
+        alert('Attendance submitted and approved successfully!');
+      } 
+      // If status is 'submitted', move to under_review then finalize
+      else if (attendanceRecord.status === 'submitted') {
+        console.log('Reviewing attendance...');
+        await reviewAttendance(attendanceId);
+        console.log('Attendance reviewed successfully');
+        
+        // Wait a moment then finalize
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await finalizeAttendance(attendanceId);
+        console.log('Attendance finalized successfully');
+        
+        alert('Attendance reviewed and approved successfully!');
+      }
+      // If status is 'under_review', just finalize
+      else if (attendanceRecord.status === 'under_review') {
+        await finalizeAttendance(attendanceId);
+        console.log('Attendance finalized successfully');
+        
+        alert('Attendance approved successfully!');
+      }
+      // If already final, show message
+      else if (attendanceRecord.status === 'final') {
+        alert('Attendance is already approved!');
+        return;
+      }
+      
+      // Refresh the data
+      await fetchLast6DaysAttendance();
+      
+    } catch (error) {
+      console.error('Error approving attendance:', error);
+      alert('Error approving attendance. Please try again.');
+    }
+  };
+
+  const toggleAttendanceExpansion = (attendanceId: number) => {
+    setExpandedAttendance(expandedAttendance === attendanceId ? null : attendanceId);
+  };
+
 
   const loadSavedAttendance = async () => {
     if (!classInfo) return;
@@ -327,7 +551,7 @@ export default function TeacherAttendancePage() {
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center space-x-2">
             <RefreshCw className="h-6 w-6 animate-spin text-[#6096ba]" />
-            <span className="text-[#274c77] font-medium">Loading class data...</span>
+            <span className="text-[#274c77] font-medium">Loading...</span>
           </div>
         </div>
       </div>
@@ -347,6 +571,261 @@ export default function TeacherAttendancePage() {
               Try Again
             </Button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Coordinator view - Last 6 days attendance
+  if (userRole === 'coordinator' && classroomId) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header Section */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Attendance Review</h1>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {classInfo?.code || classInfo?.name || `Classroom ${classroomId}`} • Last 6 Days
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => router.back()}
+                  variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+              </div>
+            </div>
+          </div>
+
+
+        {/* Detailed Attendance Sheets */}
+        {last6DaysAttendance.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            {/* Table Header */}
+            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+              <div className="grid grid-cols-12 gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <div className="col-span-3">Date & Status</div>
+                <div className="col-span-2">Marked By</div>
+                <div className="col-span-2">Students</div>
+                <div className="col-span-3">Attendance</div>
+                <div className="col-span-2">Actions</div>
+              </div>
+            </div>
+
+            {/* Table Body */}
+            <div className="divide-y divide-gray-200">
+              {last6DaysAttendance.map((record: any, index: number) => (
+                <div key={index} className="hover:bg-gray-50 transition-colors duration-200">
+                  {/* Main Row */}
+                  <div className="px-6 py-4">
+                    <div className="grid grid-cols-12 gap-4 items-center min-h-[80px]">
+                      {/* Date & Status */}
+                      <div className="col-span-3 flex items-center">
+                        <div className="flex items-center space-x-3 w-full">
+                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <Calendar className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div className="flex flex-col space-y-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {new Date(record.date).toLocaleDateString()}
+                            </p>
+                            <Badge 
+                              variant="outline"
+                              className={`w-fit ${
+                                record.status === 'final' ? 'bg-green-50 text-green-700 border-green-200' :
+                                record.status === 'submitted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                record.status === 'under_review' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                'bg-gray-50 text-gray-700 border-gray-200'
+                              }`}
+                            >
+                              {record.status?.charAt(0).toUpperCase() + record.status?.slice(1) || 'Draft'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Marked By */}
+                      <div className="col-span-2 flex items-center">
+                        <div className="flex items-center space-x-2 w-full">
+                          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <Users className="h-4 w-4 text-gray-600" />
+                          </div>
+                          <span className="text-sm text-gray-900 truncate">{record.marked_by_name || 'Unknown'}</span>
+                        </div>
+                      </div>
+
+                      {/* Students Count */}
+                      <div className="col-span-2 flex items-center">
+                        <div className="flex items-center space-x-2 w-full">
+                          <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                            <Users className="h-4 w-4 text-purple-600" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">{record.total_students || 0}</span>
+                        </div>
+                      </div>
+
+                      {/* Attendance Stats */}
+                      <div className="col-span-3 flex items-center">
+                        <div className="flex items-center space-x-4 w-full">
+                          <div className="flex items-center space-x-1">
+                            <div className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0"></div>
+                            <span className="text-sm text-gray-600">{record.present_count || 0}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <div className="w-2 h-2 bg-red-400 rounded-full flex-shrink-0"></div>
+                            <span className="text-sm text-gray-600">{record.absent_count || 0}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></div>
+                            <span className="text-sm text-gray-600">{record.leave_count || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="col-span-2 flex items-center justify-end">
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            onClick={() => toggleAttendanceExpansion(record.id)}
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-300 text-gray-700 hover:bg-gray-50 text-xs px-2 py-1"
+                          >
+                            {expandedAttendance === record.id ? (
+                              <>
+                                <EyeOff className="h-3 w-3 mr-1" />
+                                Hide
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="h-3 w-3 mr-1" />
+                                View
+                              </>
+                            )}
+                          </Button>
+                          
+                          {/* Approved Button - Show only for non-final statuses */}
+                          {record.status !== 'final' && (
+                            <Button
+                              onClick={() => handleApproveAttendance(record.id)}
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Approve
+                            </Button>
+                          )}
+                          
+                          {/* Approved Badge - Show only for final status */}
+                          {record.status === 'final' && (
+                            <Badge 
+                              variant="outline"
+                              className="bg-green-50 text-green-700 border-green-200 text-xs px-2 py-1"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Approved
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Collapsible Content with Smooth Animation */}
+                  <div 
+                    className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                      expandedAttendance === record.id 
+                        ? 'max-h-[800px] opacity-100' 
+                        : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                      {/* Student Table */}
+                      {record.student_attendance && Array.isArray(record.student_attendance) && record.student_attendance.length > 0 ? (
+                        <div className="overflow-x-auto max-h-[600px] overflow-y-auto border border-gray-200 rounded-lg bg-white">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50 sticky top-0 z-10">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {record.student_attendance.map((studentRecord: any, studentIndex: number) => (
+                                <tr key={studentIndex} className="hover:bg-gray-50">
+                                  <td className="px-4 py-4 whitespace-nowrap">
+                                    <div className="flex items-center">
+                                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <span className="text-sm font-medium text-blue-600">
+                                          {studentRecord.student_name?.charAt(0).toUpperCase() || 'S'}
+                                        </span>
+                                      </div>
+                                      <div className="ml-3">
+                                        <div className="text-sm font-medium text-gray-900">
+                                          {studentRecord.student_name || 'Unknown Student'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-4 whitespace-nowrap">
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                      {studentRecord.student_code || studentRecord.student_id || 'N/A'}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-4 whitespace-nowrap">
+                                    <Badge 
+                                      variant="outline"
+                                      className={
+                                        studentRecord.student_gender === 'male' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                        studentRecord.student_gender === 'female' ? 'bg-pink-50 text-pink-700 border-pink-200' :
+                                        'bg-gray-50 text-gray-700 border-gray-200'
+                                      }
+                                    >
+                                      {studentRecord.student_gender?.charAt(0).toUpperCase() + studentRecord.student_gender?.slice(1) || 'N/A'}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-4 py-4 whitespace-nowrap">
+                                    <Badge 
+                                      variant="outline"
+                                      className={
+                                        studentRecord.status === 'present' ? 'bg-green-50 text-green-700 border-green-200' :
+                                        studentRecord.status === 'absent' ? 'bg-red-50 text-red-700 border-red-200' :
+                                        studentRecord.status === 'leave' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                        'bg-gray-50 text-gray-700 border-gray-200'
+                                      }
+                                    >
+                                      {studentRecord.status?.charAt(0).toUpperCase() + studentRecord.status?.slice(1) || 'Unknown'}
+                                    </Badge>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <div className="text-gray-400 mb-2">
+                            <Users className="h-12 w-12 mx-auto" />
+                          </div>
+                          <p className="text-gray-500 text-sm">No student records found for this date</p>
+                          <p className="text-gray-400 text-xs mt-1">Please check if attendance was marked for this classroom</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         </div>
       </div>
     );
@@ -381,6 +860,33 @@ export default function TeacherAttendancePage() {
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            {/* Backfill Permissions Icon */}
+            <div className="relative">
+              <Button
+                onClick={handleBackfillIconClick}
+                className="bg-white/20 hover:bg-white/30 text-white border border-white/30 flex items-center gap-2"
+                size="sm"
+              >
+                <Clock3 className="h-4 w-4" />
+                Backfill
+              </Button>
+              {hasNewPermissions && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                  <Bell className="h-2 w-2 text-white" />
+                </div>
+              )}
+            </div>
+            
+            {existingAttendanceId && (
+              <Button
+                onClick={handleSubmitForReview}
+                disabled={submitting}
+                className="bg-white/20 hover:bg-white/30 text-white border border-white/30 flex items-center gap-2"
+              >
+                <Send className="h-4 w-4" />
+                {submitting ? 'Submitting...' : 'Submit for Review'}
+              </Button>
+            )}
             {isEditMode && (
               <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
                 <Edit3 className="h-4 w-4 mr-1" />
@@ -396,6 +902,76 @@ export default function TeacherAttendancePage() {
           </div>
         </div>
       </div>
+
+
+      {/* Backfill Permissions Modal */}
+      <Dialog open={showBackfillModal} onOpenChange={setShowBackfillModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock3 className="h-5 w-5" />
+              Backfill Permissions
+            </DialogTitle>
+            <DialogDescription>
+              View and manage your backfill permissions for missed attendance dates.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {backfillPermissions.length === 0 ? (
+              <div className="text-center py-8">
+                <Clock3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 text-lg">No backfill permissions found</p>
+                <p className="text-gray-400 text-sm">Contact your coordinator for backfill permissions.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {backfillPermissions.map((permission: any, index: number) => (
+                  <Card key={index} className={`${!permission.is_used ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-gray-900">
+                            {permission.classroom?.name || 'Unknown Class'}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            Date: {new Date(permission.date).toLocaleDateString()}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Deadline: {new Date(permission.deadline).toLocaleString()}
+                          </p>
+                          {permission.reason && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              Reason: {permission.reason}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          {permission.is_used ? (
+                            <Badge variant="outline" className="bg-gray-100 text-gray-600">
+                              Used
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-green-100 text-green-600 border-green-200">
+                              Available
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBackfillModal(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -500,73 +1076,23 @@ export default function TeacherAttendancePage() {
               </Button>
             ) : (
               // Show Save/Update button when no attendance exists or in edit mode
-              <Button
-                onClick={handleSubmit} 
-                className="bg-[#6096ba] hover:bg-[#274c77] text-white"
-                disabled={saving || !isDateEditable()}
-              >
-                {saving ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                {isEditMode ? 'Update Attendance' : 'Save Attendance'}
+            <Button
+              onClick={handleSubmit} 
+              className="bg-[#6096ba] hover:bg-[#274c77] text-white"
+              disabled={saving || !isDateEditable()}
+            >
+              {saving ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {isEditMode ? 'Update Attendance' : 'Save Attendance'}
               </Button>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Weekly Submission Section */}
-      <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
-        <CardHeader>
-          <CardTitle className="text-purple-800 flex items-center">
-            <Calendar className="h-5 w-5 mr-2" />
-            Weekly Report Submission
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-2">
-                Submit your weekly attendance report to the coordinator for review.
-              </p>
-              <div className="flex items-center space-x-4">
-                <Badge 
-                  className={
-                    weeklyReportStatus === 'submitted' 
-                      ? 'bg-green-100 text-green-800 border-green-300' 
-                      : weeklyReportStatus === 'approved'
-                      ? 'bg-blue-100 text-blue-800 border-blue-300'
-                      : 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                  }
-                >
-                  {weeklyReportStatus === 'submitted' ? '✅ Submitted' : 
-                   weeklyReportStatus === 'approved' ? '✅ Approved' : 
-                   '⏳ Pending Submission'}
-                </Badge>
-                <span className="text-sm text-gray-500">
-                  Week of: {new Date().toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric' 
-                  })}
-                </span>
-              </div>
-            </div>
-            <Button
-              onClick={handleWeeklySubmit}
-              disabled={weeklyReportStatus === 'submitted' || weeklyReportStatus === 'approved'}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              {weeklyReportStatus === 'submitted' ? 'Already Submitted' : 
-               weeklyReportStatus === 'approved' ? 'Approved' : 
-               'Submit Weekly Report'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Students Table */}
       <Card>
@@ -758,51 +1284,6 @@ export default function TeacherAttendancePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Weekly Submit Confirmation Modal */}
-      <Dialog open={showWeeklySubmitModal} onOpenChange={setShowWeeklySubmitModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center text-purple-800">
-              <Calendar className="h-5 w-5 mr-2" />
-              Submit Weekly Report
-            </DialogTitle>
-            <DialogDescription className="text-gray-600">
-              Are you sure you want to submit this week's attendance report to the coordinator?
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="bg-purple-50 p-4 rounded-lg mb-4">
-            <h4 className="font-medium text-purple-800 mb-2">Report Summary:</h4>
-            <div className="space-y-1 text-sm text-gray-600">
-              <p>• Class: {classInfo?.name || 'N/A'}</p>
-              <p>• Week: {new Date().toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
-              })}</p>
-              <p>• Students: {students.length}</p>
-              <p>• Status: Ready for submission</p>
-            </div>
-          </div>
-
-          <DialogFooter className="flex space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowWeeklySubmitModal(false)}
-              className="border-gray-300"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmWeeklySubmit}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Submit Report
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+		</div>
+	);
 }

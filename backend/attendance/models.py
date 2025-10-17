@@ -54,6 +54,24 @@ class Attendance(models.Model):
         related_name='deleted_attendances'
     )
     
+    # State management
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('submitted', 'Submitted'),
+        ('under_review', 'Under Review'),
+        ('final', 'Final'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    submitted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='submitted_attendances')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_attendances')
+    finalized_at = models.DateTimeField(null=True, blank=True)
+    finalized_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='finalized_attendances')
+    reopened_at = models.DateTimeField(null=True, blank=True)
+    reopened_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reopened_attendances')
+    reopen_reason = models.TextField(null=True, blank=True)
+    
     # Calculated fields
     total_students = models.PositiveIntegerField(default=0)
     present_count = models.PositiveIntegerField(default=0)
@@ -75,10 +93,14 @@ class Attendance(models.Model):
     
     @property
     def is_editable(self):
-        """Check if attendance can be edited (within 7 days)"""
-        if self.is_final:
+        """Check if attendance can be edited based on status"""
+        if self.status == 'final':
             return False
-        return (timezone.now().date() - self.date).days <= 7
+        if self.status == 'draft':
+            return (timezone.now().date() - self.date).days <= 7
+        if self.status in ['submitted', 'under_review']:
+            return True  # Coordinator can edit
+        return False
     
     @property
     def attendance_percentage(self):
@@ -221,3 +243,95 @@ class StudentAttendance(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
+
+
+class Holiday(models.Model):
+    """Model for tracking holidays defined by coordinators"""
+    date = models.DateField()
+    reason = models.CharField(max_length=200)
+    level = models.ForeignKey('classes.Level', on_delete=models.CASCADE, related_name='holidays')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_holidays')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['date', 'level']
+        ordering = ['-date']
+    
+    def __str__(self):
+        return f"{self.date} - {self.reason}"
+
+
+class AttendanceBackfillPermission(models.Model):
+    """Model for tracking backfill permissions granted by coordinators"""
+    classroom = models.ForeignKey('classes.ClassRoom', on_delete=models.CASCADE)
+    date = models.DateField()
+    granted_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='backfill_permissions')
+    granted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='granted_backfill_permissions')
+    reason = models.TextField()
+    deadline = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['classroom', 'date', 'granted_to']
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.classroom} - {self.date} - {self.granted_to.username}"
+    
+    @property
+    def is_expired(self):
+        return timezone.now() > self.deadline
+
+
+class AuditLog(models.Model):
+    """Unified audit log for all system actions"""
+    ACTION_TYPES = [
+        ('create', 'Create'),
+        ('update', 'Update'),
+        ('delete', 'Delete'),
+        ('submit', 'Submit'),
+        ('review', 'Review'),
+        ('finalize', 'Finalize'),
+        ('reopen', 'Reopen'),
+        ('approve', 'Approve'),
+        ('reject', 'Reject'),
+        ('assign', 'Assign'),
+        ('unassign', 'Unassign'),
+    ]
+    
+    FEATURE_TYPES = [
+        ('attendance', 'Attendance'),
+        ('student', 'Student'),
+        ('teacher', 'Teacher'),
+        ('coordinator', 'Coordinator'),
+        ('principal', 'Principal'),
+        ('classroom', 'Classroom'),
+        ('grade', 'Grade'),
+        ('level', 'Level'),
+        ('campus', 'Campus'),
+        ('user', 'User'),
+    ]
+    
+    feature = models.CharField(max_length=50, choices=FEATURE_TYPES)
+    action = models.CharField(max_length=50, choices=ACTION_TYPES)
+    entity_type = models.CharField(max_length=100)
+    entity_id = models.IntegerField()
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='audit_logs')
+    timestamp = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    changes = models.JSONField(default=dict, blank=True)
+    reason = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['feature', 'action']),
+            models.Index(fields=['entity_type', 'entity_id']),
+            models.Index(fields=['user', 'timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"{self.feature} - {self.action} by {self.user.username if self.user else 'System'}"

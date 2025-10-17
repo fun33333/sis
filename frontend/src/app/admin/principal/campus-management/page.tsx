@@ -35,10 +35,10 @@ export default function CampusManagementPage() {
   if (loading) {
     return (
       <div className="p-6">
-        <Card>
+        <Card className="border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2" style={{ color: '#1976D2' }}>
+              <Building2 className="h-5 w-5" style={{ color: '#1976D2' }} />
               Campus Management
             </CardTitle>
           </CardHeader>
@@ -55,8 +55,8 @@ export default function CampusManagementPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Building2 className="h-8 w-8 text-blue-600" />
+          <h1 className="text-3xl font-bold flex items-center gap-2" style={{ color: '#1976D2' }}>
+            <Building2 className="h-8 w-8" style={{ color: '#1976D2' }} />
             Campus Management
           </h1>
           <p className="text-gray-600 mt-1">
@@ -71,20 +71,41 @@ export default function CampusManagementPage() {
       </div>
 
       {/* Management Tabs */}
-      <Card>
+      <Card className="border-0 shadow-lg">
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="levels" className="flex items-center gap-2">
-                <School className="h-4 w-4" />
+            <TabsList className="grid w-full grid-cols-3 mb-6 bg-gray-100">
+              <TabsTrigger 
+                value="levels" 
+                className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm"
+                style={{ 
+                  backgroundColor: activeTab === 'levels' ? 'white' : 'transparent',
+                  color: activeTab === 'levels' ? '#1976D2' : '#6B7280'
+                }}
+              >
+                <School className="h-4 w-4" style={{ color: activeTab === 'levels' ? '#1976D2' : '#6B7280' }} />
                 Levels
               </TabsTrigger>
-              <TabsTrigger value="grades" className="flex items-center gap-2">
-                <GraduationCap className="h-4 w-4" />
+              <TabsTrigger 
+                value="grades" 
+                className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm"
+                style={{ 
+                  backgroundColor: activeTab === 'grades' ? 'white' : 'transparent',
+                  color: activeTab === 'grades' ? '#1976D2' : '#6B7280'
+                }}
+              >
+                <GraduationCap className="h-4 w-4" style={{ color: activeTab === 'grades' ? '#1976D2' : '#6B7280' }} />
                 Grades
               </TabsTrigger>
-              <TabsTrigger value="classrooms" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
+              <TabsTrigger 
+                value="classrooms" 
+                className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm"
+                style={{ 
+                  backgroundColor: activeTab === 'classrooms' ? 'white' : 'transparent',
+                  color: activeTab === 'classrooms' ? '#1976D2' : '#6B7280'
+                }}
+              >
+                <Users className="h-4 w-4" style={{ color: activeTab === 'classrooms' ? '#1976D2' : '#6B7280' }} />
                 Classrooms
               </TabsTrigger>
             </TabsList>

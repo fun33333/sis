@@ -28,9 +28,17 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
         
         # Role-based filtering
         user = self.request.user
-        if hasattr(user, 'campus') and user.campus and user.is_principal():
+        if hasattr(user, 'campus') and user.campus and hasattr(user, 'is_principal') and user.is_principal():
             # Principal: Only show coordinators from their campus
             queryset = queryset.filter(campus=user.campus)
+        
+        # Handle filtering for available coordinators (level__isnull=True)
+        level_isnull = self.request.query_params.get('level__isnull')
+        if level_isnull is not None:
+            if level_isnull.lower() == 'true':
+                queryset = queryset.filter(level__isnull=True)
+            elif level_isnull.lower() == 'false':
+                queryset = queryset.filter(level__isnull=False)
         
         return queryset
 
@@ -69,7 +77,7 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
                 'id': coordinator.id,
                 'full_name': coordinator.full_name,
                 'employee_code': coordinator.employee_code,
-                'campus_name': coordinator.campus.campus_name,
+                'campus_name': coordinator.campus.campus_name if coordinator.campus else None,
             },
             'teachers': teachers_data,
             'total_teachers': len(teachers_data)
@@ -87,10 +95,12 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
         ).count()
         
         # Get students count from coordinator's campus
-        students_count = Student.objects.filter(
-            campus=coordinator.campus,
-            current_state='active'
-        ).count()
+        students_count = 0
+        if coordinator.campus:
+            students_count = Student.objects.filter(
+                campus=coordinator.campus,
+                current_state='active'
+            ).count()
         
         # Get classes count - ClassRoom model doesn't have campus field
         # So we'll get all classes for now, or implement a different logic
@@ -104,7 +114,7 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
                 'id': coordinator.id,
                 'full_name': coordinator.full_name,
                 'employee_code': coordinator.employee_code,
-                'campus_name': coordinator.campus.campus_name,
+                'campus_name': coordinator.campus.campus_name if coordinator.campus else None,
             },
             'stats': {
                 'total_teachers': teachers_count,

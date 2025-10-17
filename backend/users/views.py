@@ -209,7 +209,7 @@ def refresh_token_view(request):
 @permission_classes([IsAuthenticated])
 def current_user_profile(request):
     """
-    Get current user's profile with role-specific data
+    Get current user's profile with complete role-specific data
     """
     user = request.user
     
@@ -228,7 +228,7 @@ def current_user_profile(request):
         } if user.campus else None,
     }
     
-    # Add role-specific data
+    # Add role-specific data with complete profile information
     if user.role == 'teacher':
         try:
             from teachers.models import Teacher
@@ -236,17 +236,35 @@ def current_user_profile(request):
             user_data.update({
                 'teacher_id': teacher.id,
                 'full_name': teacher.full_name,
+                'dob': teacher.dob,
+                'gender': teacher.gender,
+                'contact_number': teacher.contact_number,
+                'email': teacher.email,
+                'cnic': teacher.cnic,
+                'permanent_address': teacher.permanent_address,
+                'education_level': teacher.education_level,
+                'institution_name': teacher.institution_name,
+                'year_of_passing': teacher.year_of_passing,
+                'total_experience_years': teacher.total_experience_years,
+                'profile_image': None,  # Teacher model doesn't have profile_image field
+                'employee_code': teacher.employee_code,
+                'joining_date': teacher.joining_date,
+                'is_class_teacher': teacher.is_class_teacher,
+                'is_currently_active': teacher.is_currently_active,
                 'assigned_classroom': {
                     'id': teacher.assigned_classroom.id,
                     'name': str(teacher.assigned_classroom),
                     'grade': teacher.assigned_classroom.grade.name if teacher.assigned_classroom.grade else None,
                     'section': teacher.assigned_classroom.section,
+                    'shift': teacher.assigned_classroom.shift,
                 } if teacher.assigned_classroom else None,
                 'current_campus': {
                     'id': teacher.current_campus.id,
                     'campus_name': teacher.current_campus.campus_name,
+                    'campus_code': teacher.current_campus.campus_code,
                 } if teacher.current_campus else None,
-                'is_class_teacher': teacher.is_class_teacher,
+                'created_at': teacher.date_created,
+                'updated_at': teacher.date_updated,
             })
         except Teacher.DoesNotExist:
             pass
@@ -257,14 +275,32 @@ def current_user_profile(request):
             user_data.update({
                 'coordinator_id': coordinator.id,
                 'full_name': coordinator.full_name,
+                'dob': coordinator.dob,
+                'gender': coordinator.gender,
+                'contact_number': coordinator.contact_number,
+                'email': coordinator.email,
+                'cnic': coordinator.cnic,
+                'permanent_address': coordinator.permanent_address,
+                'education_level': coordinator.education_level,
+                'institution_name': coordinator.institution_name,
+                'year_of_passing': coordinator.year_of_passing,
+                'total_experience_years': coordinator.total_experience_years,
+                'employee_code': coordinator.employee_code,
+                'joining_date': coordinator.joining_date,
+                'is_currently_active': coordinator.is_currently_active,
+                'can_assign_class_teachers': coordinator.can_assign_class_teachers,
                 'level': {
                     'id': coordinator.level.id,
                     'name': coordinator.level.name,
+                    'code': coordinator.level.code,
                 } if coordinator.level else None,
                 'campus': {
                     'id': coordinator.campus.id,
                     'campus_name': coordinator.campus.campus_name,
+                    'campus_code': coordinator.campus.campus_code,
                 } if coordinator.campus else None,
+                'created_at': coordinator.created_at,
+                'updated_at': coordinator.updated_at,
             })
         except Coordinator.DoesNotExist:
             pass
@@ -275,31 +311,74 @@ def current_user_profile(request):
             user_data.update({
                 'principal_id': principal.id,
                 'full_name': principal.full_name,
+                'dob': principal.dob,
+                'gender': principal.gender,
+                'contact_number': principal.contact_number,
+                'email': principal.email,
+                'cnic': principal.cnic,
+                'permanent_address': principal.permanent_address,
+                'education_level': principal.education_level,
+                'institution_name': principal.institution_name,
+                'year_of_passing': principal.year_of_passing,
+                'total_experience_years': principal.total_experience_years,
+                'employee_code': principal.employee_code,
+                'joining_date': principal.joining_date,
+                'is_currently_active': principal.is_currently_active,
+                'shift': principal.shift,
                 'campus': {
                     'id': principal.campus.id,
                     'campus_name': principal.campus.campus_name,
                     'campus_code': principal.campus.campus_code,
                 } if principal.campus else None,
-                'shift': principal.shift,
-                'is_active': principal.is_currently_active,
+                'created_at': principal.created_at,
+                'updated_at': principal.updated_at,
             })
         except Principal.DoesNotExist:
             pass
-    elif user.role == 'coordinator':
+    elif user.role == 'student':
         try:
-            from coordinator.models import Coordinator
-            coordinator = Coordinator.objects.get(email=user.email)
+            from students.models import Student
+            student = Student.objects.get(email=user.email)
             user_data.update({
-                'coordinator_id': coordinator.id,
-                'full_name': coordinator.full_name,
-                'level': {
-                    'id': coordinator.level.id,
-                    'name': coordinator.level.name,
-                } if coordinator.level else None,
-                'employee_code': coordinator.employee_code,
-                'is_currently_active': coordinator.is_currently_active,
+                'student_id': student.id,
+                'name': student.name,
+                'dob': student.dob,
+                'gender': student.gender,
+                'contact_number': student.contact_number,
+                'email': student.email,
+                'cnic': student.cnic,
+                'permanent_address': student.permanent_address,
+                'father_name': student.father_name,
+                'father_cnic': student.father_cnic,
+                'father_contact': student.father_contact,
+                'father_occupation': student.father_occupation,
+                'mother_name': student.mother_name,
+                'mother_cnic': student.mother_cnic,
+                'mother_contact': student.mother_contact,
+                'mother_occupation': student.mother_occupation,
+                'guardian_name': student.guardian_name,
+                'guardian_contact': student.guardian_contact,
+                'guardian_relation': student.guardian_relation,
+                'photo': student.photo.url if student.photo else None,
+                'student_id_number': student.student_id_number,
+                'admission_date': student.admission_date,
+                'current_state': student.current_state,
+                'classroom': {
+                    'id': student.classroom.id,
+                    'name': str(student.classroom),
+                    'grade': student.classroom.grade.name if student.classroom.grade else None,
+                    'section': student.classroom.section,
+                    'shift': student.classroom.shift,
+                } if student.classroom else None,
+                'campus': {
+                    'id': student.campus.id,
+                    'campus_name': student.campus.campus_name,
+                    'campus_code': student.campus.campus_code,
+                } if student.campus else None,
+                'created_at': student.created_at,
+                'updated_at': student.updated_at,
             })
-        except Coordinator.DoesNotExist:
+        except Student.DoesNotExist:
             pass
     
     return Response(user_data)

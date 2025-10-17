@@ -6,6 +6,7 @@ import { Award, Users, Calendar, FileText, BookOpen, Clock, TrendingUp, CheckCir
 import { getCoordinatorDashboardStats, findCoordinatorByEmployeeCode, getAllCoordinators } from "@/lib/api"
 import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from "recharts"
+import RealtimeAttendanceMatrix from "@/components/dashboard/realtime-attendance-matrix"
 
 export default function CoordinatorPage() {
   const [stats, setStats] = useState([
@@ -203,6 +204,9 @@ export default function CoordinatorPage() {
           );
         })}
       </div>
+
+      {/* Real-time Attendance Matrix */}
+      <RealtimeAttendanceMatrix />
 
       {/* Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

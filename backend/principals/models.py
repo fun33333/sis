@@ -33,7 +33,7 @@ class Principal(models.Model):
     total_experience_years = models.PositiveIntegerField()
     
     # Work Assignment
-    campus = models.ForeignKey(Campus, on_delete=models.CASCADE)
+    campus = models.ForeignKey(Campus, on_delete=models.SET_NULL, null=True, blank=True)
     shift = models.CharField(
         max_length=20, 
         choices=SHIFT_CHOICES,

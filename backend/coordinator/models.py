@@ -26,10 +26,12 @@ class Coordinator(models.Model):
     total_experience_years = models.PositiveIntegerField()
     
     # Work Assignment
-    campus = models.ForeignKey(Campus, on_delete=models.CASCADE)
+    campus = models.ForeignKey(Campus, on_delete=models.SET_NULL, null=True, blank=True)
     level = models.ForeignKey(
         'classes.Level', 
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='coordinator_set'
     )
     joining_date = models.DateField()

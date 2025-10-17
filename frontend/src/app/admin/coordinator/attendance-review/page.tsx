@@ -1,13 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Calendar, RefreshCw, AlertCircle, Users, Eye, Edit3, ChevronDown, ChevronUp, Save } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, TrendingUp, Users, CheckCircle, AlertCircle, Eye, RefreshCw, Edit3 } from "lucide-react"
-import { getCurrentUserProfile, getCoordinatorClasses, getLevelAttendanceSummary } from "@/lib/api"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { getCurrentUserProfile, getCoordinatorClasses, getAttendanceHistory, getAttendanceForDate, editAttendance } from "@/lib/api"
 import { useRouter } from "next/navigation"
+import HolidayManagement from "@/components/attendance/holiday-management"
+import BackfillPermission from "@/components/attendance/backfill-permission"
 
 interface CoordinatorProfile {
   level?: {
@@ -27,55 +31,25 @@ interface ClassroomData {
   class_teacher: {
     id: number;
     name: string;
-    username: string;
+    employee_code: string;
   } | null;
   student_count: number;
 }
 
-interface AttendanceSummary {
-  level_id: number;
-  date_range: {
-    start_date: string;
-    end_date: string;
-  };
-  summary: {
-    total_classrooms: number;
-    total_students: number;
-    total_present: number;
-    total_absent: number;
-    total_late: number;
-    total_leave: number;
-    overall_percentage: number;
-  };
-  classrooms: Array<{
-    classroom: {
-      id: number;
-      name: string;
-      code: string;
-      grade: string;
-      section: string;
-      shift: string;
-      campus: string;
-    };
-    student_count: number;
-    records_count: number;
-    total_present: number;
-    total_absent: number;
-    total_late: number;
-    total_leave: number;
-    average_percentage: number;
-    last_attendance: string | null;
-  }>;
-}
 
 export default function AttendanceReviewPage() {
   const [coordinatorProfile, setCoordinatorProfile] = useState<CoordinatorProfile | null>(null);
   const [classrooms, setClassrooms] = useState<ClassroomData[]>([]);
-  const [attendanceSummary, setAttendanceSummary] = useState<AttendanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState("current");
-  const [selectedClass, setSelectedClass] = useState("all");
+  const [activeTab, setActiveTab] = useState("all");
+  const [expandedClassroom, setExpandedClassroom] = useState<number | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [attendanceData, setAttendanceData] = useState<any[]>([]);
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
+  const [editingAttendance, setEditingAttendance] = useState(false);
+  const [editedAttendance, setEditedAttendance] = useState<any[]>([]);
+  const [savingAttendance, setSavingAttendance] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -83,11 +57,147 @@ export default function AttendanceReviewPage() {
     fetchCoordinatorData();
   }, []);
 
-  useEffect(() => {
-    if (coordinatorProfile?.level) {
-      fetchAttendanceSummary();
+  // Group classrooms by grade
+  const getClassroomsByGrade = () => {
+    const grouped: { [key: string]: ClassroomData[] } = {};
+    
+    classrooms.forEach(classroom => {
+      const grade = classroom.grade;
+      if (!grouped[grade]) {
+        grouped[grade] = [];
+      }
+      grouped[grade].push(classroom);
+    });
+    
+    return grouped;
+  };
+
+  // Get unique grades for tabs
+  const getUniqueGrades = () => {
+    const grades = [...new Set(classrooms.map(c => c.grade))];
+    return grades.sort();
+  };
+
+  // Fetch attendance data for a classroom and specific date
+  const fetchClassroomAttendance = async (classroomId: number, date: string) => {
+    try {
+      setLoadingAttendance(true);
+      
+      // Fetch attendance data for specific date using getAttendanceForDate
+      const data = await getAttendanceForDate(classroomId, date);
+      console.log('Attendance data received for date:', date, data);
+      console.log('Student attendance data:', (data as any)?.student_attendance);
+      console.log('Student attendance length:', (data as any)?.student_attendance?.length);
+      if ((data as any)?.student_attendance?.length > 0) {
+        console.log('First student record:', (data as any).student_attendance[0]);
+        console.log('Student gender:', (data as any).student_attendance[0]?.student_gender);
+        console.log('Student code:', (data as any).student_attendance[0]?.student_code);
+        console.log('Student ID:', (data as any).student_attendance[0]?.student_id);
+        console.log('All student codes:', (data as any).student_attendance.map((s: any) => s.student_code));
+      }
+      
+      // If we have data, wrap it in an array for consistency
+      if (data && (data as any).id) {
+        setAttendanceData([data as any]);
+      } else {
+        console.log('No attendance data found for date:', date);
+        setAttendanceData([]);
+      }
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+      setAttendanceData([]);
+    } finally {
+      setLoadingAttendance(false);
     }
-  }, [coordinatorProfile, selectedMonth]);
+  };
+
+  // Toggle classroom expansion
+  const toggleClassroomExpansion = async (classroom: ClassroomData) => {
+    if (expandedClassroom === classroom.id) {
+      // Collapse
+      setExpandedClassroom(null);
+      setAttendanceData([]);
+      setEditingAttendance(false);
+      setEditedAttendance([]);
+    } else {
+      // Expand
+      setExpandedClassroom(classroom.id);
+      await fetchClassroomAttendance(classroom.id, selectedDate);
+    }
+  };
+
+  // Start editing attendance
+  const startEditingAttendance = () => {
+    if (attendanceData.length > 0 && attendanceData[0].student_attendance) {
+      setEditedAttendance([...attendanceData[0].student_attendance]);
+      setEditingAttendance(true);
+    }
+  };
+
+  // Update student attendance status
+  const updateStudentStatus = (index: number, status: string) => {
+    const updated = [...editedAttendance];
+    updated[index] = { ...updated[index], status };
+    setEditedAttendance(updated);
+  };
+
+  // Update student remarks
+  const updateStudentRemarks = (index: number, remarks: string) => {
+    const updated = [...editedAttendance];
+    updated[index] = { ...updated[index], remarks };
+    setEditedAttendance(updated);
+  };
+
+  // Save attendance changes
+  const saveAttendanceChanges = async () => {
+    try {
+      if (attendanceData.length > 0 && expandedClassroom) {
+        setSavingAttendance(true);
+        console.log('Saving attendance changes:', editedAttendance);
+        
+        // Prepare data for API call
+        const attendanceId = attendanceData[0].id;
+        const studentAttendanceData = editedAttendance.map(record => ({
+          student_id: record.student_id,
+          status: record.status,
+          remarks: record.remarks || ''
+        }));
+        
+        // Call API to save changes
+        const response = await editAttendance(attendanceId, {
+          student_attendance: studentAttendanceData
+        });
+        
+        console.log('Attendance updated successfully:', response);
+        
+        // Update local state
+        const updatedAttendanceData = [...attendanceData];
+        updatedAttendanceData[0] = {
+          ...updatedAttendanceData[0],
+          student_attendance: editedAttendance
+        };
+        setAttendanceData(updatedAttendanceData);
+        setEditingAttendance(false);
+        
+        // Show success message
+        alert('Attendance updated successfully!');
+        
+        // Refresh the data to get updated counts
+        await fetchClassroomAttendance(expandedClassroom, selectedDate);
+      }
+    } catch (error) {
+      console.error('Error saving attendance:', error);
+      alert('Error saving attendance. Please try again.');
+    } finally {
+      setSavingAttendance(false);
+    }
+  };
+
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingAttendance(false);
+    setEditedAttendance([]);
+  };
 
   const fetchCoordinatorData = async () => {
     try {
@@ -110,10 +220,27 @@ export default function AttendanceReviewPage() {
       }
 
       setCoordinatorProfile(profile);
+      console.log('Coordinator profile:', profile);
+      console.log('Coordinator level:', profile.level);
       
       // Fetch classrooms in coordinator's level
-      const classesData = await getCoordinatorClasses() as ClassroomData[];
-      setClassrooms(classesData);
+      const classesData = await getCoordinatorClasses();
+      
+      // Handle different response formats
+      if (Array.isArray(classesData)) {
+        setClassrooms(classesData as ClassroomData[]);
+      } else if (classesData && typeof classesData === 'object') {
+        // Check if it's a paginated response
+        if ((classesData as any).results && Array.isArray((classesData as any).results)) {
+          setClassrooms((classesData as any).results as ClassroomData[]);
+        } else if ((classesData as any).data && Array.isArray((classesData as any).data)) {
+          setClassrooms((classesData as any).data as ClassroomData[]);
+        } else {
+          setClassrooms([]);
+        }
+      } else {
+        setClassrooms([]);
+      }
       
     } catch (err: unknown) {
       console.error('Error fetching coordinator data:', err);
@@ -123,53 +250,6 @@ export default function AttendanceReviewPage() {
     }
   };
 
-  const fetchAttendanceSummary = async () => {
-    if (!coordinatorProfile?.level) return;
-
-    try {
-      setLoading(true);
-      
-      // Calculate date range based on selected month
-      const now = new Date();
-      let startDate: string;
-      let endDate: string = now.toISOString().split('T')[0];
-      
-      if (selectedMonth === 'current') {
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-      } else if (selectedMonth === 'last30') {
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      } else {
-        // Custom month selection
-        const monthDate = new Date(selectedMonth);
-        startDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1).toISOString().split('T')[0];
-        endDate = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).toISOString().split('T')[0];
-      }
-      
-      const summary = await getLevelAttendanceSummary(
-        coordinatorProfile.level.id, 
-        startDate, 
-        endDate
-      ) as AttendanceSummary;
-      
-      setAttendanceSummary(summary);
-      
-    } catch (err: unknown) {
-      console.error('Error fetching attendance summary:', err);
-      setError("Failed to load attendance summary. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getAttendanceColor = (percentage: number) => {
-    if (percentage >= 90) return 'bg-green-100 text-green-800 border-green-300';
-    if (percentage >= 80) return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    return 'bg-red-100 text-red-800 border-red-300';
-  };
-
-  const viewClassDetails = (classroomId: number) => {
-    router.push(`/admin/coordinator/attendance-review/${classroomId}`);
-  };
 
   if (loading) {
     return (
@@ -222,7 +302,7 @@ export default function AttendanceReviewPage() {
           </div>
           <div className="flex items-center space-x-2">
             <Button 
-              onClick={fetchAttendanceSummary}
+              onClick={fetchCoordinatorData}
               className="bg-white/20 hover:bg-white/30 text-white border border-white/30"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -232,280 +312,623 @@ export default function AttendanceReviewPage() {
         </div>
       </div>
 
-      {/* Enhanced Filters */}
-      <Card style={{ backgroundColor: 'white', borderColor: '#a3cef1' }}>
-        <CardHeader>
-          <CardTitle className="text-[#274c77] flex items-center">
-            <Calendar className="h-5 w-5 mr-2" />
-            Filter & Search Options
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Week Selection */}
-            <div>
-              <label className="text-sm font-medium text-gray-600 mb-2 block">Week Selection</label>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="current">Current Week</SelectItem>
-                  <SelectItem value="lastweek">Last Week</SelectItem>
-                  <SelectItem value="week1">Week 1 (Jan 1-7)</SelectItem>
-                  <SelectItem value="week2">Week 2 (Jan 8-14)</SelectItem>
-                  <SelectItem value="week3">Week 3 (Jan 15-21)</SelectItem>
-                  <SelectItem value="week4">Week 4 (Jan 22-28)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Grade Filter */}
-            <div>
-              <label className="text-sm font-medium text-gray-600 mb-2 block">Grade Filter</label>
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Grades</SelectItem>
-                  {(() => {
-                    // Get unique grades from classrooms in coordinator's level
-                    const uniqueGrades = [...new Set(classrooms.map(cls => cls.grade).filter(Boolean))];
-                    return uniqueGrades.map(grade => (
-                      <SelectItem key={grade} value={grade}>
-                        {grade}
-                      </SelectItem>
-                    ));
-                  })()}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Section Filter */}
-            <div>
-              <label className="text-sm font-medium text-gray-600 mb-2 block">Section Filter</label>
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Sections</SelectItem>
-                  {(() => {
-                    // Get unique sections from classrooms in coordinator's level
-                    const uniqueSections = [...new Set(classrooms.map(cls => cls.section).filter(Boolean))];
-                    return uniqueSections.map(section => (
-                      <SelectItem key={section} value={section}>
-                        Section {section}
-                      </SelectItem>
-                    ));
-                  })()}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t">
-            <div className="flex space-x-2">
+      {/* Classrooms List */}
+      <div className="bg-white rounded-2xl shadow-xl border-2 border-[#a3cef1] p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-[#274c77] flex items-center">
+            <Users className="h-6 w-6 mr-2" />
+            Classrooms ({classrooms.length})
+          </h2>
               <Button 
-                onClick={fetchAttendanceSummary}
+            onClick={fetchCoordinatorData}
                 className="bg-[#6096ba] hover:bg-[#274c77] text-white"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh Data
+            Refresh
+              </Button>
+            </div>
+
+        {classrooms.length === 0 ? (
+          <div className="text-center py-12">
+            <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-600 mb-2">No Classrooms Found</h3>
+            <p className="text-gray-500">No classrooms are assigned to your level yet.</p>
+          </div>
+        ) : (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="flex w-full space-x-2 mb-6 bg-gray-100 p-1 rounded-lg">
+              <TabsTrigger 
+                value="all" 
+                className="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                All Grades ({classrooms.length})
+              </TabsTrigger>
+              {getUniqueGrades().map((grade) => {
+                const gradeClassrooms = getClassroomsByGrade()[grade] || [];
+                return (
+                  <TabsTrigger 
+                    key={grade} 
+                    value={grade} 
+                    className="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  >
+                    {grade} ({gradeClassrooms.length})
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+            
+            {/* All Grades Tab */}
+            <TabsContent value="all" className="space-y-3">
+              {classrooms.map((classroom) => (
+                <div key={classroom.id} className="bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 text-lg">{classroom.name}</h3>
+                          <div className="flex items-center space-x-6 mt-2 text-sm text-gray-600">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium">Students:</span>
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                                {classroom.student_count}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium">Teacher:</span>
+                              <span className="text-gray-900">
+                                {classroom.class_teacher?.name || 'Not Assigned'}
+                              </span>
+                            </div>
+                            {classroom.class_teacher && (
+                              <div className="flex items-center space-x-2">
+                                <span className="font-medium">Code:</span>
+                                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                  {classroom.class_teacher.employee_code}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium">Shift:</span>
+                              <span className="capitalize text-gray-900">{classroom.shift}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium">Campus:</span>
+                              <span className="text-gray-900">{classroom.campus}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+              <Button 
+                variant="outline"
+                            size="sm" 
+                            className="border-[#6096ba] text-[#6096ba] hover:bg-[#6096ba] hover:text-white"
+                            onClick={() => {
+                              router.push(`/admin/teachers/attendance?classroom=${classroom.id}`);
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
               </Button>
               <Button 
                 variant="outline"
-                className="border-green-500 text-green-500 hover:bg-green-50"
+                                    size="sm" 
+                                    className="border-yellow-500 text-yellow-500 hover:bg-yellow-50"
+                                    onClick={() => toggleClassroomExpansion(classroom)}
+                                    disabled={loadingAttendance}
               >
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Export PDF
-              </Button>
-              <Button 
-                variant="outline"
-                className="border-blue-500 text-blue-500 hover:bg-blue-50"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Export Excel
+                                    <Edit3 className="h-4 w-4 mr-1" />
+                                    {expandedClassroom === classroom.id ? "Collapse" : "Edit"}
               </Button>
             </div>
-            <div className="text-sm text-gray-500">
-              Last updated: {new Date().toLocaleString()}
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Summary Cards */}
-      {attendanceSummary && (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Overall Attendance Card */}
-            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm opacity-90 mb-1">Overall Attendance</p>
-                    <p className="text-3xl font-bold">{attendanceSummary.summary.overall_percentage}%</p>
-                    <p className="text-xs opacity-75 mt-1">This Week</p>
                   </div>
-                  <TrendingUp className="h-10 w-10 opacity-80" />
+                  
+                  {/* Expanded Attendance Sheet */}
+                  {expandedClassroom === classroom.id && (
+                    <div className="mt-4 border-t pt-4">
+                      <div className="mb-4">
+                        <div className="flex items-center space-x-4 mb-4">
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="h-4 w-4 text-gray-600" />
+                            <label className="text-sm font-medium text-gray-700">Select Date:</label>
+                            <Input
+                              type="date"
+                              value={selectedDate}
+                              onChange={(e) => {
+                                setSelectedDate(e.target.value);
+                                fetchClassroomAttendance(classroom.id, e.target.value);
+                              }}
+                              className="w-40"
+                            />
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fetchClassroomAttendance(classroom.id, selectedDate)}
+                            disabled={loadingAttendance}
+                          >
+                            <RefreshCw className={`h-4 w-4 mr-1 ${loadingAttendance ? 'animate-spin' : ''}`} />
+                            Refresh
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Attendance Sheet */}
+                      {loadingAttendance ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6096ba]"></div>
+                          <span className="ml-2 text-gray-600">Loading attendance...</span>
+                        </div>
+                      ) : attendanceData.length > 0 ? (
+                        <div className="bg-gray-50 rounded-lg p-4">
+                              <div className="mb-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h4 className="font-semibold text-gray-900">Attendance Sheet for {new Date(selectedDate).toLocaleDateString()}</h4>
+                                  {!editingAttendance && attendanceData[0]?.student_attendance && attendanceData[0].student_attendance.length > 0 && (
+                                    <Button
+                                      onClick={startEditingAttendance}
+                                      size="sm"
+                                      className="bg-[#6096ba] hover:bg-[#274c77] text-white"
+                                    >
+                                      <Edit3 className="h-4 w-4 mr-1" />
+                                      Edit Attendance
+                                    </Button>
+                                  )}
+                                  {editingAttendance && (
+                                    <div className="flex space-x-2">
+                                      <Button
+                                        onClick={saveAttendanceChanges}
+                                        size="sm"
+                                        disabled={savingAttendance}
+                                        className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+                                      >
+                                        <Save className={`h-4 w-4 mr-1 ${savingAttendance ? 'animate-spin' : ''}`} />
+                                        {savingAttendance ? 'Saving...' : 'Save Changes'}
+                                      </Button>
+                                      <Button
+                                        onClick={cancelEditing}
+                                        size="sm"
+                                        variant="outline"
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                                  <span><strong>Marked By:</strong> {attendanceData[0]?.marked_by || 'Unknown'}</span>
+                                  <span><strong>Total Students:</strong> {attendanceData[0]?.total_students || 0}</span>
+                                  <span><strong>Present:</strong> {attendanceData[0]?.present_count || 0}</span>
+                                  <span><strong>Absent:</strong> {attendanceData[0]?.absent_count || 0}</span>
+                                  <span><strong>Leave:</strong> {attendanceData[0]?.leave_count || 0}</span>
+                                  <Badge 
+                                    variant={attendanceData[0]?.status === 'final' ? 'default' : 
+                                           attendanceData[0]?.status === 'submitted' ? 'secondary' : 'outline'}
+                                    className={
+                                      attendanceData[0]?.status === 'final' ? 'bg-green-100 text-green-800' :
+                                      attendanceData[0]?.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
+                                      attendanceData[0]?.status === 'under_review' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }
+                                  >
+                                    {attendanceData[0]?.status?.charAt(0).toUpperCase() + attendanceData[0]?.status?.slice(1) || 'Draft'}
+                                  </Badge>
+                                </div>
+                              </div>
+                          
+                          {/* Student-wise Attendance Table */}
+                          {attendanceData[0]?.student_attendance && Array.isArray(attendanceData[0].student_attendance) && attendanceData[0].student_attendance.length > 0 ? (
+                            <div className="overflow-x-auto">
+                              <table className="w-full border-collapse border border-gray-300 bg-white">
+                                <thead>
+                                  <tr className="bg-gray-100">
+                                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">Student</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">Student Code</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">Gender</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">Status</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">Remarks</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(editingAttendance ? editedAttendance : attendanceData[0].student_attendance).map((studentRecord: any, index: number) => (
+                                    <tr key={index} className="hover:bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2 text-sm">
+                                        <div className="flex items-center space-x-3">
+                                          <div className="h-8 w-8 rounded-full bg-[#6096ba] flex items-center justify-center text-white text-sm font-medium">
+                                            {studentRecord.student_name?.charAt(0).toUpperCase() || 'S'}
+                                          </div>
+                                          <span>{studentRecord.student_name || 'Unknown Student'}</span>
+                                        </div>
+                                      </td>
+                                      <td className="border border-gray-300 px-3 py-2 text-sm">
+                                        <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                                          {studentRecord.student_code || studentRecord.student_id || 'Not Assigned'}
+                                        </span>
+                                      </td>
+                                      <td className="border border-gray-300 px-3 py-2 text-sm">
+                                        {studentRecord.student_gender || 'Unknown'}
+                                      </td>
+                                      <td className="border border-gray-300 px-3 py-2 text-sm">
+                                        {editingAttendance ? (
+                                          <Select
+                                            value={studentRecord.status || 'present'}
+                                            onValueChange={(value) => updateStudentStatus(index, value)}
+                                          >
+                                            <SelectTrigger className="w-32">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="present">Present</SelectItem>
+                                              <SelectItem value="absent">Absent</SelectItem>
+                                              <SelectItem value="leave">Leave</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        ) : (
+                                          <Badge 
+                                            variant="outline"
+                                            className={
+                                              studentRecord.status === 'present' ? 'bg-green-100 text-green-800 border-green-300' :
+                                              studentRecord.status === 'absent' ? 'bg-red-100 text-red-800 border-red-300' :
+                                              studentRecord.status === 'leave' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                                              'bg-gray-100 text-gray-800 border-gray-300'
+                                            }
+                                          >
+                                            {studentRecord.status?.charAt(0).toUpperCase() + studentRecord.status?.slice(1) || 'Unknown'}
+                                          </Badge>
+                                        )}
+                                      </td>
+                                      <td className="border border-gray-300 px-3 py-2 text-sm">
+                                        {editingAttendance ? (
+                                          <Textarea
+                                            value={studentRecord.remarks || ''}
+                                            onChange={(e) => updateStudentRemarks(index, e.target.value)}
+                                            placeholder="Add remarks..."
+                                            className="min-h-[32px] resize-none"
+                                          />
+                                        ) : (
+                                          <span>{studentRecord.remarks || '-'}</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 bg-white rounded-lg">
+                              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                              <h4 className="text-lg font-medium text-gray-600 mb-2">No Student Records</h4>
+                              <p className="text-gray-500 mb-4">
+                                No individual student attendance records found for this date.
+                              </p>
+                              <div className="text-sm text-gray-400">
+                                <p>This could mean:</p>
+                                <ul className="list-disc list-inside mt-2 space-y-1">
+                                  <li>No attendance was marked for this date</li>
+                                  <li>Attendance was marked but student details are not available</li>
+                                  <li>Try selecting a different date</li>
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                          <h4 className="text-lg font-medium text-gray-600 mb-2">No Attendance Data</h4>
+                          <p className="text-gray-500">
+                            No attendance has been marked for this classroom on {new Date(selectedDate).toLocaleDateString()}.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="mt-4 bg-white/20 rounded-lg p-2">
-                  <div className="flex justify-between text-xs">
-                    <span>Target: 90%</span>
-                    <span className={attendanceSummary.summary.overall_percentage >= 90 ? 'text-green-200' : 'text-yellow-200'}>
-                      {attendanceSummary.summary.overall_percentage >= 90 ? '✓ Achieved' : '⚠ Below Target'}
+              ))}
+            </TabsContent>
+            
+            {/* Individual Grade Tabs */}
+            {getUniqueGrades().map((grade) => {
+              const gradeClassrooms = getClassroomsByGrade()[grade] || [];
+              return (
+                <TabsContent key={grade} value={grade} className="space-y-3">
+                  {gradeClassrooms.map((classroom) => (
+                    <div key={classroom.id} className="bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-4">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900 text-lg">{classroom.name}</h3>
+                              <div className="flex items-center space-x-6 mt-2 text-sm text-gray-600">
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-medium">Students:</span>
+                                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    {classroom.student_count}
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-medium">Teacher:</span>
+                                  <span className="text-gray-900">
+                                    {classroom.class_teacher?.name || 'Not Assigned'}
                     </span>
                   </div>
+                                {classroom.class_teacher && (
+                                  <div className="flex items-center space-x-2">
+                                    <span className="font-medium">Code:</span>
+                                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                      {classroom.class_teacher.employee_code}
+                                    </span>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Total Students Card */}
-            <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm opacity-90 mb-1">Total Students</p>
-                    <p className="text-3xl font-bold">{attendanceSummary.summary.total_students}</p>
-                    <p className="text-xs opacity-75 mt-1">Across All Classes</p>
+                                )}
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-medium">Shift:</span>
+                                  <span className="capitalize text-gray-900">{classroom.shift}</span>
                   </div>
-                  <Users className="h-10 w-10 opacity-80" />
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-medium">Campus:</span>
+                                  <span className="text-gray-900">{classroom.campus}</span>
                 </div>
-                <div className="mt-4 bg-white/20 rounded-lg p-2">
-                  <div className="flex justify-between text-xs">
-                    <span>Classes: {attendanceSummary.summary.total_classrooms}</span>
-                    <span>Avg/Class: {Math.round(attendanceSummary.summary.total_students / attendanceSummary.summary.total_classrooms)}</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Present Students Card */}
-            <Card className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm opacity-90 mb-1">Present Students</p>
-                    <p className="text-3xl font-bold">{attendanceSummary.summary.total_present}</p>
-                    <p className="text-xs opacity-75 mt-1">This Week</p>
-                  </div>
-                  <CheckCircle className="h-10 w-10 opacity-80" />
+                            <div className="flex items-center space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-[#6096ba] text-[#6096ba] hover:bg-[#6096ba] hover:text-white"
+                                onClick={() => {
+                                  router.push(`/admin/teachers/attendance?classroom=${classroom.id}`);
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-yellow-500 text-yellow-500 hover:bg-yellow-50"
+                                onClick={() => toggleClassroomExpansion(classroom)}
+                                disabled={loadingAttendance}
+                              >
+                                <Edit3 className="h-4 w-4 mr-1" />
+                                {expandedClassroom === classroom.id ? "Collapse" : "Edit"}
+                              </Button>
                 </div>
-                <div className="mt-4 bg-white/20 rounded-lg p-2">
-                  <div className="flex justify-between text-xs">
-                    <span>Percentage: {Math.round((attendanceSummary.summary.total_present / attendanceSummary.summary.total_students) * 100)}%</span>
-                    <span className="text-green-200">✓ Good</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Absent Students Card */}
-            <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm opacity-90 mb-1">Absent Students</p>
-                    <p className="text-3xl font-bold">{attendanceSummary.summary.total_absent}</p>
-                    <p className="text-xs opacity-75 mt-1">This Week</p>
-                  </div>
-                  <AlertCircle className="h-10 w-10 opacity-80" />
-                </div>
-                <div className="mt-4 bg-white/20 rounded-lg p-2">
-                  <div className="flex justify-between text-xs">
-                    <span>Percentage: {Math.round((attendanceSummary.summary.total_absent / attendanceSummary.summary.total_students) * 100)}%</span>
-                    <span className={attendanceSummary.summary.total_absent > 20 ? 'text-red-200' : 'text-yellow-200'}>
-                      {attendanceSummary.summary.total_absent > 20 ? '⚠ High' : '✓ Normal'}
-                    </span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                  </div>
+                  
+                  {/* Expanded Attendance Sheet */}
+                  {expandedClassroom === classroom.id && (
+                    <div className="mt-4 border-t pt-4">
+                      <div className="mb-4">
+                        <div className="flex items-center space-x-4 mb-4">
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="h-4 w-4 text-gray-600" />
+                            <label className="text-sm font-medium text-gray-700">Select Date:</label>
+                            <Input
+                              type="date"
+                              value={selectedDate}
+                              onChange={(e) => {
+                                setSelectedDate(e.target.value);
+                                fetchClassroomAttendance(classroom.id, e.target.value);
+                              }}
+                              className="w-40"
+                            />
+                </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fetchClassroomAttendance(classroom.id, selectedDate)}
+                            disabled={loadingAttendance}
+                          >
+                            <RefreshCw className={`h-4 w-4 mr-1 ${loadingAttendance ? 'animate-spin' : ''}`} />
+                            Refresh
+                          </Button>
+                  </div>
+                </div>
+                      
+                      {/* Attendance Sheet */}
+                      {loadingAttendance ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6096ba]"></div>
+                          <span className="ml-2 text-gray-600">Loading attendance...</span>
+                        </div>
+                      ) : attendanceData.length > 0 ? (
+                        <div className="bg-gray-50 rounded-lg p-4">
+                              <div className="mb-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h4 className="font-semibold text-gray-900">Attendance Sheet for {new Date(selectedDate).toLocaleDateString()}</h4>
+                                  {!editingAttendance && attendanceData[0]?.student_attendance && attendanceData[0].student_attendance.length > 0 && (
+                                    <Button
+                                      onClick={startEditingAttendance}
+                                      size="sm"
+                                      className="bg-[#6096ba] hover:bg-[#274c77] text-white"
+                                    >
+                                      <Edit3 className="h-4 w-4 mr-1" />
+                                      Edit Attendance
+                                    </Button>
+                                  )}
+                                  {editingAttendance && (
+                                    <div className="flex space-x-2">
+                                      <Button
+                                        onClick={saveAttendanceChanges}
+                                        size="sm"
+                                        disabled={savingAttendance}
+                                        className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+                                      >
+                                        <Save className={`h-4 w-4 mr-1 ${savingAttendance ? 'animate-spin' : ''}`} />
+                                        {savingAttendance ? 'Saving...' : 'Save Changes'}
+                                      </Button>
+                                      <Button
+                                        onClick={cancelEditing}
+                                        size="sm"
+                                        variant="outline"
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                                  <span><strong>Marked By:</strong> {attendanceData[0]?.marked_by || 'Unknown'}</span>
+                                  <span><strong>Total Students:</strong> {attendanceData[0]?.total_students || 0}</span>
+                                  <span><strong>Present:</strong> {attendanceData[0]?.present_count || 0}</span>
+                                  <span><strong>Absent:</strong> {attendanceData[0]?.absent_count || 0}</span>
+                                  <span><strong>Leave:</strong> {attendanceData[0]?.leave_count || 0}</span>
+                                  <Badge 
+                                    variant={attendanceData[0]?.status === 'final' ? 'default' : 
+                                           attendanceData[0]?.status === 'submitted' ? 'secondary' : 'outline'}
+                                    className={
+                                      attendanceData[0]?.status === 'final' ? 'bg-green-100 text-green-800' :
+                                      attendanceData[0]?.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
+                                      attendanceData[0]?.status === 'under_review' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }
+                                  >
+                                    {attendanceData[0]?.status?.charAt(0).toUpperCase() + attendanceData[0]?.status?.slice(1) || 'Draft'}
+                                  </Badge>
+                                </div>
           </div>
 
-          {/* Class-wise Attendance Table */}
-          <Card>
-        <CardHeader>
-              <CardTitle className="text-[#274c77]">Class-wise Attendance Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
+                          {/* Student-wise Attendance Table */}
+                          {attendanceData[0]?.student_attendance && Array.isArray(attendanceData[0].student_attendance) && attendanceData[0].student_attendance.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full">
+                              <table className="w-full border-collapse border border-gray-300 bg-white">
               <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Class</th>
-                      <th className="text-left p-2">Teacher</th>
-                      <th className="text-left p-2">Students</th>
-                      <th className="text-left p-2">Records</th>
-                      <th className="text-left p-2">Present</th>
-                      <th className="text-left p-2">Absent</th>
-                      <th className="text-left p-2">Average %</th>
-                      <th className="text-left p-2">Last Attendance</th>
-                      <th className="text-left p-2">Actions</th>
+                                  <tr className="bg-gray-100">
+                                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">Student</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">Student Code</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">Gender</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">Status</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">Remarks</th>
                 </tr>
               </thead>
               <tbody>
-                    {attendanceSummary.classrooms.map((classData) => (
-                      <tr key={classData.classroom.id} className="border-b hover:bg-gray-50">
-                        <td className="p-2 font-medium">{classData.classroom.name}</td>
-                        <td className="p-2">{(classData as any).classroom.class_teacher?.name || 'N/A'}</td>
-                        <td className="p-2">{classData.student_count}</td>
-                        <td className="p-2">{classData.records_count}</td>
-                        <td className="p-2">
-                          <Badge className="bg-green-100 text-green-800 border-green-300">
-                            {classData.total_present}
-                          </Badge>
+                                  {(editingAttendance ? editedAttendance : attendanceData[0].student_attendance).map((studentRecord: any, index: number) => (
+                                    <tr key={index} className="hover:bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2 text-sm">
+                                        <div className="flex items-center space-x-3">
+                                          <div className="h-8 w-8 rounded-full bg-[#6096ba] flex items-center justify-center text-white text-sm font-medium">
+                                            {studentRecord.student_name?.charAt(0).toUpperCase() || 'S'}
+                                          </div>
+                                          <span>{studentRecord.student_name || 'Unknown Student'}</span>
+                                        </div>
                         </td>
-                        <td className="p-2">
-                          <Badge className="bg-red-100 text-red-800 border-red-300">
-                            {classData.total_absent}
-                          </Badge>
+                                      <td className="border border-gray-300 px-3 py-2 text-sm">
+                                        <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                                          {studentRecord.student_code || studentRecord.student_id || 'Not Assigned'}
+                                        </span>
                         </td>
-                        <td className="p-2">
-                          <Badge className={getAttendanceColor(classData.average_percentage)}>
-                            {classData.average_percentage}%
-                      </Badge>
+                                      <td className="border border-gray-300 px-3 py-2 text-sm">
+                                        {studentRecord.student_gender || 'Unknown'}
                     </td>
-                        <td className="p-2">
-                          {classData.last_attendance 
-                            ? new Date(classData.last_attendance).toLocaleDateString()
-                            : 'No records'
-                          }
-                        </td>
-                        <td className="p-2">
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
+                                      <td className="border border-gray-300 px-3 py-2 text-sm">
+                                        {editingAttendance ? (
+                                          <Select
+                                            value={studentRecord.status || 'present'}
+                                            onValueChange={(value) => updateStudentStatus(index, value)}
+                                          >
+                                            <SelectTrigger className="w-32">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="present">Present</SelectItem>
+                                              <SelectItem value="absent">Absent</SelectItem>
+                                              <SelectItem value="leave">Leave</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        ) : (
+                                          <Badge 
                               variant="outline"
-                              onClick={() => viewClassDetails(classData.classroom.id)}
-                              className="border-[#6096ba] text-[#6096ba] hover:bg-[#6096ba] hover:text-white"
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                        Review
-                      </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => router.push(`/admin/teachers/attendance?classroom=${classData.classroom.id}`)}
-                              className="border-yellow-500 text-yellow-500 hover:bg-yellow-50"
-                            >
-                              <Edit3 className="h-3 w-3 mr-1" />
-                              Edit
-                            </Button>
-                          </div>
+                                            className={
+                                              studentRecord.status === 'present' ? 'bg-green-100 text-green-800 border-green-300' :
+                                              studentRecord.status === 'absent' ? 'bg-red-100 text-red-800 border-red-300' :
+                                              studentRecord.status === 'leave' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                                              'bg-gray-100 text-gray-800 border-gray-300'
+                                            }
+                                          >
+                                            {studentRecord.status?.charAt(0).toUpperCase() + studentRecord.status?.slice(1) || 'Unknown'}
+                                          </Badge>
+                                        )}
+                                      </td>
+                                      <td className="border border-gray-300 px-3 py-2 text-sm">
+                                        {editingAttendance ? (
+                                          <Textarea
+                                            value={studentRecord.remarks || ''}
+                                            onChange={(e) => updateStudentRemarks(index, e.target.value)}
+                                            placeholder="Add remarks..."
+                                            className="min-h-[32px] resize-none"
+                                          />
+                                        ) : (
+                                          <span>{studentRecord.remarks || '-'}</span>
+                                        )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </CardContent>
-      </Card>
-        </>
-      )}
+                          ) : (
+                            <div className="text-center py-8 bg-white rounded-lg">
+                              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                              <h4 className="text-lg font-medium text-gray-600 mb-2">No Student Records</h4>
+                              <p className="text-gray-500 mb-4">
+                                No individual student attendance records found for this date.
+                              </p>
+                              <div className="text-sm text-gray-400">
+                                <p>This could mean:</p>
+                                <ul className="list-disc list-inside mt-2 space-y-1">
+                                  <li>No attendance was marked for this date</li>
+                                  <li>Attendance was marked but student details are not available</li>
+                                  <li>Try selecting a different date</li>
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                          <h4 className="text-lg font-medium text-gray-600 mb-2">No Attendance Data</h4>
+                          <p className="text-gray-500">
+                            No attendance has been marked for this classroom on {new Date(selectedDate).toLocaleDateString()}.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                  ))}
+                </TabsContent>
+              );
+            })}
+          </Tabs>
+        )}
+                  </div>
+
+      {/* Holiday Management and Backfill Permissions - Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Holiday Management */}
+        {coordinatorProfile?.level && (
+          <div className="h-80">
+            <HolidayManagement
+              levelId={coordinatorProfile.level.id}
+              levelName={coordinatorProfile.level.name}
+            />
+                </div>
+        )}
+
+        {/* Backfill Permission Management */}
+        <div className="h-80">
+          <BackfillPermission
+            userRole="coordinator"
+            levelId={coordinatorProfile?.level?.id}
+          />
+                  </div>
+                </div>
+
+
     </div>
   )
 }

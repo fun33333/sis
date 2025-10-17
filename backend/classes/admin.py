@@ -4,10 +4,15 @@ from .models import ClassRoom, Grade, Level
 # ----------------------
 @admin.register(Level)
 class LevelAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "campus", "coordinator")
+    list_display = ("name", "code", "campus", "coordinator_name")
     list_filter = ("campus",)
     search_fields = ("name", "code")
-    # REMOVED: filter_horizontal = ("grades",)  # This field doesn't exist anymore
+    readonly_fields = ("coordinator_name",)
+    
+    def coordinator_name(self, obj):
+        """Display coordinator name in admin list"""
+        return obj.coordinator_name or "-"
+    coordinator_name.short_description = "Coordinator"
 
 # ----------------------
 # Coordinator filter for Grade
