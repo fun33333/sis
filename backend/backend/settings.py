@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'attendance',
     'principals',
     'services',
+    'transfers',
     'student_status',
     'requests',
     'result',

@@ -1,5 +1,8 @@
 from django.db import models
+from django.contrib.auth import get_user_model
 from campus.models import Campus
+
+User = get_user_model()
 
 # Choices
 GENDER_CHOICES = [
@@ -17,6 +20,9 @@ SHIFT_CHOICES = [
 ]
 
 class Principal(models.Model):
+    # User relationship
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='principal_profile', null=True, blank=True)
+    
     # Personal Information
     full_name = models.CharField(max_length=150)
     dob = models.DateField()

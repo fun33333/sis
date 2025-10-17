@@ -2,7 +2,7 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, Building2, GraduationCap, TrendingUp, LogOut, Award, Calendar } from "lucide-react"
+import { Users, Building2, GraduationCap, TrendingUp, LogOut, Award, Calendar, ArrowRightLeft } from "lucide-react"
 import { useState, useEffect } from "react"
 
 
@@ -189,6 +189,16 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         subItems: [
           { title: "Teacher List", href: "/admin/teachers/list" },
           { title: "Add Teacher", href: "/admin/teachers/add" },
+        ],
+      },
+      {
+        key: "transfers",
+        title: "Transfers",
+        icon: ArrowRightLeft,
+        href: "/admin/principal/transfers",
+        subItems: [
+          { title: "Transfer Management", href: "/admin/principal/transfers" },
+          { title: "Create Transfer", href: "/admin/principal/transfers/create" },
         ],
       },
       {

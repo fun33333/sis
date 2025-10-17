@@ -1154,7 +1154,7 @@ def get_realtime_attendance_metrics(request):
         elif user.is_principal():
             from principals.models import Principal
             principal = Principal.objects.get(email=user.email)
-            classrooms = ClassRoom.objects.filter(campus=principal.campus)
+            classrooms = ClassRoom.objects.filter(grade__level__campus=principal.campus)
         else:
             classrooms = []
         

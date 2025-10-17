@@ -574,17 +574,41 @@ export async function getAllCampuses() {
     // Try to get from cache first
     const cached = CacheManager.get(CacheManager.KEYS.CAMPUSES);
     if (cached) {
+      console.log('Using cached campuses:', cached);
       return cached;
     }
 
+    console.log('Fetching campuses from API...');
     const data = await apiGet(API_ENDPOINTS.CAMPUS);
+    console.log('Raw campus API response:', data);
     
-    // Cache the results for 30 minutes (campuses don't change often)
-    CacheManager.set(CacheManager.KEYS.CAMPUSES, data, 30 * 60 * 1000);
+    // Handle different response formats
+    let campuses = [];
+    if (Array.isArray(data)) {
+      campuses = data;
+      console.log('Data is direct array:', campuses);
+    } else if (data && Array.isArray((data as any).results)) {
+      campuses = (data as any).results;
+      console.log('Data has results array:', campuses);
+    } else if (data && Array.isArray((data as any).data)) {
+      campuses = (data as any).data;
+      console.log('Data has data array:', campuses);
+    } else {
+      console.warn('Unexpected campus data format:', data);
+      campuses = [];
+    }
     
-    return data;
+    console.log('Final campuses array:', campuses);
+    
+    // Only cache if we got valid data
+    if (campuses.length > 0) {
+      CacheManager.set(CacheManager.KEYS.CAMPUSES, campuses, 30 * 60 * 1000);
+    }
+    
+    return campuses;
   } catch (error) {
     console.error('Failed to fetch campuses:', error);
+    // Return empty array instead of throwing error
     return [];
   }
 }
@@ -1695,3 +1719,184 @@ export async function getRealtimeMetrics() {
     return { today: '', classrooms: [] };
   }
 }
+
+// ==================== TRANSFER MANAGEMENT APIs ====================
+
+export interface TransferRequest {
+  id: number;
+  request_type: 'student' | 'teacher';
+  status: 'draft' | 'pending' | 'approved' | 'declined' | 'cancelled';
+  entity_name: string;
+  current_id: string;
+  from_campus: number;
+  from_campus_name: string;
+  from_shift: 'M' | 'A';
+  to_campus: number;
+  to_campus_name: string;
+  to_shift: 'M' | 'A';
+  requesting_principal: number;
+  requesting_principal_name: string;
+  receiving_principal: number;
+  receiving_principal_name: string;
+  student?: number;
+  student_name?: string;
+  student_id?: string;
+  teacher?: number;
+  teacher_name?: string;
+  teacher_id?: string;
+  reason: string;
+  requested_date: string;
+  notes: string;
+  reviewed_at?: string;
+  decline_reason?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IDHistory {
+  id: number;
+  entity_type: 'student' | 'teacher';
+  entity_name: string;
+  student?: number;
+  teacher?: number;
+  old_id: string;
+  old_campus_code: string;
+  old_shift: string;
+  old_year: string;
+  new_id: string;
+  new_campus_code: string;
+  new_shift: string;
+  new_year: string;
+  immutable_suffix: string;
+  transfer_request: number;
+  changed_by: number;
+  changed_by_name: string;
+  change_reason: string;
+  changed_at: string;
+}
+
+export interface IDPreview {
+  old_id: string;
+  new_id: string;
+  changes: {
+    campus_code: string;
+    shift: string;
+    year: string;
+    role?: string;
+    suffix: string;
+  };
+}
+
+// Transfer Request APIs
+export async function createTransferRequest(data: {
+  request_type: 'student' | 'teacher';
+  from_campus: number;
+  from_shift: 'M' | 'A';
+  to_campus: number;
+  to_shift: 'M' | 'A';
+  student?: number;
+  teacher?: number;
+  reason: string;
+  requested_date: string;
+  notes?: string;
+}) {
+  try {
+    return await apiPost('/api/transfers/request/', data);
+  } catch (error) {
+    console.error('Failed to create transfer request:', error);
+    throw error;
+  }
+}
+
+export async function getTransferRequests(params?: {
+  type?: 'student' | 'teacher';
+  status?: 'draft' | 'pending' | 'approved' | 'declined' | 'cancelled';
+  direction?: 'all' | 'outgoing' | 'incoming';
+}) {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params?.type) queryParams.append('type', params.type);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.direction) queryParams.append('direction', params.direction);
+    
+    const url = `/api/transfers/request/list/${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return await apiGet(url);
+  } catch (error) {
+    console.error('Failed to fetch transfer requests:', error);
+    return [];
+  }
+}
+
+export async function getTransferRequest(requestId: number) {
+  try {
+    return await apiGet(`/api/transfers/request/${requestId}/`);
+  } catch (error) {
+    console.error('Failed to fetch transfer request:', error);
+    throw error;
+  }
+}
+
+export async function approveTransfer(requestId: number) {
+  try {
+    return await apiPost(`/api/transfers/request/${requestId}/approve/`, {});
+  } catch (error) {
+    console.error('Failed to approve transfer:', error);
+    throw error;
+  }
+}
+
+export async function declineTransfer(requestId: number, reason: string) {
+  try {
+    return await apiPost(`/api/transfers/request/${requestId}/decline/`, {
+      action: 'decline',
+      reason: reason
+    });
+  } catch (error) {
+    console.error('Failed to decline transfer:', error);
+    throw error;
+  }
+}
+
+export async function cancelTransfer(requestId: number) {
+  try {
+    return await apiPost(`/api/transfers/request/${requestId}/cancel/`, {});
+  } catch (error) {
+    console.error('Failed to cancel transfer:', error);
+    throw error;
+  }
+}
+
+// ID History APIs
+export async function getIDHistory(entityType: 'student' | 'teacher', entityId: number) {
+  try {
+    return await apiGet(`/api/transfers/history/${entityType}/${entityId}/`);
+  } catch (error) {
+    console.error('Failed to fetch ID history:', error);
+    return [];
+  }
+}
+
+export async function searchByOldID(oldId: string) {
+  try {
+    return await apiGet(`/api/transfers/search-by-old-id/?id=${encodeURIComponent(oldId)}`);
+  } catch (error) {
+    console.error('Failed to search by old ID:', error);
+    throw error;
+  }
+}
+
+// ID Preview API
+export async function previewIDChange(data: {
+  old_id: string;
+  new_campus_code: string;
+  new_shift: 'M' | 'A';
+  new_role?: string;
+}) {
+  try {
+    return await apiPost('/api/transfers/preview-id-change/', data);
+  } catch (error) {
+    console.error('Failed to preview ID change:', error);
+    throw error;
+  }
+}
+
