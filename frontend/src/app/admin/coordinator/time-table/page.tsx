@@ -45,6 +45,7 @@ export default function TimeTablePage() {
   const [timeTableData, setTimeTableData] = useState<TimeTableData>({})
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingPeriod, setEditingPeriod] = useState<{day: string, timeSlot: string} | null>(null)
+  
   const [newPeriod, setNewPeriod] = useState<Period>({
     subject: '',
     teacher: '',

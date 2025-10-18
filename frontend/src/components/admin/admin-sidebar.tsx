@@ -134,7 +134,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         subItems: [
           { title: "Request / Complain", href: "/admin/teachers/request" },
           { title: "Time Table", href: "/admin/teachers/timetable" },
-          { title: "Class Reasult", href: "/admin/teachers/reasult" },
+          { title: "Class Result", href: "/admin/teachers/result" },
         ],
       },
     ]
@@ -185,7 +185,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         key: "teachers",
         title: "Teachers",
         icon: GraduationCap,
-        href: "/admin/teachers",
+        href: "/admin/teachers/list",
         subItems: [
           { title: "Teacher List", href: "/admin/teachers/list" },
           { title: "Add Teacher", href: "/admin/teachers/add" },
@@ -205,10 +205,11 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         key: "coordinator",
         title: "Co-Ordinator",
         icon: Award,
-        href: "/admin/coordinator",
+        href: "/admin/coordinator/list",
         subItems: [
+          { title: "Coordinator List", href: "/admin/coordinator/list" },
           { title: "Add Coordinator", href: "/admin/coordinator/add" },
-          { title: "Result Approval", href: "/admin/coordinator/result-approval" },
+          // { title: "Result Approval", href: "/admin/coordinator/result-approval" },
         ],
       },
     ]
@@ -226,9 +227,9 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         key: "students",
         title: "Students",
         icon: Users,
-        href: "/admin/students",
+        href: "/admin/students/student-list",
         subItems: [
-          { title: "Student List", href: "/admin/students/student-list" },
+          // { title: "Student List", href: "/admin/students/student-list" },
         //   { title: "Transfer Module", href: "/admin/students/transfer-modal" },
         //   { title: "Leaving Certificate", href: "/admin/students/leaving-certificate" },
         //   { title: "Termination Certificate", href: "/admin/students/termination-certificate" },
@@ -238,9 +239,9 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         key: "teachers",
         title: "Teachers",
         icon: GraduationCap,
-        href: "/admin/teachers",
+        href: "/admin/teachers/list",
         subItems: [
-          { title: "Teacher List", href: "/admin/teachers/list" },
+          // { title: "Teacher List", href: "/admin/teachers/list" },
           // { title: "Request / Complain", href: "/admin/teachers/request" },
           // { title: "Time Table", href: "/admin/teachers/timetable" },
           // { title: "Attendance", href: "/admin/teachers/attendance" },
@@ -251,7 +252,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         key: "campus",
         title: "Campus",
         icon: Building2,
-        href: "/admin/campus",
+        href: "/admin/campus/list",
         subItems: [
           { title: "Add Campus", href: "/admin/campus/add" },
           { title: "Campus List", href: "/admin/campus/list" },
@@ -287,7 +288,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         key: "students",
         title: "Students",
         icon: Users,
-        href: "/admin/students",
+        href: "/admin/students/list",
         subItems: [
           // Principal: Only show add student and student list
           ...(userRole === "principal" ? [
@@ -296,8 +297,8 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           ] : [
             { title: "Add Student", href: "/admin/students/add" },
             { title: "Student List", href: "/admin/students/student-list" },
-            { title: "Transfer Module", href: "/admin/students/transfer-modal" },
-            { title: "Leaving Certificate", href: "/admin/students/leaving-certificate" },
+            // { title: "Transfer Module", href: "/admin/students/transfer-modal" },
+            // { title: "Leaving Certificate", href: "/admin/students/leaving-certificate" },
             { title: "Termination Certificate", href: "/admin/students/termination-certificate" },
           ]),
         ],

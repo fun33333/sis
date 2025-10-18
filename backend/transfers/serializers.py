@@ -41,6 +41,11 @@ class TransferRequestCreateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['receiving_principal']
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add transfer_type as a non-model field for validation
+        self.fields['transfer_type'] = serializers.CharField(required=False, write_only=True)
+    
     def validate(self, data):
         """Validate transfer request data"""
         request_type = data.get('request_type')
@@ -57,9 +62,14 @@ class TransferRequestCreateSerializer(serializers.ModelSerializer):
         elif request_type == 'teacher' and student:
             raise serializers.ValidationError("Student should not be provided for teacher transfer requests")
         
-        # Validate that from and to campuses are different
-        if data.get('from_campus') == data.get('to_campus'):
-            raise serializers.ValidationError("Source and destination campuses must be different")
+        # Validate that from and to campuses are different (except for shift transfers)
+        transfer_type = data.get('transfer_type', 'campus')
+        if transfer_type == 'campus' and data.get('from_campus') == data.get('to_campus'):
+            raise serializers.ValidationError("Source and destination campuses must be different for campus transfers")
+        
+        # For shift transfers, campuses should be the same
+        if transfer_type == 'shift' and data.get('from_campus') != data.get('to_campus'):
+            raise serializers.ValidationError("Source and destination campuses must be the same for shift transfers")
         
         return data
 

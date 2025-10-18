@@ -1,5 +1,6 @@
 from django.db import models
 from campus.models import Campus
+from users.models import User
 
 # Choices
 GENDER_CHOICES = [
@@ -34,6 +35,9 @@ class TeacherRole(models.Model):
 
 
 class Teacher(models.Model):
+    # User Account
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='teacher_profile')
+    
     # Personal Information
     full_name = models.CharField(max_length=150)
     dob = models.DateField(verbose_name="Date of Birth")

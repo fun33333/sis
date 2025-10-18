@@ -325,7 +325,18 @@ export default function CreateTransferRequestPage() {
       return;
     }
     
-    if (!formData.to_campus || !formData.reason || !formData.requested_date) {
+    // Check required fields based on transfer type
+    if (formData.transfer_type === 'campus' && !formData.to_campus) {
+      toast.error('Please select destination campus for campus transfer');
+      return;
+    }
+    
+    if (formData.transfer_type === 'shift' && !formData.to_shift) {
+      toast.error('Please select destination shift for shift transfer');
+      return;
+    }
+    
+    if (!formData.reason || !formData.requested_date) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -395,11 +406,14 @@ export default function CreateTransferRequestPage() {
         request_type: formData.request_type,
         from_campus: selectedEntity.current_campus || defaultCampus, // Use first available campus
         from_shift: convertedFromShift, // Use converted shift
-        to_campus: parseInt(formData.to_campus),
+        to_campus: formData.transfer_type === 'campus' 
+          ? parseInt(formData.to_campus) 
+          : selectedEntity.current_campus || defaultCampus, // For shift transfer, use same campus
         to_shift: convertedToShift,
         reason: formData.reason,
         requested_date: formData.requested_date,
         notes: formData.notes,
+        transfer_type: formData.transfer_type, // Add transfer type
         ...(formData.request_type === 'student' 
           ? { student: selectedEntity.id }
           : { teacher: selectedEntity.id }
@@ -462,7 +476,7 @@ export default function CreateTransferRequestPage() {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Button
@@ -961,7 +975,9 @@ export default function CreateTransferRequestPage() {
             </Button>
             <Button
               type="submit"
-              disabled={loading || !selectedEntity || !formData.to_campus || !formData.reason || !formData.requested_date}
+              disabled={loading || !selectedEntity || !formData.reason || !formData.requested_date || 
+                        (formData.transfer_type === 'campus' && !formData.to_campus) ||
+                        (formData.transfer_type === 'shift' && !formData.to_shift)}
               className="px-8 py-3 text-base font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading ? (

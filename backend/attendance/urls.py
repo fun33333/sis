@@ -4,6 +4,9 @@ from . import views
 app_name = 'attendance'
 
 urlpatterns = [
+    # Attendance list for dashboard
+    path('', views.get_attendance_list, name='attendance_list'),
+    
     # Attendance marking
     path('mark/', views.mark_attendance, name='mark_attendance'),
     path('mark-bulk/', views.mark_bulk_attendance, name='mark_bulk_attendance'),

@@ -25,35 +25,40 @@ const COLORS = [
 ]
 
 export function GradeDistributionChart({ data }: GradeDistributionChartProps) {
-  // recharts expects dataKey to be a string, so we use 'name' for grade and 'value' for count
+  // Calculate dynamic Y-axis domain based on actual data
+  const maxValue = data.reduce((max, item) => Math.max(max, item.value), 0);
+  const yMax = Math.ceil(maxValue * 1.2); // Add 20% padding
+  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Grade Distribution</CardTitle>
-        <CardDescription>Student enrollment by grade level</CardDescription>
+    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardTitle className="text-xl font-bold text-[#274c77]">Grade Distribution</CardTitle>
+        <CardDescription className="text-gray-600">Student enrollment by grade level</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}
-              margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
+              margin={{ top: 20, right: 20, left: 10, bottom: 30 }}
             >
-              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e0e0e0" />
               <XAxis
                 dataKey="name"
                 tickLine={false}
                 tickMargin={10}
                 axisLine={false}
-                fontSize={12}
-                angle={-15}
+                fontSize={11}
+                angle={-20}
                 textAnchor="end"
+                height={60}
               />
               <YAxis
-                domain={[0, 1000]}
+                domain={[0, yMax]}
                 allowDecimals={false}
                 tickLine={false}
                 axisLine={false}
+                fontSize={11}
               />
               <Tooltip
                 cursor={false}

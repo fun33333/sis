@@ -1189,3 +1189,27 @@ def get_realtime_attendance_metrics(request):
         return Response(metrics)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_attendance_list(request):
+    """
+    Get list of attendance records for dashboard
+    """
+    try:
+        # Get attendance records from last 30 days
+        thirty_days_ago = timezone.now().date() - timedelta(days=30)
+        
+        attendances = Attendance.objects.filter(
+            date__gte=thirty_days_ago,
+            is_deleted=False
+        ).select_related('classroom').order_by('-date')
+        
+        # Serialize the data
+        serializer = AttendanceSerializer(attendances, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

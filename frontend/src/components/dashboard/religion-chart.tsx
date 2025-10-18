@@ -61,12 +61,12 @@ export function ReligionChart({ data }: ReligionChartProps) {
   } satisfies ChartConfig
 
   return (
-    <Card className="flex flex-col">
-      <CardHeader className="items-center pb-0">
-        <CardTitle>Religion Distribution</CardTitle>
-        <CardDescription>Student distribution by religion</CardDescription>
+    <Card className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <CardHeader className="items-center pb-0 bg-gradient-to-r from-amber-50 to-orange-50">
+        <CardTitle className="text-xl font-bold text-[#274c77]">Religion Distribution</CardTitle>
+        <CardDescription className="text-gray-600">Student distribution by religion</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 pb-0">
+      <CardContent className="flex-1 pb-4 pt-6">
         <ChartContainer
           config={chartConfig}
           className="mx-auto aspect-square max-h-[320px]"
@@ -82,7 +82,10 @@ export function ReligionChart({ data }: ReligionChartProps) {
                 dataKey="students"
                 nameKey="religion"
                 innerRadius={60}
+                outerRadius={100}
                 strokeWidth={5}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                labelLine={true}
                 activeShape={({ outerRadius = 0, ...props }: PieSectorDataItem) => (
                   <Sector {...props} outerRadius={outerRadius + 10} />
                 )}

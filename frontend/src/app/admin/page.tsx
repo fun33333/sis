@@ -9,10 +9,15 @@ import { CampusPerformanceChart } from "@/components/dashboard/campus-performanc
 import { GenderDistributionChart } from "@/components/dashboard/gender-distribution-chart"
 import { MotherTongueChart } from "@/components/dashboard/mother-tongue-chart"
 import { ReligionChart } from "@/components/dashboard/religion-chart"
-import { ArrowLeft, Calendar, GraduationCap, TrendingUp, Users, Download, ChevronDown } from "lucide-react"
-import { getGradeDistribution, getGenderDistribution, getCampusPerformance, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution } from "@/lib/chart-utils"
-import type { FilterState, DashboardMetrics, LegacyStudent as DashboardStudent } from "@/types/dashboard"
-import { StudentTable } from "@/components/dashboard/student-table"
+import { EnrollmentTrendChart } from "@/components/dashboard/enrollment-trend-chart"
+import { AgeDistributionChart } from "@/components/dashboard/age-distribution-chart"
+import { WeeklyAttendanceChart } from "@/components/dashboard/weekly-attendance-chart"
+import { ZakatStatusChart } from "@/components/dashboard/zakat-status-chart"
+import { HouseOwnershipChart } from "@/components/dashboard/house-ownership-chart"
+import { UserGreeting } from "@/components/dashboard/user-greeting"
+import { ArrowLeft, Users, Download, ChevronDown, GraduationCap, UsersRound, RefreshCw } from "lucide-react"
+import { getGradeDistribution, getGenderDistribution, getCampusPerformance, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution, getAgeDistribution, getZakatStatusDistribution, getHouseOwnershipDistribution } from "@/lib/chart-utils"
+import type { FilterState, LegacyStudent as DashboardStudent } from "@/types/dashboard"
 import { useRouter } from "next/navigation"
 import { getDashboardStats, getAllStudents, getAllCampuses, apiGet, getCurrentUserProfile } from "@/lib/api"
 import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions"
@@ -27,6 +32,21 @@ export default function MainDashboardPage() {
   
   useEffect(() => {
     if (typeof window !== "undefined") {
+      // Clear dashboard cache on component mount to ensure fresh data
+      try {
+        const keysToRemove = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && key.startsWith('dashboard_')) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key))
+        console.log('🧹 Cleared localStorage cache on page load')
+      } catch (error) {
+        console.warn('Error clearing localStorage on mount:', error)
+      }
+      
       const userStr = window.localStorage.getItem("sis_user");
       if (userStr) {
         try {
@@ -166,6 +186,9 @@ export default function MainDashboardPage() {
   const [cacheTimestamp, setCacheTimestamp] = useState<number>(0)
   const [totalStudentsCount, setTotalStudentsCount] = useState<number>(0) // From API stats
   const [apiChartData, setChartData] = useState<any>(null) // Chart data from API (all students)
+  const [teachersCount, setTeachersCount] = useState<number>(0) // Total teachers count
+  const [weeklyAttendanceData, setWeeklyAttendanceData] = useState<any[]>([]) // Weekly attendance data
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false) // Refresh state
 
   useEffect(() => {
     // Dynamic title based on user role
@@ -211,6 +234,73 @@ export default function MainDashboardPage() {
       setLoading(true)
       
       try {
+        // Fetch teachers count and weekly attendance data
+        try {
+          const teachersResponse: any = await apiGet('/api/teachers/')
+          if (teachersResponse && Array.isArray(teachersResponse)) {
+            setTeachersCount(teachersResponse.length)
+          } else if (teachersResponse?.results && Array.isArray(teachersResponse.results)) {
+            setTeachersCount(teachersResponse.results.length)
+          }
+        } catch (error) {
+          console.error('Error fetching teachers:', error)
+          setTeachersCount(0)
+        }
+
+        // Fetch weekly attendance data (last 7 days)
+        try {
+          const today = new Date()
+          const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+          
+          // Try to fetch real attendance data
+          try {
+            const attendanceResponse: any = await apiGet('/api/attendance/')
+            
+            if (attendanceResponse && Array.isArray(attendanceResponse)) {
+              // Process attendance data for last 7 days
+              const last7Days = Array.from({ length: 7 }, (_, i) => {
+                const date = new Date()
+                date.setDate(date.getDate() - (6 - i))
+                return date
+              })
+              
+              const weekData = last7Days.map((date, index) => {
+                const dayName = daysOfWeek[date.getDay() === 0 ? 6 : date.getDay() - 1]
+                const dateStr = date.toISOString().split('T')[0]
+                
+                // Find attendance records for this date
+                const dayRecords = attendanceResponse.filter((record: any) => 
+                  record.date === dateStr || record.date?.startsWith(dateStr)
+                )
+                
+                // Calculate present/absent from records
+                let present = 0
+                let absent = 0
+                
+                dayRecords.forEach((record: any) => {
+                  if (record.present_count) present += record.present_count
+                  if (record.absent_count) absent += record.absent_count
+                })
+                
+                return { day: dayName, present, absent }
+              })
+              
+              setWeeklyAttendanceData(weekData)
+            } else {
+              // Fallback to empty data if API doesn't return array
+              const weekData = daysOfWeek.map(day => ({ day, present: 0, absent: 0 }))
+              setWeeklyAttendanceData(weekData)
+            }
+          } catch (apiError) {
+            console.error('Error fetching real attendance:', apiError)
+            // Fallback to empty data
+            const weekData = daysOfWeek.map(day => ({ day, present: 0, absent: 0 }))
+            setWeeklyAttendanceData(weekData)
+          }
+        } catch (error) {
+          console.error('Error processing attendance:', error)
+        }
+
         // Principal: Fetch campus-specific data
         if (userRole === 'principal' && userCampus) {
           // Optimize: Only fetch essential data first
@@ -340,11 +430,14 @@ export default function MainDashboardPage() {
             setStudents(mapped)
             setCacheTimestamp(Date.now())
             
-            // Save to cache (with total count)
-            localStorage.setItem(cacheKey, JSON.stringify({ 
-              students: mapped,
-              totalCount: mapped.length 
-            }))
+            // Save to cache (with total count) - only store essential data to avoid quota exceeded
+            const cacheData = {
+              totalCount: mapped.length,
+              // Only store first 50 students to avoid localStorage quota issues
+              students: mapped.slice(0, 50),
+              hasMore: mapped.length > 50
+            }
+            localStorage.setItem(cacheKey, JSON.stringify(cacheData))
             localStorage.setItem(`${cacheKey}_time`, now.toString())
           } else {
             console.warn('Principal campus not found:', userCampus)
@@ -422,8 +515,8 @@ export default function MainDashboardPage() {
               gender: genderRaw || "Unknown",
               motherTongue: motherTongue,
               religion: religion,
-              attendancePercentage: Math.floor(Math.random() * 31) + 70, // Mock data for now
-              averageScore: Math.floor(Math.random() * 41) + 60, // Mock data for now
+              attendancePercentage: 0, // Will be calculated from real attendance data
+              averageScore: 0, // Removed mock data
               retentionFlag: (item?.current_state || "").toLowerCase() === "active",
               enrollmentDate: createdAt ? new Date(createdAt) : new Date(),
             }
@@ -432,11 +525,14 @@ export default function MainDashboardPage() {
         setStudents(mapped)
         setCacheTimestamp(Date.now())
         
-        // Save to cache (with total count)
-        localStorage.setItem(cacheKey, JSON.stringify({ 
-          students: mapped,
-          totalCount: totalStudentsCount
-        }))
+        // Save to cache (with total count) - only store essential data to avoid quota exceeded
+        const cacheData = {
+          totalCount: totalStudentsCount,
+          // Only store first 50 students to avoid localStorage quota issues
+          students: mapped.slice(0, 50),
+          hasMore: mapped.length > 50
+        }
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData))
         localStorage.setItem(`${cacheKey}_time`, now.toString())
         }
       } catch (error) {
@@ -472,52 +568,55 @@ export default function MainDashboardPage() {
     })
   }, [filters, students])
 
-  const metrics = useMemo((): DashboardMetrics => {
-    // Use API total count if available, otherwise use filtered length
-    const totalStudents = totalStudentsCount > 0 ? totalStudentsCount : filteredStudents.length
-    const averageAttendance = filteredStudents.length > 0 ? Math.round(filteredStudents.reduce((sum, s) => sum + (s.attendancePercentage || 0), 0) / filteredStudents.length) : 0
-    const averageScore = filteredStudents.length > 0 ? Math.round(filteredStudents.reduce((sum, s) => sum + (s.averageScore || 0), 0) / filteredStudents.length) : 0
-    const retentionRate = filteredStudents.length > 0 ? Math.round((filteredStudents.filter((s) => s.retentionFlag).length / filteredStudents.length) * 100) : 0
+  const metrics = useMemo(() => {
+    // Always use filtered students for accurate metrics
+    const totalStudents = filteredStudents.length
     
-    return { totalStudents, averageAttendance, averageScore, retentionRate }
-  }, [filteredStudents, students.length, totalStudentsCount])
-
-  // Fallback: if scores are missing (all zeros), show campus counts instead of average score
-  const campusPerformanceData = useMemo(() => {
-    const hasScores = filteredStudents.some(s => (s.averageScore || 0) > 0)
-    if (hasScores) {
-      const filteredAnyStudents = filteredStudents as unknown as any[]
-      return getCampusPerformance(filteredAnyStudents)
+    // Calculate real attendance from weekly data (average of present students)
+    const averageAttendance = weeklyAttendanceData.length > 0 
+      ? Math.round(weeklyAttendanceData.reduce((sum, day) => sum + day.present, 0) / weeklyAttendanceData.length)
+      : 0
+    
+    // Teacher:Student ratio
+    const teacherStudentRatio = teachersCount > 0 ? Math.round(totalStudents / teachersCount) : 0
+    
+    return { 
+      totalStudents, 
+      averageAttendance, 
+      teachersCount,
+      teacherStudentRatio,
+      averageScore: 0, // Removed
+      retentionRate: 0 // Removed
     }
+  }, [filteredStudents, teachersCount, weeklyAttendanceData])
+
+  // Campus performance data - use filtered students
+  const campusPerformanceData = useMemo(() => {
+    // Use filtered students for accurate campus counts based on applied filters
     const counts = filteredStudents.reduce((acc: Record<string, number>, s) => {
-      acc[s.campus] = (acc[s.campus] || 0) + 1
+      const campusName = s.campus || 'Unknown'
+      if (campusName !== 'Unknown') {
+        acc[campusName] = (acc[campusName] || 0) + 1
+      }
       return acc
     }, {})
-    const campusData = Object.entries(counts).map(([name, value]) => ({ name, value }))
+    const campusData = Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value) // Sort by count descending
     
     return campusData
   }, [filteredStudents])
 
   const chartData = useMemo(() => {
-    // If API chart data is available (for superadmin/principal), use it - it has ALL students
-    // Otherwise, calculate from filtered students (for smaller datasets)
-    if (apiChartData) {
-      return {
-        gradeDistribution: apiChartData.gradeDistribution,
-        genderDistribution: apiChartData.genderDistribution,
-        campusPerformance: apiChartData.campusPerformance,
-        enrollmentTrend: apiChartData.enrollmentTrend,
-        motherTongueDistribution: apiChartData.motherTongueDistribution,
-        religionDistribution: apiChartData.religionDistribution,
-      }
-    }
-    
-    // Fallback: Calculate from filtered students (for compatibility)
+    // Always calculate from filtered students to ensure filters work properly
     const gradeDistribution = getGradeDistribution(filteredStudents as unknown as any[])
     const genderDistribution = getGenderDistribution(filteredStudents as unknown as any[])
     const enrollmentTrend = getEnrollmentTrend(filteredStudents as unknown as any[])
     const motherTongueDistribution = getMotherTongueDistribution(filteredStudents as unknown as any[])
     const religionDistribution = getReligionDistribution(filteredStudents as unknown as any[])
+    const ageDistribution = getAgeDistribution(filteredStudents as unknown as any[])
+    const zakatStatus = getZakatStatusDistribution(filteredStudents as unknown as any[])
+    const houseOwnership = getHouseOwnershipDistribution(filteredStudents as unknown as any[])
     
     return {
       gradeDistribution,
@@ -526,8 +625,11 @@ export default function MainDashboardPage() {
       enrollmentTrend,
       motherTongueDistribution,
       religionDistribution,
+      ageDistribution,
+      zakatStatus,
+      houseOwnership,
     }
-  }, [apiChartData, filteredStudents, campusPerformanceData])
+  }, [filteredStudents, campusPerformanceData])
 
   // Dynamic filter options based on real data
   const dynamicAcademicYears = useMemo(() => {
@@ -564,6 +666,368 @@ export default function MainDashboardPage() {
     setFilters({ academicYears: [], campuses: [], grades: [], genders: [], motherTongues: [], religions: [] })
   }
 
+  // Refresh data function
+  const refreshData = async () => {
+    setIsRefreshing(true)
+    try {
+      // Clear ALL dashboard cache to force fresh data
+      const keysToRemove = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith('dashboard_')) {
+          keysToRemove.push(key)
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key))
+      console.log('🔄 Cleared all dashboard cache for refresh')
+      
+      // Re-fetch all data
+      await fetchData()
+    } catch (error) {
+      console.error('Error refreshing data:', error)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshData()
+    }, 5 * 60 * 1000) // 5 minutes
+
+    return () => clearInterval(interval)
+  }, [userRole, userCampus])
+
+  // Clear cache when user role changes (login/logout)
+  useEffect(() => {
+    if (userRole) {
+      try {
+        const keysToRemove = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && key.startsWith('dashboard_')) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key))
+        console.log('🧹 Cleared cache for user role change')
+      } catch (error) {
+        console.warn('Error clearing cache on role change:', error)
+      }
+    }
+  }, [userRole])
+
+  // Function to clear old localStorage data to prevent quota exceeded
+  const clearOldCache = () => {
+    try {
+      const now = Date.now()
+      const keysToRemove = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith('dashboard_') && !key.endsWith('_time')) {
+          const timeKey = `${key}_time`
+          const timeStr = localStorage.getItem(timeKey)
+          if (timeStr) {
+            const cacheTime = parseInt(timeStr)
+            // Remove cache older than 1 hour
+            if (now - cacheTime > 3600000) {
+              keysToRemove.push(key, timeKey)
+            }
+          }
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key))
+    } catch (error) {
+      console.warn('Error clearing old cache:', error)
+    }
+  }
+
+  // Extract fetchData function to be reusable
+  const fetchData = async () => {
+    // Clear ALL localStorage cache on every refresh to get fresh data
+    try {
+      const keysToRemove = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith('dashboard_')) {
+          keysToRemove.push(key)
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key))
+      console.log('🧹 Cleared localStorage cache for fresh data')
+    } catch (error) {
+      console.warn('Error clearing localStorage:', error)
+    }
+    
+    const now = Date.now()
+    const cacheKey = `dashboard_${userRole}_${userCampus || 'all'}`
+    
+    setLoading(true)
+    
+    try {
+      // Fetch teachers count and weekly attendance data
+      try {
+        const teachersResponse: any = await apiGet('/api/teachers/')
+        if (teachersResponse && Array.isArray(teachersResponse)) {
+          setTeachersCount(teachersResponse.length)
+        } else if (teachersResponse?.results && Array.isArray(teachersResponse.results)) {
+          setTeachersCount(teachersResponse.results.length)
+        }
+      } catch (error) {
+        console.error('Error fetching teachers:', error)
+        setTeachersCount(0)
+      }
+
+      // Fetch weekly attendance data (last 7 days)
+      try {
+        const today = new Date()
+        const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        
+        // Try to fetch real attendance data
+        try {
+          const attendanceResponse: any = await apiGet('/api/attendance/')
+          
+          if (attendanceResponse && Array.isArray(attendanceResponse)) {
+            // Process attendance data for last 7 days
+            const last7Days = Array.from({ length: 7 }, (_, i) => {
+              const date = new Date()
+              date.setDate(date.getDate() - (6 - i))
+              return date
+            })
+            
+            const weekData = last7Days.map((date, index) => {
+              const dayName = daysOfWeek[date.getDay() === 0 ? 6 : date.getDay() - 1]
+              const dateStr = date.toISOString().split('T')[0]
+              
+              // Find attendance records for this date
+              const dayRecords = attendanceResponse.filter((record: any) => 
+                record.date === dateStr || record.date?.startsWith(dateStr)
+              )
+              
+              // Calculate present/absent from records
+              let present = 0
+              let absent = 0
+              
+              dayRecords.forEach((record: any) => {
+                if (record.present_count) present += record.present_count
+                if (record.absent_count) absent += record.absent_count
+              })
+              
+              return { day: dayName, present, absent }
+            })
+            
+            setWeeklyAttendanceData(weekData)
+          } else {
+            // Fallback to empty data if API doesn't return array
+            const weekData = daysOfWeek.map(day => ({ day, present: 0, absent: 0 }))
+            setWeeklyAttendanceData(weekData)
+          }
+        } catch (apiError) {
+          console.error('Error fetching real attendance:', apiError)
+          // Fallback to empty data
+          const weekData = daysOfWeek.map(day => ({ day, present: 0, absent: 0 }))
+          setWeeklyAttendanceData(weekData)
+        }
+      } catch (error) {
+        console.error('Error processing attendance:', error)
+      }
+
+      // Principal: Fetch campus-specific data
+      if (userRole === 'principal' && userCampus) {
+        // Optimize: Only fetch essential data first
+        const [apiStudents, caps] = await Promise.all([
+          getAllStudents(),
+          getAllCampuses()
+        ])
+        
+        // Fetch stats separately to avoid blocking
+        const apiStats = await getDashboardStats()
+        
+        console.log('📊 API Response:', {
+          students: Array.isArray(apiStudents) ? apiStudents.length : 'Not array',
+          stats: apiStats,
+          campuses: Array.isArray(caps) ? caps.length : 'Not array'
+        });
+        
+        // Filter students by principal's campus
+        const studentsArray = Array.isArray(apiStudents) ? apiStudents : [];
+        const campusArray = Array.isArray(caps) ? caps : (Array.isArray((caps as any)?.results) ? (caps as any).results : [])
+        
+        console.log('Total students fetched:', studentsArray.length)
+        console.log('Available campuses:', campusArray.map((c: any) => c.campus_name || c.name))
+        
+        // Find principal's campus ID
+        const principalCampus = campusArray.find((c: any) => {
+          if (!c) return false;
+          return c.campus_name === userCampus || 
+                 c.name === userCampus ||
+                 c.campus_code === userCampus ||
+                 String(c.id) === String(userCampus);
+        })
+        
+        if (principalCampus) {
+          console.log('Found principal campus:', principalCampus)
+          setPrincipalCampusId(principalCampus.id)
+          
+          // Filter students by campus
+          const campusStudents = studentsArray.filter((student: any) => {
+            const studentCampus = student.campus
+            if (!studentCampus) return false
+            
+            // Check if student belongs to this campus
+            if (typeof studentCampus === 'object') {
+              return studentCampus.id === principalCampus.id || 
+                     studentCampus.campus_name === userCampus ||
+                     studentCampus.campus_code === userCampus
+            } else {
+              return String(studentCampus) === String(principalCampus.id) ||
+                     studentCampus === userCampus
+            }
+          })
+          
+          console.log('Campus students after filtering:', campusStudents.length)
+          
+          // Map students to dashboard format
+          const idToCampusCode = new Map()
+          campusArray.forEach((c: any) => {
+            if (c?.id && c?.campus_code) {
+              idToCampusCode.set(String(c.id), c.campus_code)
+            }
+          })
+
+          const mapped: DashboardStudent[] = campusStudents.map((item: any, idx: number) => {
+            const createdAt = typeof item?.created_at === "string" ? item.created_at : ""
+            const year = createdAt ? Number(createdAt.split("-")[0]) : new Date().getFullYear()
+            const genderRaw = (item?.gender ?? "").toString().trim()
+          const campusCode = (() => {
+            const raw = item?.campus
+              if (raw && typeof raw === 'object') return String(raw?.campus_code || raw?.code || 'Unknown').trim()
+            if (typeof raw === 'number' || typeof raw === 'string') {
+              const hit = idToCampusCode.get(String(raw))
+              if (hit) return hit
+            }
+            return 'Unknown'
+          })()
+            const gradeName = (item?.current_grade ?? "Unknown").toString().trim()
+            const motherTongue = (item?.mother_tongue ?? "Other").toString().trim()
+            const religion = (item?.religion ?? "Other").toString().trim()
+            return {
+              rawData: item,
+              studentId: String(item?.gr_no || item?.id || idx + 1),
+              name: item?.name || "Unknown",
+              academicYear: isNaN(year) ? new Date().getFullYear() : year,
+              campus: campusCode,
+              grade: gradeName,
+              current_grade: gradeName,
+              gender: genderRaw || "Unknown",
+              motherTongue: motherTongue,
+              religion: religion,
+              attendancePercentage: 0, // Will be calculated from real attendance data
+              averageScore: 0, // Removed mock data
+              retentionFlag: (item?.current_state || "").toLowerCase() === "active",
+              enrollmentDate: createdAt ? new Date(createdAt) : new Date(),
+            }
+          })
+        
+        setStudents(mapped)
+        setCacheTimestamp(Date.now())
+        
+        // Save to cache (with total count) - only store essential data to avoid quota exceeded
+        const cacheData = {
+          totalCount: mapped.length,
+          // Only store first 50 students to avoid localStorage quota issues
+          students: mapped.slice(0, 50),
+          hasMore: mapped.length > 50
+        }
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData))
+        localStorage.setItem(`${cacheKey}_time`, now.toString())
+        } else {
+          console.warn('Principal campus not found in API response')
+          setStudents([])
+        }
+      } else {
+        // Super Admin: Fetch all data
+        const [apiStudents, caps, apiStats] = await Promise.all([
+          getAllStudents(),
+          getAllCampuses(),
+          getDashboardStats()
+        ])
+        
+        console.log('📊 Super Admin API Response:', {
+          students: Array.isArray(apiStudents) ? apiStudents.length : 'Not array',
+          stats: apiStats,
+          campuses: Array.isArray(caps) ? caps.length : 'Not array'
+        });
+        
+        const studentsArray = Array.isArray(apiStudents) ? apiStudents : [];
+        const campusArray = Array.isArray(caps) ? caps : (Array.isArray((caps as any)?.results) ? (caps as any).results : [])
+        
+        // Map all students
+        const idToCampusCode = new Map()
+        campusArray.forEach((c: any) => {
+          if (c?.id && c?.campus_code) {
+            idToCampusCode.set(String(c.id), c.campus_code)
+          }
+        })
+
+        const mapped: DashboardStudent[] = studentsArray.map((item: any, idx: number) => {
+            const createdAt = typeof item?.created_at === "string" ? item.created_at : ""
+            const year = createdAt ? Number(createdAt.split("-")[0]) : new Date().getFullYear()
+            const genderRaw = (item?.gender ?? "").toString().trim()
+          const campusCode = (() => {
+            const raw = item?.campus
+              if (raw && typeof raw === 'object') return String(raw?.campus_code || raw?.code || 'Unknown').trim()
+            if (typeof raw === 'number' || typeof raw === 'string') {
+              const hit = idToCampusCode.get(String(raw))
+              if (hit) return hit
+            }
+            return 'Unknown'
+          })()
+            const gradeName = (item?.current_grade ?? "Unknown").toString().trim()
+            const motherTongue = (item?.mother_tongue ?? "Other").toString().trim()
+            const religion = (item?.religion ?? "Other").toString().trim()
+            return {
+              rawData: item,
+              studentId: String(item?.gr_no || item?.id || idx + 1),
+              name: item?.name || "Unknown",
+              academicYear: isNaN(year) ? new Date().getFullYear() : year,
+              campus: campusCode,
+              grade: gradeName,
+              current_grade: gradeName,
+              gender: genderRaw || "Unknown",
+              motherTongue: motherTongue,
+              religion: religion,
+              attendancePercentage: 0, // Will be calculated from real attendance data
+              averageScore: 0, // Removed mock data
+              retentionFlag: (item?.current_state || "").toLowerCase() === "active",
+              enrollmentDate: createdAt ? new Date(createdAt) : new Date(),
+            }
+          })
+        
+        setStudents(mapped)
+        setTotalStudentsCount(mapped.length)
+        setCacheTimestamp(Date.now())
+        
+        // Save to cache (with total count) - only store essential data to avoid quota exceeded
+        const cacheData = {
+          totalCount: mapped.length,
+          // Only store first 50 students to avoid localStorage quota issues
+          students: mapped.slice(0, 50),
+          hasMore: mapped.length > 50
+        }
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData))
+        localStorage.setItem(`${cacheKey}_time`, now.toString())
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+        // Fallback to empty array
+        setStudents([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
   if (loading || showLoader) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-300 rounded-3xl shadow-xl">
@@ -588,19 +1052,29 @@ export default function MainDashboardPage() {
   }
 
   return (
-    <main className="">
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 md:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* User Greeting */}
+        <UserGreeting className="mb-6" />
 
-
-      <div className="bg-white rounded-3xl shadow-xl p-8">
-
-        <Card className="!bg-[#E7ECEF]">
-          <CardHeader className="!bg-[#E7ECEF]">
+        {/* Filters Card */}
+        <Card className="!bg-gradient-to-r from-[#E7ECEF] to-white shadow-lg mb-6">
+          <CardHeader className="!bg-transparent">
             <div className="flex items-center justify-between flex-wrap gap-4">
-              <Button variant="ghost" className="flex items-center gap-2 rounded-xl shadow hover:bg-gray-100 transition" onClick={() => window.history.back()}>
+              <Button variant="ghost" className="flex items-center gap-2 rounded-xl shadow-sm hover:bg-white/50 transition" onClick={() => window.history.back()}>
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </Button>
               <div className="flex gap-2 items-center">
+                <Button 
+                  onClick={refreshData} 
+                  variant="outline" 
+                  disabled={isRefreshing}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+                </Button>
                 <Button onClick={resetFilters} variant="outline">
                   Reset Filters
                 </Button>
@@ -641,55 +1115,77 @@ export default function MainDashboardPage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-8">
           <KpiCard 
             title={userRole === 'principal' && userCampus ? `${userCampus} Students` : "Total Students"} 
             value={metrics.totalStudents} 
             description={userRole === 'principal' && userCampus ? "Campus enrollments" : "Active enrollments"} 
             icon={Users} 
-            bgColor="#E7ECEF" 
-            textColor="text-[#274c77]" 
-          />
-          <KpiCard 
-            title="Avg Attendance" 
-            value={`${metrics.averageAttendance}%`} 
-            description={userRole === 'principal' && userCampus ? "Campus attendance rate" : "Overall attendance rate"} 
-            icon={Calendar} 
-            bgColor="#8B8C89" 
+            bgColor="#274C77" 
             textColor="text-white" 
           />
           <KpiCard 
-            title="Avg Score" 
-            value={metrics.averageScore} 
-            description={userRole === 'principal' && userCampus ? "Campus performance" : "Academic performance"} 
-            icon={GraduationCap} 
+            title="Avg Attendance" 
+            value={`${metrics.averageAttendance}`} 
+            description="Daily average present students" 
+            icon={Users} 
             bgColor="#6096BA" 
             textColor="text-white" 
           />
           <KpiCard 
-            title="Retention Rate" 
-            value={`${metrics.retentionRate}%`} 
-            description={userRole === 'principal' && userCampus ? "Campus retention" : "Student retention"} 
-            icon={TrendingUp} 
-            bgColor="#A3CEF1" 
-            textColor="text-[#274c77]" 
+            title="Total Teachers" 
+            value={metrics.teachersCount} 
+            description="Active teaching staff" 
+            icon={GraduationCap} 
+            bgColor="#10b981" 
+            textColor="text-white" 
+          />
+          <KpiCard 
+            title="Teacher:Student Ratio" 
+            value={`1:${metrics.teacherStudentRatio}`} 
+            description="Students per teacher" 
+            icon={UsersRound} 
+            bgColor="#14b8a6" 
+            textColor="text-white" 
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-          {userRole !== 'principal' && (
-          <CampusPerformanceChart data={chartData.campusPerformance} valueKind={filteredStudents.some(s => (s.averageScore || 0) > 0) ? "average" : "count"} />
-          )}
+        {/* Row 1: Gender & Religion */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8">
           <GenderDistributionChart data={chartData.genderDistribution} />
           <ReligionChart data={chartData.religionDistribution} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mt-8 mb-8">
-          <GradeDistributionChart data={chartData.gradeDistribution} />
+        {/* Row 2: Mother Tongue & Enrollment Trend */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8">
           <MotherTongueChart data={chartData.motherTongueDistribution} />
+          <EnrollmentTrendChart data={chartData.enrollmentTrend.map((t: any) => ({ name: String(t.year), value: t.enrollment }))} />
         </div>
 
-        <StudentTable students={filteredStudents} />
+        {/* Row 3: Campus Students - Full Width (only for non-principal) */}
+        {userRole !== 'principal' && (
+          <div className="grid grid-cols-1 gap-4 md:gap-6 mt-8">
+            <CampusPerformanceChart data={chartData.campusPerformance} valueKind="count" />
+          </div>
+        )}
+
+        {/* Row 4: Weekly Attendance & Age Distribution */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8">
+          <WeeklyAttendanceChart data={weeklyAttendanceData} />
+          <AgeDistributionChart data={chartData.ageDistribution} />
+        </div>
+
+        {/* Row 5: Zakat Status & House Ownership */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8">
+          <ZakatStatusChart data={chartData.zakatStatus} />
+          <HouseOwnershipChart data={chartData.houseOwnership} />
+        </div>
+
+        {/* Row 6: Grade Distribution - Full Width */}
+        <div className="grid grid-cols-1 gap-4 md:gap-6 mt-8 mb-8">
+          <GradeDistributionChart data={chartData.gradeDistribution} />
+        </div>
       </div>
     </main>
   )

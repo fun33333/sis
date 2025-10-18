@@ -6,6 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from users.permissions import IsSuperAdminOrPrincipal, IsTeacherOrAbove
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db.models import Count, Q
 from .models import Student
 from .serializers import StudentSerializer
 from .filters import StudentFilter
@@ -236,5 +237,120 @@ class StudentViewSet(viewsets.ModelViewSet):
                 religion = religion.strip().title()
             
             data.append({"name": religion, "value": item['count']})
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='total')
+    def total_students(self, request):
+        """Get total student count"""
+        queryset = self.get_queryset()
+        total = queryset.count()
+        return Response({'totalStudents': total})
+    
+    @action(detail=False, methods=['get'], url_path='gender_stats')
+    def gender_stats(self, request):
+        """Get gender distribution stats"""
+        queryset = self.get_queryset()
+        
+        stats = queryset.aggregate(
+            male=Count('id', filter=Q(gender='male')),
+            female=Count('id', filter=Q(gender='female')),
+            other=Count('id', filter=Q(gender__isnull=True) | Q(gender='other'))
+        )
+        
+        return Response(stats)
+    
+    @action(detail=False, methods=['get'], url_path='campus_stats')
+    def campus_stats(self, request):
+        """Get campus-wise student distribution"""
+        queryset = self.get_queryset()
+        
+        campus_data = queryset.values('campus__campus_name').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        data = []
+        for item in campus_data:
+            campus_name = item['campus__campus_name'] or 'Unknown Campus'
+            data.append({
+                'campus': campus_name,
+                'count': item['count']
+            })
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='grade_distribution')
+    def grade_distribution(self, request):
+        """Get grade-wise student distribution"""
+        queryset = self.get_queryset()
+        
+        grade_data = queryset.values('current_grade').annotate(
+            count=Count('id')
+        ).order_by('current_grade')
+        
+        data = []
+        for item in grade_data:
+            grade = item['current_grade'] or 'Unknown Grade'
+            data.append({
+                'grade': grade,
+                'count': item['count']
+            })
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='enrollment_trend')
+    def enrollment_trend(self, request):
+        """Get enrollment trend by year"""
+        queryset = self.get_queryset()
+        
+        trend_data = queryset.values('enrollment_year').annotate(
+            count=Count('id')
+        ).order_by('enrollment_year')
+        
+        data = []
+        for item in trend_data:
+            year = item['enrollment_year'] or 0
+            data.append({
+                'year': year,
+                'count': item['count']
+            })
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='mother_tongue_distribution')
+    def mother_tongue_distribution(self, request):
+        """Get mother tongue distribution"""
+        queryset = self.get_queryset()
+        
+        tongue_data = queryset.values('mother_tongue').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        data = []
+        for item in tongue_data:
+            tongue = item['mother_tongue'] or 'Unknown'
+            data.append({
+                'name': tongue,
+                'value': item['count']
+            })
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='religion_distribution')
+    def religion_distribution(self, request):
+        """Get religion distribution"""
+        queryset = self.get_queryset()
+        
+        religion_data = queryset.values('religion').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        data = []
+        for item in religion_data:
+            religion = item['religion'] or 'Unknown'
+            data.append({
+                'name': religion,
+                'value': item['count']
+            })
         
         return Response(data)

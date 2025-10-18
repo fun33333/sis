@@ -1799,6 +1799,7 @@ export async function createTransferRequest(data: {
   reason: string;
   requested_date: string;
   notes?: string;
+  transfer_type?: 'campus' | 'shift';
 }) {
   try {
     return await apiPost('/api/transfers/request/', data);

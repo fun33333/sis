@@ -1,101 +1,132 @@
 "use client"
-import { TrendingUp } from "lucide-react"
-import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, LabelList, Cell } from "recharts"
-import {Card,CardContent,CardDescription,CardFooter,CardHeader,CardTitle} from "@/components/ui/card"
-import {ChartConfig,ChartContainer,ChartTooltip} from "@/components/ui/chart"
+import * as React from "react"
+import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart"
 import type { ChartData } from "@/types/dashboard"
 
 interface MotherTongueChartProps {
   data: ChartData[]
 }
 
-// Custom tooltip to show full language and student count
-function MotherTongueTooltip({ active, payload }: any) {
-  if (active && payload && payload.length) {
-    const { payload: barData } = payload[0];
-    return (
-      <div style={{ background: 'white', border: '1px solid #eee', padding: 8, borderRadius: 6 }}>
-        <div><b>Language:</b> {barData.fullName}</div>
-        <div><b>Students:</b> {barData.students}</div>
-      </div>
-    );
-  }
-  return null;
-}
-
 export function MotherTongueChart({ data }: MotherTongueChartProps) {
-  // Use exact DB labels and counts without grouping; trim already handled upstream
-  const chartData = data.map((item) => ({
-    motherTongue: item.name,
-    fullName: item.name,
+  // Sort data by value and get top 5, rest goes to "Others"
+  const sortedData = [...data].sort((a, b) => b.value - a.value)
+  const top5 = sortedData.slice(0, 5)
+  const others = sortedData.slice(5)
+  const othersTotal = others.reduce((sum, item) => sum + item.value, 0)
+  
+  // Prepare data for interactive bar chart
+  const allData = [
+    ...top5,
+    ...(othersTotal > 0 ? [{ name: "Others", value: othersTotal }] : [])
+  ]
+  
+  // Create chart data with proper structure
+  const colorPalette = [
+    '#365486',
+    '#6096ba',
+    '#a3cef1',
+    '#8b8c89',
+    '#274c77',
+    '#bfd7ed',
+    '#c9d6df',
+  ]
+  
+  const chartData = allData.map((item, index) => ({
+    language: item.name,
     students: item.value,
+    fill: colorPalette[index % colorPalette.length],
   }))
-
-  const BAR_COLORS = [
-    '#E7ECEF',
-    '#A3CEF1',
-    '#6096BA',
-    '#8B8C89',
-    '#274C77',
-    '#BFD7ED',
-    '#C9D6DF',
-  ];
+  
   const chartConfig = {
     students: {
       label: "Students",
-      color: BAR_COLORS[0],
+    },
+    language: {
+      label: "Language",
     },
   } satisfies ChartConfig
 
+  const [activeChart, setActiveChart] = React.useState<"students">("students")
+  
+  const total = React.useMemo(
+    () => ({
+      students: chartData.reduce((acc, curr) => acc + curr.students, 0),
+    }),
+    [chartData]
+  )
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Mother Tongue Distribution</CardTitle>
-        <CardDescription>Students by mother tongue (exact DB labels)</CardDescription>
+    <Card className="py-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
+        <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
+          <CardTitle className="text-xl font-bold text-[#274c77]">Mother Tongue Distribution</CardTitle>
+          <CardDescription className="text-gray-600">
+            Students by mother tongue (interactive view)
+          </CardDescription>
+        </div>
+        <div className="flex">
+          <button
+            data-active={activeChart === "students"}
+            className="data-[active=true]:bg-muted/50 relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left sm:border-t-0 sm:px-8 sm:py-6"
+            onClick={() => setActiveChart("students")}
+          >
+            <span className="text-muted-foreground text-xs">
+              {chartConfig.students.label}
+            </span>
+            <span className="text-lg leading-none font-bold sm:text-3xl">
+              {total.students.toLocaleString()}
+            </span>
+          </button>
+        </div>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              accessibilityLayer
-              data={chartData}
-              margin={{ bottom: 30 }}
-            >
-              <XAxis
-                dataKey="motherTongue"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-                interval={0}
-                tick={{ fontSize: 12 }}
-                angle={-20}
-              />
-              <YAxis
-                dataKey="students"
-                allowDecimals={false}
-                tickLine={false}
-                axisLine={false}
-                domain={[0, 5000]}
-              />
-              <ChartTooltip cursor={false} content={<MotherTongueTooltip />} />
-              <Bar dataKey="students" radius={5}>
-                {chartData.map((entry, idx) => (
-                  <Cell key={entry.fullName + idx} fill={BAR_COLORS[idx % BAR_COLORS.length]} />
-                ))}
-                <LabelList dataKey="students" position="top" fontSize={12} className="fill-foreground" />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+      <CardContent className="px-2 sm:p-6">
+        <ChartContainer
+          config={chartConfig}
+          className="aspect-auto h-[250px] w-full"
+        >
+          <BarChart
+            accessibilityLayer
+            data={chartData}
+            margin={{
+              left: 12,
+              right: 12,
+            }}
+          >
+            <CartesianGrid vertical={false} />
+            <XAxis
+              dataKey="language"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+              minTickGap={32}
+              tickFormatter={(value) => value.slice(0, 8)}
+            />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  className="w-[150px]"
+                  nameKey="students"
+                  labelFormatter={(value) => `Language: ${value}`}
+                />
+              }
+            />
+            <Bar dataKey="students" fill="#3B82F6" radius={3} />
+          </BarChart>
         </ChartContainer>
       </CardContent>
-      {/* <CardFooter className="flex-col items-start gap-2 text-sm">
-        <div className="flex gap-2 leading-none font-medium">
-          Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-        </div>
-        <div className="text-muted-foreground leading-none">
-          Showing total students by mother tongue
-        </div>
-      </CardFooter> */}
     </Card>
   )
 }

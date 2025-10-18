@@ -21,7 +21,7 @@ class TransferRequest(models.Model):
     
     # Basic Info
     request_type = models.CharField(max_length=20, choices=REQUEST_TYPES)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
     # Source Information
     from_campus = models.ForeignKey('campus.Campus', on_delete=models.CASCADE, related_name='transfers_from')

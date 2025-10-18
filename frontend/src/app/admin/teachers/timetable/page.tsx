@@ -74,6 +74,7 @@ const periodsByDay: Record<string, Array<{ time: string; subject: string; class:
 
 const TeacherTimetablePage = () => {
     const [selectedDay, setSelectedDay] = useState<string>(weekDays[0]);
+    
 
     return (
         <div className="max-w-5xl mx-auto mt-12 p-8 bg-[#e7ecef] rounded-2xl shadow-2xl border-2 border-[#a3cef1]">

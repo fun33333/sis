@@ -30,16 +30,16 @@ export function KpiCard({ title, value, description, icon: Icon, trend, progress
   const cardBg = bgColor ? { background: bgColor } : undefined;
   const cardText = textColor ? textColor : "text-foreground";
   return (
-    <Card className={cn("relative overflow-hidden", className)} style={cardBg}>
+    <Card className={cn("relative overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300", className)} style={cardBg}>
       <CardHeader className={cn("flex flex-row items-center justify-between space-y-0 pb-2", textColor)}>
         <CardTitle className={cn("text-sm font-medium", textColor ? textColor : "text-muted-foreground")}>{title}</CardTitle>
-        <div className={cn("h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center", textColor)}>
-          <Icon className="h-4 w-4" />
+        <div className={cn("h-10 w-10 rounded-lg bg-white/20 flex items-center justify-center", textColor)}>
+          <Icon className="h-5 w-5" />
         </div>
       </CardHeader>
       <CardContent className={cn("space-y-3", textColor)}>
         <div className="flex items-baseline justify-between">
-          <div className={cn("text-2xl font-bold", cardText)}>
+          <div className={cn("text-3xl font-bold", cardText)}>
             {typeof value === "number" ? value.toLocaleString() : value}
           </div>
           {trend && (

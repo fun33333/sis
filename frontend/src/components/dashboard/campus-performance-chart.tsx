@@ -11,7 +11,7 @@ interface CampusPerformanceChartProps {
 
 export function CampusPerformanceChart({ data, valueKind = "average" }: CampusPerformanceChartProps) {
   const maxValue = data.reduce((m, d) => Math.max(m, d.value), 0)
-  const yDomain = valueKind === "count" ? [0, Math.max(5, Math.ceil(maxValue * 1.2))] : [0, 100]
+  const xDomain = valueKind === "count" ? [0, Math.max(5, Math.ceil(maxValue * 1.2 / 100) * 100)] : [0, 100]
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -36,23 +36,43 @@ export function CampusPerformanceChart({ data, valueKind = "average" }: CampusPe
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Campus Performance</CardTitle>
-        <CardDescription>
-          {valueKind === "count" ? "Students per campus" : "Average academic scores by campus"}
+    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+        <CardTitle className="text-xl font-bold text-[#274c77]">
+          {valueKind === "count" ? "Campus Students" : "Campus Performance"}
+        </CardTitle>
+        <CardDescription className="text-gray-600">
+          {valueKind === "count" ? "Total students per campus" : "Average academic scores by campus"}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="name" className="text-xs fill-muted-foreground" tick={{ fontSize: 12 }} />
-              <YAxis className="text-xs fill-muted-foreground" tick={{ fontSize: 12 }} domain={yDomain as any} allowDecimals={false} />
+            <BarChart 
+              data={data} 
+              layout="horizontal"
+              margin={{ top: 20, right: 50, left: 20, bottom: 40 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" horizontal={false} />
+              <XAxis 
+                type="number"
+                tick={{ fontSize: 11 }} 
+                domain={xDomain as any}
+                allowDecimals={false}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis 
+                type="category"
+                dataKey="name" 
+                tick={{ fontSize: 11 }} 
+                width={100}
+                tickLine={false}
+                axisLine={false}
+              />
               <Tooltip content={<CustomTooltip />} />
               {/* Custom palette for campus bars */}
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+              <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                 {data.map((entry, idx) => {
                   const BAR_COLORS = [
                     '#E7ECEF',

@@ -2,32 +2,33 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Home } from "lucide-react"
 import type { ChartData } from "@/types/dashboard"
 
-interface GenderDistributionChartProps {
+interface HouseOwnershipChartProps {
   data: ChartData[]
 }
 
-// Custom palette for gender chart (case-insensitive keys)
-const GENDER_COLORS: Record<string, string> = {
-  female: '#274C77', // blue
-  male: '#de3492ff', // teal-pink
-  other: '#a3a3a3',
+const HOUSE_COLORS: Record<string, string> = {
+  owned: '#274C77',
+  rented: '#6096BA',
 }
 
-export function GenderDistributionChart({ data }: GenderDistributionChartProps) {
+export function HouseOwnershipChart({ data }: HouseOwnershipChartProps) {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload
+      const item = payload[0].payload
+      const total = data.reduce((sum, d) => sum + d.value, 0)
+      const percentage = ((item.value / total) * 100).toFixed(1)
+      
       return (
         <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
-          <p className="font-medium">{data.name}</p>
+          <p className="font-medium capitalize">{item.name}</p>
           <p className="text-sm text-muted-foreground">
-            Students: <span className="font-medium text-foreground">{data.value}</span>
+            Families: <span className="font-medium text-foreground">{item.value}</span>
           </p>
           <p className="text-sm text-muted-foreground">
-            Percentage:{" "}
-            <span className="font-medium text-foreground">{((data.value / data.total) * 100).toFixed(1)}%</span>
+            Percentage: <span className="font-medium text-foreground">{percentage}%</span>
           </p>
         </div>
       )
@@ -35,7 +36,7 @@ export function GenderDistributionChart({ data }: GenderDistributionChartProps) 
     return null
   }
 
-  // Calculate total for percentage calculation
+  // Calculate total for percentage
   const dataWithTotal = data.map((item) => ({
     ...item,
     total: data.reduce((sum, d) => sum + d.value, 0),
@@ -43,9 +44,12 @@ export function GenderDistributionChart({ data }: GenderDistributionChartProps) 
 
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-      <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
-        <CardTitle className="text-xl font-bold text-[#274c77]">Gender Distribution</CardTitle>
-        <CardDescription className="text-gray-600">Student enrollment by gender</CardDescription>
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50">
+        <div className="flex items-center gap-2">
+          <Home className="h-5 w-5 text-[#274c77]" />
+          <CardTitle className="text-xl font-bold text-[#274c77]">House Ownership</CardTitle>
+        </div>
+        <CardDescription className="text-gray-600">Family housing status</CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
         <div className="h-80">
@@ -57,13 +61,12 @@ export function GenderDistributionChart({ data }: GenderDistributionChartProps) 
                 cy="45%" 
                 outerRadius={100} 
                 dataKey="value"
-                label={({ name, percent }: any) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                 labelLine={true}
               >
                 {dataWithTotal.map((entry: any, index: number) => {
                   const key = (entry?.name ?? '').toString().trim().toLowerCase()
-                  const mapped = GENDER_COLORS[key]
-                  const fill = mapped || entry?.fill || '#3B82F6'
+                  const fill = HOUSE_COLORS[key] || '#8B8C89'
                   return <Cell key={`cell-${index}`} fill={fill} />
                 })}
               </Pie>
@@ -71,7 +74,11 @@ export function GenderDistributionChart({ data }: GenderDistributionChartProps) 
               <Legend
                 verticalAlign="bottom"
                 height={36}
-                formatter={(value, entry) => <span style={{ color: entry.color, fontWeight: 500 }}>{value}</span>}
+                formatter={(value, entry) => (
+                  <span style={{ color: entry.color, fontWeight: 500, textTransform: 'capitalize' }}>
+                    {value}
+                  </span>
+                )}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -80,3 +87,4 @@ export function GenderDistributionChart({ data }: GenderDistributionChartProps) 
     </Card>
   )
 }
+

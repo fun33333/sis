@@ -54,6 +54,7 @@ class IDUpdateService:
         # Generate new ID
         new_id = IDUpdateService.generate_new_id(
             old_id, 
+
             new_campus.campus_code, 
             new_shift, 
             str(datetime.now().year)[-2:]
