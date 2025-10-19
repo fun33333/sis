@@ -11,6 +11,8 @@ export interface User {
   role: string;
   email?: string;
   name?: string;
+  campus?: any;
+  cnic?: string;
 }
 
 // Get normalized role from user object

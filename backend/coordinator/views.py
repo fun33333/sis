@@ -8,6 +8,9 @@ from teachers.models import Teacher
 from students.models import Student
 from classes.models import ClassRoom
 from django.db.models import Count, Q
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CoordinatorViewSet(viewsets.ModelViewSet):
@@ -21,6 +24,54 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
     search_fields = ['full_name', 'employee_code', 'email']
     ordering_fields = ['full_name', 'joining_date', 'employee_code']
     ordering = ['-joining_date']  # Default ordering
+    
+    def create(self, request, *args, **kwargs):
+        """Override create method to add debug logging"""
+        logger.info(f"Received coordinator data: {request.data}")
+        logger.info(f"DOB field value: {request.data.get('dob')}")
+        logger.info(f"DOB field type: {type(request.data.get('dob'))}")
+        
+        # Check for null values in required fields
+        required_fields = ['full_name', 'dob', 'gender', 'contact_number', 'email', 'cnic', 
+                          'permanent_address', 'education_level', 'institution_name', 
+                          'year_of_passing', 'total_experience_years', 'joining_date']
+        
+        for field in required_fields:
+            value = request.data.get(field)
+            logger.info(f"Field {field}: {value} (type: {type(value)})")
+            if value is None or value == '':
+                logger.warning(f"Field {field} is null or empty!")
+        
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error creating coordinator: {str(e)}")
+            logger.error(f"Request data: {request.data}")
+            raise
+    
+    def update(self, request, *args, **kwargs):
+        """Override update method to add debug logging"""
+        logger.info(f"Updating coordinator {kwargs.get('pk')} with data: {request.data}")
+        logger.info(f"Request method: {request.method}")
+        
+        try:
+            return super().update(request, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error updating coordinator: {str(e)}")
+            logger.error(f"Request data: {request.data}")
+            raise
+    
+    def partial_update(self, request, *args, **kwargs):
+        """Override partial_update method to add debug logging"""
+        logger.info(f"Partially updating coordinator {kwargs.get('pk')} with data: {request.data}")
+        logger.info(f"Request method: {request.method}")
+        
+        try:
+            return super().partial_update(request, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error partially updating coordinator: {str(e)}")
+            logger.error(f"Request data: {request.data}")
+            raise
     
     def get_queryset(self):
         """Override to handle role-based filtering and optimize queries"""

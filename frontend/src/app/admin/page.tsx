@@ -249,7 +249,6 @@ export default function MainDashboardPage() {
 
         // Fetch weekly attendance data (last 7 days)
         try {
-          const today = new Date()
           const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
           
           // Try to fetch real attendance data
@@ -264,7 +263,7 @@ export default function MainDashboardPage() {
                 return date
               })
               
-              const weekData = last7Days.map((date, index) => {
+              const weekData = last7Days.map((date) => {
                 const dayName = daysOfWeek[date.getDay() === 0 ? 6 : date.getDay() - 1]
                 const dateStr = date.toISOString().split('T')[0]
                 
@@ -371,9 +370,6 @@ export default function MainDashboardPage() {
             const idToCampusName = new Map<string, string>(
               campusArray.filter((c: any) => c && (c.campus_name || c.name)).map((c: any) => [String(c.id), String(c.campus_name || c.name || '')])
             )
-            const idToCampusCode = new Map<string, string>(
-              campusArray.filter((c: any) => c && (c.campus_code || c.code)).map((c: any) => [String(c.id), String(c.campus_code || c.code || '')])
-            )
 
             const mapped: DashboardStudent[] = campusStudents.map((item: any, idx: number) => {
               const createdAt = typeof item?.created_at === "string" ? item.created_at : ""
@@ -469,9 +465,6 @@ export default function MainDashboardPage() {
           setChartData(chartData)
         }
         const campusArray = Array.isArray(caps) ? caps : (Array.isArray((caps as any)?.results) ? (caps as any).results : [])
-        const idToCampusName = new Map<string, string>(
-            campusArray.map((c: any) => [String(c.id), String(c.campus_name || c.name || '')])
-        )
         const idToCampusCode = new Map<string, string>(
             campusArray.map((c: any) => [String(c.id), String(c.campus_code || c.code || '')])
         )
@@ -719,29 +712,6 @@ export default function MainDashboardPage() {
   }, [userRole])
 
   // Function to clear old localStorage data to prevent quota exceeded
-  const clearOldCache = () => {
-    try {
-      const now = Date.now()
-      const keysToRemove = []
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        if (key && key.startsWith('dashboard_') && !key.endsWith('_time')) {
-          const timeKey = `${key}_time`
-          const timeStr = localStorage.getItem(timeKey)
-          if (timeStr) {
-            const cacheTime = parseInt(timeStr)
-            // Remove cache older than 1 hour
-            if (now - cacheTime > 3600000) {
-              keysToRemove.push(key, timeKey)
-            }
-          }
-        }
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key))
-    } catch (error) {
-      console.warn('Error clearing old cache:', error)
-    }
-  }
 
   // Extract fetchData function to be reusable
   const fetchData = async () => {
@@ -781,7 +751,6 @@ export default function MainDashboardPage() {
 
       // Fetch weekly attendance data (last 7 days)
       try {
-        const today = new Date()
         const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
         
         // Try to fetch real attendance data
@@ -796,7 +765,7 @@ export default function MainDashboardPage() {
               return date
             })
             
-            const weekData = last7Days.map((date, index) => {
+            const weekData = last7Days.map((date) => {
               const dayName = daysOfWeek[date.getDay() === 0 ? 6 : date.getDay() - 1]
               const dateStr = date.toISOString().split('T')[0]
               
@@ -1058,8 +1027,8 @@ export default function MainDashboardPage() {
         <UserGreeting className="mb-6" />
 
         {/* Filters Card */}
-        <Card className="!bg-gradient-to-r from-[#E7ECEF] to-white shadow-lg mb-6">
-          <CardHeader className="!bg-transparent">
+        <Card className="!bg-[#E7ECEF] shadow-lg mb-6">
+          <CardHeader className="!bg-[#E7ECEF]">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <Button variant="ghost" className="flex items-center gap-2 rounded-xl shadow-sm hover:bg-white/50 transition" onClick={() => window.history.back()}>
                 <ArrowLeft className="h-4 w-4" />

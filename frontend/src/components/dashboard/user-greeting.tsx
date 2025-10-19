@@ -21,12 +21,24 @@ export function UserGreeting({ className }: UserGreetingProps) {
       if (userStr) {
         try {
           const user = JSON.parse(userStr)
-          setUserName(user.username || user.name || user.email || "User")
+          console.log('User data from localStorage:', user) // Debug log
+          
+          // Try to get full name first, then fallback to other fields
+          let fullName = user.full_name || user.name || user.username || user.email || "User"
+          
+          // If we have first_name and last_name, combine them
+          if (user.first_name && user.last_name) {
+            fullName = `${user.first_name} ${user.last_name}`
+          } else if (user.first_name) {
+            fullName = user.first_name
+          }
+          
+          setUserName(fullName.trim() || "User")
           
           const role = String(user.role || "").toLowerCase()
           if (role.includes("princ")) {
             setUserRole("Principal")
-            setUserCampus(user.campus || "")
+            setUserCampus(user.campus?.campus_name || user.campus || "")
           } else if (role.includes("coord")) {
             setUserRole("Coordinator")
           } else if (role.includes("teach")) {

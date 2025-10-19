@@ -30,9 +30,16 @@ def auto_assign_teachers_to_new_coordinator(sender, instance, created, **kwargs)
     Automatically assign teachers to newly created coordinators
     """
     if created and instance.is_currently_active:
-        print(f"New coordinator created: {instance.full_name} for {instance.level.name} in {instance.campus.campus_name}")
+        level_name = instance.level.name if instance.level else "No Level"
+        campus_name = instance.campus.campus_name if instance.campus else "No Campus"
+        print(f"New coordinator created: {instance.full_name} for {level_name} in {campus_name}")
         
         try:
+            # Check if level is assigned
+            if not instance.level:
+                print(f"No level assigned to coordinator {instance.full_name}")
+                return
+                
             # Get grades for this coordinator's level
             grades = Grade.objects.filter(level=instance.level)
             grade_names = [g.name for g in grades]
