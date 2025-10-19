@@ -12,9 +12,10 @@ import { Badge } from "@/components/ui/badge"
 interface TeacherPreviewProps {
   formData: any
   onBack: () => void
+  onSubmit?: () => void
 }
 
-export function TeacherPreview({ formData, onBack }: TeacherPreviewProps) {
+export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewProps) {
   const [saving, setSaving] = useState(false)
   const [campuses, setCampuses] = useState<any[]>([])
 
@@ -46,14 +47,15 @@ export function TeacherPreview({ formData, onBack }: TeacherPreviewProps) {
   const buildPayload = () => {
     const payload: any = {
       // Personal info tab fields
-      full_name: formData.fullName || null,
+      full_name: formData.full_name || null,
       dob: formData.dob || null,
       gender: formData.gender || null,
-      contact_number: formData.contactNumber || null,
+      contact_number: formData.contact_number || null,
       email: formData.email || null,
-      permanent_address: formData.permanentAddress || null,
-      current_address: formData.temporaryAddress || null,
-      marital_status: formData.maritalStatus || null,
+      permanent_address: formData.permanent_address || null,
+      current_address: formData.current_address || null,
+      marital_status: formData.marital_status || null,
+      cnic: formData.cnic || null,
 
       // Education tab fields
       education_level: formData.education_level || null,
@@ -85,6 +87,7 @@ export function TeacherPreview({ formData, onBack }: TeacherPreviewProps) {
       additional_responsibilities: formData.additional_responsibilities || null,
 
       // Current role tab fields
+      joining_date: formData.joining_date || null,
       current_role_title: formData.current_role_title || null,
       current_campus: getCampusId(formData.current_campus),
       current_subjects: formData.current_subjects || null,
@@ -93,6 +96,9 @@ export function TeacherPreview({ formData, onBack }: TeacherPreviewProps) {
       role_start_date: formData.role_start_date || null,
       role_end_date: formData.role_end_date || null,
       is_currently_active: typeof formData.is_currently_active === 'boolean' ? formData.is_currently_active : null,
+      shift: formData.shift || 'morning',
+      is_class_teacher: typeof formData.is_class_teacher === 'boolean' ? formData.is_class_teacher : false,
+      assigned_classroom: formData.assigned_classroom || null,
 
       // System tab fields
       save_status: formData.save_status || 'draft',
@@ -107,16 +113,22 @@ export function TeacherPreview({ formData, onBack }: TeacherPreviewProps) {
   }
 
   const handleSave = async () => {
+    if (onSubmit) {
+      onSubmit()
+      return
+    }
+    
     setSaving(true)
     try {
       // Quick client-side guard for required fields to avoid long waits if any
       const missing: string[] = []
-      if (!formData.fullName) missing.push("Full name")
+      if (!formData.full_name) missing.push("Full name")
       if (!formData.dob) missing.push("Date of Birth")
       if (!formData.gender) missing.push("Gender")
-      if (!formData.contactNumber) missing.push("Contact number")
+      if (!formData.contact_number) missing.push("Contact number")
       if (!formData.email) missing.push("Email")
-      if (!formData.permanentAddress) missing.push("Permanent address")
+      if (!formData.permanent_address) missing.push("Permanent address")
+      if (!formData.cnic) missing.push("CNIC")
       if (missing.length > 0) {
         toast.error("Please fill required fields", { description: missing.join(", ") })
         return
@@ -170,14 +182,15 @@ export function TeacherPreview({ formData, onBack }: TeacherPreviewProps) {
             </CardHeader>
             <CardContent>
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                 <div><strong>Full name:</strong> {formData.fullName || "N/A"}</div>
+                 <div><strong>Full name:</strong> {formData.full_name || "N/A"}</div>
                  <div><strong>Date of Birth:</strong> {formData.dob || "N/A"}</div>
                  <div><strong>Gender:</strong> {formData.gender || "N/A"}</div>
-                 <div><strong>Contact number:</strong> {formData.contactNumber || "N/A"}</div>
+                 <div><strong>Contact number:</strong> {formData.contact_number || "N/A"}</div>
+                 <div><strong>CNIC:</strong> {formData.cnic || "N/A"}</div>
                  <div className="sm:col-span-2"><strong>Email:</strong> {formData.email || "N/A"}</div>
-                 <div className="sm:col-span-2"><strong>Permanent address:</strong> {formData.permanentAddress || "N/A"}</div>
-                 <div className="sm:col-span-2"><strong>Current address:</strong> {formData.temporaryAddress || "N/A"}</div>
-                 <div><strong>Marital status:</strong> {formData.maritalStatus || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Permanent address:</strong> {formData.permanent_address || "N/A"}</div>
+                 <div className="sm:col-span-2"><strong>Current address:</strong> {formData.current_address || "N/A"}</div>
+                 <div><strong>Marital status:</strong> {formData.marital_status || "N/A"}</div>
               </div>
             </CardContent>
           </Card>
@@ -209,14 +222,18 @@ export function TeacherPreview({ formData, onBack }: TeacherPreviewProps) {
             </CardHeader>
             <CardContent>
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                 <div><strong>Joining Date:</strong> {formData.joining_date || "N/A"}</div>
+                 <div><strong>Shift:</strong> {formData.shift || "N/A"}</div>
                  <div className="sm:col-span-2"><strong>Current role title:</strong> {formData.current_role_title || "N/A"}</div>
                  <div><strong>Current campus:</strong> {formData.current_campus || "N/A"}</div>
+                 <div><strong>Is Class Teacher:</strong> {typeof formData.is_class_teacher === "boolean" ? (formData.is_class_teacher ? "Yes" : "No") : "N/A"}</div>
                  <div className="sm:col-span-2"><strong>Current subjects:</strong> {formData.current_subjects || "N/A"}</div>
                  <div className="sm:col-span-2"><strong>Current classes taught:</strong> {formData.current_classes_taught || "N/A"}</div>
                  <div className="sm:col-span-2"><strong>Current extra responsibilities:</strong> {formData.current_extra_responsibilities || "N/A"}</div>
                  <div><strong>Role start date:</strong> {formData.role_start_date || "N/A"}</div>
                  <div><strong>Role end date:</strong> {formData.role_end_date || "N/A"}</div>
-                 <div><strong>Is currently active:</strong> {typeof formData.is_currently_active === "boolean" ? (formData.is_currently_active ? "Yes" : "No") : (formData.is_currently_active ?? "N/A")}</div>
+                 <div><strong>Is currently active:</strong> {typeof formData.is_currently_active === "boolean" ? (formData.is_currently_active ? "Yes" : "No") : "N/A"}</div>
+                 {/* <div><strong>Assigned Classroom:</strong> {formData.assigned_classroom || "N/A"}</div> */}
                  <div><strong>Save status:</strong> {formData.save_status || "N/A"}</div>
                </div>
             </CardContent>
@@ -250,13 +267,22 @@ export function TeacherPreview({ formData, onBack }: TeacherPreviewProps) {
         <Separator />
 
         <div className="flex justify-between">
-          <Button onClick={onBack} variant="outline" className="flex items-center gap-2 bg-transparent">
+          <Button onClick={onBack} variant="outline" className="flex items-center gap-2 bg-transparent" disabled={saving}>
             <ArrowLeft className="h-4 w-4" />
             Back to Edit
           </Button>
           <Button onClick={handleSave} className="flex items-center gap-2" disabled={saving}>
-            <Save className="h-4 w-4" />
-            {saving ? "Saving..." : "Save Teacher"}
+            {saving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Saving Teacher...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Save Teacher
+              </>
+            )}
           </Button>
         </div>
       </CardContent>

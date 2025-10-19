@@ -418,13 +418,16 @@ export default function StudentListPage() {
                         <Eye className="h-3 w-3 mr-1" />
                         View
                       </button>
-                      <button
-                        className="inline-flex items-center px-2 py-1 border text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                        style={{ borderColor: '#6096ba', color: '#274c77' }}
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
-                      </button>
+                      {/* Hide Edit button for principal role */}
+                      {userRole !== 'principal' && (
+                        <button
+                          className="inline-flex items-center px-2 py-1 border text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                          style={{ borderColor: '#6096ba', color: '#274c77' }}
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

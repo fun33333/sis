@@ -65,14 +65,14 @@ export function PersonalInfoStep({ formData, invalidFields, onInputChange }: Per
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="fullName">Full Name *</Label>
+            <Label htmlFor="full_name">Full Name *</Label>
             <Input
-              id="fullName"
-              value={formData.fullName || ""}
-              onChange={(e) => onInputChange("fullName", e.target.value)}
-              className={invalidFields.includes("fullName") ? "border-red-500" : ""}
+              id="full_name"
+              value={formData.full_name || ""}
+              onChange={(e) => onInputChange("full_name", e.target.value)}
+              className={invalidFields.includes("full_name") ? "border-red-500" : ""}
             />
-            {invalidFields.includes("fullName") && <p className="text-sm text-red-600 mt-1">Full name is required</p>}
+            {invalidFields.includes("full_name") && <p className="text-sm text-red-600 mt-1">Full name is required</p>}
           </div>
 
           <div>
@@ -101,24 +101,26 @@ export function PersonalInfoStep({ formData, invalidFields, onInputChange }: Per
           </div>
 
           <div>
-            <Label htmlFor="contactNumber">Contact Number *</Label>
+            <Label htmlFor="contact_number">Contact Number *</Label>
             <Input
-              id="contactNumber"
-              value={formData.contactNumber || ""}
-              onChange={(e) => onInputChange("contactNumber", e.target.value.replace(/[^0-9]/g, ""))}
-              className={invalidFields.includes("contactNumber") ? "border-red-500" : ""}
+              id="contact_number"
+              value={formData.contact_number || ""}
+              onChange={(e) => onInputChange("contact_number", e.target.value.replace(/[^0-9]/g, ""))}
+              className={invalidFields.includes("contact_number") ? "border-red-500" : ""}
             />
-            {invalidFields.includes("contactNumber") && <p className="text-sm text-red-600 mt-1">Contact number is required</p>}
+            {invalidFields.includes("contact_number") && <p className="text-sm text-red-600 mt-1">Contact number is required</p>}
           </div>
 
           <div>
-            <Label htmlFor="emergencyContactNumber">Emergency Contact Number *</Label>
+            <Label htmlFor="cnic">CNIC *</Label>
             <Input
-              id="emergencyContactNumber"
-              value={formData.emergencyContactNumber || ""}
-              onChange={(e) => onInputChange("emergencyContactNumber", e.target.value.replace(/[^0-9]/g, ""))}
+              id="cnic"
+              value={formData.cnic || ""}
+              onChange={(e) => onInputChange("cnic", e.target.value.replace(/[^0-9-]/g, ""))}
+              placeholder="12345-1234567-1"
+              className={invalidFields.includes("cnic") ? "border-red-500" : ""}
             />
-            {invalidFields.includes("emergencyContactNumber") && <p className="text-sm text-red-600 mt-1">Emergency contact is required</p>}
+            {invalidFields.includes("cnic") && <p className="text-sm text-red-600 mt-1">CNIC is required</p>}
           </div>
 
           <div className="md:col-span-2">
@@ -134,38 +136,41 @@ export function PersonalInfoStep({ formData, invalidFields, onInputChange }: Per
           </div>
 
           <div className="md:col-span-2">
-            <Label htmlFor="permanentAddress">Permanent address *</Label>
+            <Label htmlFor="permanent_address">Permanent Address *</Label>
             <Textarea
-              id="permanentAddress"
-              value={formData.permanentAddress || ""}
-              onChange={(e) => onInputChange("permanentAddress", e.target.value)}
+              id="permanent_address"
+              value={formData.permanent_address || ""}
+              onChange={(e) => onInputChange("permanent_address", e.target.value)}
+              className={invalidFields.includes("permanent_address") ? "border-red-500" : ""}
             />
-            {invalidFields.includes("permanentAddress") && <p className="text-sm text-red-600 mt-1">Permanent address is required</p>}
+            {invalidFields.includes("permanent_address") && <p className="text-sm text-red-600 mt-1">Permanent address is required</p>}
           </div>
 
           <div className="md:col-span-2">
-            <Label htmlFor="temporaryAddress">Current address *</Label>
+            <Label htmlFor="current_address">Current Address *</Label>
             <Textarea
-              id="temporaryAddress"
-              value={formData.temporaryAddress || ""}
-              onChange={(e) => onInputChange("temporaryAddress", e.target.value)}
+              id="current_address"
+              value={formData.current_address || ""}
+              onChange={(e) => onInputChange("current_address", e.target.value)}
+              className={invalidFields.includes("current_address") ? "border-red-500" : ""}
             />
-            {invalidFields.includes("temporaryAddress") && <p className="text-sm text-red-600 mt-1">Temporary address is required</p>}
+            {invalidFields.includes("current_address") && <p className="text-sm text-red-600 mt-1">Current address is required</p>}
           </div>
 
           <div>
-            <Label htmlFor="maritalStatus">Marital Status *</Label>
-            <Select value={formData.maritalStatus || ""} onValueChange={(v) => onInputChange("maritalStatus", v)}>
-              <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("maritalStatus") ? "border-red-500" : ""}`}>
+            <Label htmlFor="marital_status">Marital Status *</Label>
+            <Select value={formData.marital_status || ""} onValueChange={(v) => onInputChange("marital_status", v)}>
+              <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("marital_status") ? "border-red-500" : ""}`}>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="married">Married</SelectItem>
                 <SelectItem value="single">Single</SelectItem>
-                <SelectItem value="widowed">Widowed</SelectItem>
+                <SelectItem value="married">Married</SelectItem>
                 <SelectItem value="divorced">Divorced</SelectItem>
+                <SelectItem value="widowed">Widowed</SelectItem>
               </SelectContent>
             </Select>
+            {invalidFields.includes("marital_status") && <p className="text-sm text-red-600 mt-1">Marital status is required</p>}
           </div>
 
           {null}

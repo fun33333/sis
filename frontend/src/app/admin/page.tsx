@@ -43,6 +43,15 @@ export default function MainDashboardPage() {
         }
         keysToRemove.forEach(key => localStorage.removeItem(key))
         console.log('🧹 Cleared localStorage cache on page load')
+        
+        // Also clear any cached data that might cause the 50 students issue
+        const allKeys = Object.keys(localStorage)
+        allKeys.forEach(key => {
+          if (key.includes('students') || key.includes('campus') || key.includes('dashboard')) {
+            localStorage.removeItem(key)
+          }
+        })
+        console.log('🧹 Cleared all related cache keys')
       } catch (error) {
         console.warn('Error clearing localStorage on mount:', error)
       }
@@ -206,32 +215,13 @@ export default function MainDashboardPage() {
       const now = Date.now()
       const cacheKey = `dashboard_${userRole}_${userCampus || 'all'}`
       
-      // Only use cache if user role is set
-      if (userRole) {
-        const cached = localStorage.getItem(cacheKey)
-        const cacheTime = localStorage.getItem(`${cacheKey}_time`)
-        
-        if (cached && cacheTime && (now - parseInt(cacheTime)) < 300000) { // 5 minutes
-          const cachedData = JSON.parse(cached)
-          const cachedStudentsCount = cachedData.students?.length || 0
-          
-          // Only use cache if it has data AND totalCount - don't use empty/outdated cache!
-          if (cachedStudentsCount > 0 && cachedData.totalCount) {
-            setStudents(cachedData.students || [])
-            setTotalStudentsCount(cachedData.totalCount)
-            
-            setLoading(false)
-            setShowLoader(false)
-            return
-          } else if (cachedStudentsCount > 0 && !cachedData.totalCount) {
-            // Cache is outdated, remove it
-            localStorage.removeItem(cacheKey)
-            localStorage.removeItem(`${cacheKey}_time`)
-          }
-        }
-      }
+      // Skip cache for now to always get fresh data
+      // This prevents the issue where cached data shows first, then real data loads
+      console.log('🔄 Skipping cache to fetch fresh data')
       
       setLoading(true)
+      setShowLoader(true)
+      console.log('🔄 Starting fresh data fetch...')
       
       try {
         // Fetch teachers count and weekly attendance data
@@ -662,6 +652,8 @@ export default function MainDashboardPage() {
   // Refresh data function
   const refreshData = async () => {
     setIsRefreshing(true)
+    setLoading(true)
+    setShowLoader(true)
     try {
       // Clear ALL dashboard cache to force fresh data
       const keysToRemove = []
@@ -674,23 +666,25 @@ export default function MainDashboardPage() {
       keysToRemove.forEach(key => localStorage.removeItem(key))
       console.log('🔄 Cleared all dashboard cache for refresh')
       
-      // Re-fetch all data
-      await fetchData()
+      // Force re-fetch by calling the useEffect logic directly
+      window.location.reload()
     } catch (error) {
       console.error('Error refreshing data:', error)
     } finally {
       setIsRefreshing(false)
+      setLoading(false)
+      setShowLoader(false)
     }
   }
 
-  // Auto-refresh every 5 minutes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refreshData()
-    }, 5 * 60 * 1000) // 5 minutes
+  // Auto-refresh disabled to prevent cache issues
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     refreshData()
+  //   }, 5 * 60 * 1000) // 5 minutes
 
-    return () => clearInterval(interval)
-  }, [userRole, userCampus])
+  //   return () => clearInterval(interval)
+  // }, [userRole, userCampus])
 
   // Clear cache when user role changes (login/logout)
   useEffect(() => {
@@ -1134,9 +1128,9 @@ export default function MainDashboardPage() {
 
         {/* Row 3: Campus Students - Full Width (only for non-principal) */}
         {userRole !== 'principal' && (
-          <div className="grid grid-cols-1 gap-4 md:gap-6 mt-8">
+        <div className="grid grid-cols-1 gap-4 md:gap-6 mt-8">
             <CampusPerformanceChart data={chartData.campusPerformance} valueKind="count" />
-          </div>
+        </div>
         )}
 
         {/* Row 4: Weekly Attendance & Age Distribution */}

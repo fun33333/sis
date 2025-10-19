@@ -587,7 +587,7 @@ export function CoordinatorForm({
   }
 
     if (showPreview) {
-      return (
+                return (
       <CoordinatorPreview
         formData={formData}
         onEdit={() => setShowPreview(false)}
@@ -601,7 +601,7 @@ export function CoordinatorForm({
     )
   }
 
-  return (
+              return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-7xl mx-auto">
         <Card className="shadow-2xl border-0">
@@ -617,28 +617,28 @@ export function CoordinatorForm({
                     : 'Fill in the details to add a new coordinator to the system'
                   }
                 </CardDescription>
-              </div>
+          </div>
               <div className="text-right">
                 <div className="text-3xl font-bold" style={{ color: '#365486' }}>
                   {Math.round((currentStep / totalSteps) * 100)}%
-                </div>
+        </div>
                 <div className="text-sm" style={{ color: '#365486' }}>Complete</div>
-              </div>
-            </div>
+      </div>
+    </div>
           </CardHeader>
           
           <CardContent className="p-0">
             {/* Progress Bar - Exactly like the image */}
             <div className="bg-white px-8 py-6 border-b">
               <div className="flex items-center justify-between mb-4">
-                <div>
+            <div>
                   <h3 className="text-lg font-bold text-gray-800">Progress</h3>
                   <p className="text-sm text-gray-500">Step {currentStep} of {totalSteps}</p>
-                </div>
+            </div>
                 <div className="text-sm text-gray-500">
                   Add Coordinator
-                </div>
-                </div>
+            </div>
+          </div>
               
               {/* Horizontal Progress Bar */}
               <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
@@ -649,7 +649,7 @@ export function CoordinatorForm({
                     backgroundColor: '#365486'
                   }}
                 ></div>
-              </div>
+        </div>
               
               {/* Step Indicators */}
               <div className="flex items-center justify-between">
