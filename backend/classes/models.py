@@ -13,15 +13,31 @@ LEVEL_CHOICES = [
     ('Secondary', 'Secondary'),
 ]
 
+# Shift choices
+SHIFT_CHOICES = [
+    ('morning', 'Morning'),
+    ('afternoon', 'Afternoon'),
+    ('evening', 'Evening'),
+    ('both', 'Morning + Afternoon'),
+    ('all', 'All Shifts'),
+]
+
 # ----------------------
 class Level(models.Model):
     """
     School levels: Pre-Primary, Primary, Secondary, etc.
+    Now includes shift information for better organization.
     """
     name = models.CharField(
         max_length=50, 
         choices=LEVEL_CHOICES,
         help_text="Select educational level"
+    )
+    shift = models.CharField(
+        max_length=20,
+        choices=SHIFT_CHOICES,
+        default='morning',
+        help_text="Shift for this level"
     )
     code = models.CharField(max_length=25, unique=True, blank=True, null=True, editable=False)
     
@@ -46,14 +62,15 @@ class Level(models.Model):
                 'Secondary': 'L3'
             }
             level_num = level_mapping.get(self.name, 'L1')
-            self.code = f"{campus_code}-{level_num}"
+            shift_code = self.shift[0].upper()  # M for morning, A for afternoon, etc.
+            self.code = f"{campus_code}-{level_num}-{shift_code}"
         super().save(*args, **kwargs)
 
     class Meta:
-        unique_together = ("campus", "name")
+        unique_together = ("campus", "name", "shift")
     
     def __str__(self):
-        return f"{self.name} ({self.campus.campus_name})"
+        return f"{self.name}-{self.shift.title()} ({self.campus.campus_name})"
     
     @property
     def coordinator(self):

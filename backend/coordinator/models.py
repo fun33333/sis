@@ -9,6 +9,14 @@ GENDER_CHOICES = [
     ("other", "Other"),
 ]
 
+SHIFT_CHOICES = [
+    ('morning', 'Morning'),
+    ('afternoon', 'Afternoon'),
+    ('evening', 'Evening'),
+    ('both', 'Morning + Afternoon'),
+    ('all', 'All Shifts'),
+]
+
 class Coordinator(models.Model):
     # Personal Information
     full_name = models.CharField(max_length=150)
@@ -33,6 +41,12 @@ class Coordinator(models.Model):
         null=True,
         blank=True,
         related_name='coordinator_set'
+    )
+    shift = models.CharField(
+        max_length=20,
+        choices=SHIFT_CHOICES,
+        default='both',
+        help_text="Shift(s) this coordinator manages"
     )
     joining_date = models.DateField()
     is_currently_active = models.BooleanField(default=True)
@@ -73,14 +87,26 @@ class Coordinator(models.Model):
     def get_assigned_teachers(self):
         """
         Get all teachers assigned to this coordinator through level -> grades -> classrooms
+        Now considers coordinator's shift assignment
         """
         from teachers.models import Teacher
         from classes.models import ClassRoom
         
-        # Get all classrooms under this coordinator's level
-        classrooms = ClassRoom.objects.filter(
-            grade__level=self.level
-        ).select_related('class_teacher')
+        if not self.level:
+            return []
+        
+        # Get classrooms based on coordinator's shift
+        if self.shift == 'both':
+            # Coordinator manages both morning and afternoon
+            classrooms = ClassRoom.objects.filter(
+                grade__level=self.level
+            ).select_related('class_teacher')
+        else:
+            # Coordinator manages specific shift
+            classrooms = ClassRoom.objects.filter(
+                grade__level=self.level,
+                shift=self.shift
+            ).select_related('class_teacher')
         
         # Get teachers from those classrooms
         teachers = []
@@ -95,11 +121,24 @@ class Coordinator(models.Model):
         return len(self.get_assigned_teachers())
     
     def get_assigned_classrooms(self):
-        """Get all classrooms under this coordinator's level"""
+        """Get all classrooms under this coordinator's level based on shift"""
         from classes.models import ClassRoom
-        return ClassRoom.objects.filter(
-            grade__level=self.level
-        ).select_related('grade', 'class_teacher')
+        
+        if not self.level:
+            return ClassRoom.objects.none()
+        
+        # Get classrooms based on coordinator's shift
+        if self.shift == 'both':
+            # Coordinator manages both morning and afternoon
+            return ClassRoom.objects.filter(
+                grade__level=self.level
+            ).select_related('grade', 'class_teacher')
+        else:
+            # Coordinator manages specific shift
+            return ClassRoom.objects.filter(
+                grade__level=self.level,
+                shift=self.shift
+            ).select_related('grade', 'class_teacher')
 
     def __str__(self):
         return f"{self.full_name} ({self.employee_code})"
