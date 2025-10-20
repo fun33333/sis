@@ -11,6 +11,8 @@ import CurrentRoleStep from "./teacher-form/current-role-step"
 import { ExperienceStep } from "./teacher-form/experience-step"
 import { TeacherPreview } from "./teacher-form/teacher-preview"
 import { useToast } from "@/hooks/use-toast"
+import { useFormErrorHandler } from "@/hooks/use-error-handler"
+import { ErrorDisplay } from "@/components/ui/error-display"
 
 const steps = [
   { id: 1, title: "Personal" },
@@ -24,30 +26,27 @@ export function TeacherForm() {
   const [currentStep, setCurrentStep] = useState(1)
   const [showPreview, setShowPreview] = useState(false)
   const [formData, setFormData] = useState<any>({
-    // Personal Information
+    // Personal Information (8 fields - 6 required, 2 optional)
     full_name: '',
     dob: '',
     gender: '',
     contact_number: '',
     email: '',
-    permanent_address: '',
     current_address: '',
-    marital_status: '',
     cnic: '',
+    marital_status: '',
     
-    // Education Information
+    // Optional Personal Information
+    permanent_address: '',
+    
+    // Education Information (5 optional fields)
     education_level: '',
     institution_name: '',
     year_of_passing: new Date().getFullYear(),
     education_subjects: '',
     education_grade: '',
-    additional_education_level: '',
-    additional_institution_name: '',
-    additional_year_of_passing: '',
-    additional_education_subjects: '',
-    additional_education_grade: '',
     
-    // Experience Information
+    // Experience Information (7 optional fields)
     previous_institution_name: '',
     previous_position: '',
     experience_from_date: '',
@@ -55,30 +54,30 @@ export function TeacherForm() {
     experience_subjects_classes_taught: '',
     previous_responsibilities: '',
     total_experience_years: 0,
-    additional_institution_name_exp: '',
-    additional_position: '',
-    additional_experience_from_date: '',
-    additional_experience_to_date: '',
-    additional_experience_subjects_classes: '',
-    additional_responsibilities: '',
     
-    // Current Role Information
+    // Current Role Information (5 fields - 3 required, 2 optional)
+    current_campus: '6', // Default to Campus 6 for principal
     joining_date: '',
-    current_role_title: '',
-    current_campus: '',
+    shift: 'morning',
     current_subjects: '',
     current_classes_taught: '',
     current_extra_responsibilities: '',
-    role_start_date: '',
-    role_end_date: '',
-    is_currently_active: true,
-    shift: 'morning',
-    is_class_teacher: false,
-    assigned_classroom: null,
-    save_status: 'draft'
+    
+    // System fields
+    is_currently_active: true
   })
   const [invalidFields, setInvalidFields] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [generalError, setGeneralError] = useState<string>('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [isValidating, setIsValidating] = useState<Record<string, boolean>>({})
+  
+  // Use form error handler
+  const { handleFormError, clearAllErrors } = useFormErrorHandler({
+    onGeneralError: (message) => {
+      setGeneralError(message)
+    }
+  })
 
   const totalSteps = steps.length
 
@@ -87,26 +86,28 @@ export function TeacherForm() {
     if (invalidFields.includes(field)) {
       setInvalidFields((prev) => prev.filter((f) => f !== field))
     }
+    // Clear field error when user starts typing
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => ({ ...prev, [field]: '' }))
+    }
   }
 
   const validateCurrentStep = () => {
     const requiredFields: { [step: number]: string[] } = {
       1: [
         "full_name",
-        "dob",
+        "dob", 
         "gender",
         "contact_number",
         "email",
-        "permanent_address",
         "current_address",
-        "marital_status",
         "cnic"
       ],
-      2: [],
-      3: [],
+      2: [], // All education fields are optional
+      3: [], // All experience fields are optional
       4: [
-        "joining_date",
         "current_campus",
+        "joining_date",
         "shift"
       ],
     }
@@ -139,7 +140,7 @@ export function TeacherForm() {
     return invalid
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const invalid = validateCurrentStep()
     if (invalid.length > 0) {
       toast({
@@ -148,6 +149,75 @@ export function TeacherForm() {
         variant: "destructive"
       })
       return
+    }
+
+    // Additional validation for step 1 (personal info)
+    if (currentStep === 1) {
+      // Check if validation is still in progress
+      const isValidationInProgress = Object.values(isValidating).some(validating => validating)
+      if (isValidationInProgress) {
+        toast({
+          title: "Please wait",
+          description: "Validation is in progress. Please wait a moment.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Check for real-time validation errors
+      const hasErrors = Object.values(fieldErrors).some(error => error !== '')
+      if (hasErrors) {
+        toast({
+          title: "Please fix validation errors",
+          description: "Please correct the highlighted fields before proceeding.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Check for uniqueness errors specifically
+      if (fieldErrors.email || fieldErrors.cnic) {
+        toast({
+          title: "Duplicate Information",
+          description: "Email or CNIC already exists. Please use different values.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Additional synchronous validation for required fields
+      if (!formData.email || !formData.cnic) {
+        toast({
+          title: "Required fields missing",
+          description: "Please fill in email and CNIC fields.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Force validation of email and CNIC before proceeding
+      if (formData.email && formData.cnic) {
+        // Trigger immediate validation
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailPattern.test(formData.email)) {
+          toast({
+            title: "Invalid email format",
+            description: "Please enter a valid email address.",
+            variant: "destructive"
+          })
+          return
+        }
+
+        const cleanCNIC = formData.cnic.replace(/\D/g, '')
+        if (cleanCNIC.length !== 13) {
+          toast({
+            title: "Invalid CNIC format",
+            description: "CNIC must be exactly 13 digits.",
+            variant: "destructive"
+          })
+          return
+        }
+      }
     }
 
     if (currentStep < totalSteps) {
@@ -160,6 +230,27 @@ export function TeacherForm() {
   const handleSubmit = async () => {
     if (isSubmitting) return;
     
+    // Check for validation errors before submission
+    const hasErrors = Object.values(fieldErrors).some(error => error !== '')
+    if (hasErrors) {
+      toast({
+        title: "Please fix validation errors",
+        description: "Please correct the highlighted fields before submitting.",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    // Check for uniqueness errors specifically
+    if (fieldErrors.email || fieldErrors.cnic) {
+      toast({
+        title: "Duplicate Information",
+        description: "Email or CNIC already exists. Please use different values.",
+        variant: "destructive"
+      })
+      return
+    }
+    
     setIsSubmitting(true)
     try {
       // Prepare data for API submission
@@ -169,13 +260,11 @@ export function TeacherForm() {
         current_campus: formData.current_campus ? parseInt(formData.current_campus) : null,
         // Convert numeric fields
         year_of_passing: formData.year_of_passing ? parseInt(formData.year_of_passing) : null,
-        additional_year_of_passing: formData.additional_year_of_passing ? parseInt(formData.additional_year_of_passing) : null,
         total_experience_years: formData.total_experience_years ? parseFloat(formData.total_experience_years) : null,
         // Convert boolean fields
         is_currently_active: Boolean(formData.is_currently_active),
-        is_class_teacher: Boolean(formData.is_class_teacher),
-        // Remove assigned_classroom if it's not a valid PK (integer) or if no classrooms exist
-        assigned_classroom: null, // Set to null since classrooms don't exist in database yet
+        // Remove fields that don't exist in backend
+        assigned_classroom: null,
       }
 
       console.log('Submitting teacher data:', submitData)
@@ -193,30 +282,29 @@ export function TeacherForm() {
         const result = await response.json()
         console.log('Teacher created successfully:', result)
         
-        // Show success alert
-        alert('✅ Success! This teacher has been added successfully!')
-        
         // Reset form to initial state
         setFormData({
+          // Personal Information (8 fields - 6 required, 2 optional)
           full_name: '',
           dob: '',
           gender: '',
           contact_number: '',
           email: '',
-          permanent_address: '',
           current_address: '',
-          marital_status: '',
           cnic: '',
+          marital_status: '',
+          
+          // Optional Personal Information
+          permanent_address: '',
+          
+          // Education Information (5 optional fields)
           education_level: '',
           institution_name: '',
           year_of_passing: new Date().getFullYear(),
           education_subjects: '',
           education_grade: '',
-          additional_education_level: '',
-          additional_institution_name: '',
-          additional_year_of_passing: '',
-          additional_education_subjects: '',
-          additional_education_grade: '',
+          
+          // Experience Information (7 optional fields)
           previous_institution_name: '',
           previous_position: '',
           experience_from_date: '',
@@ -224,52 +312,73 @@ export function TeacherForm() {
           experience_subjects_classes_taught: '',
           previous_responsibilities: '',
           total_experience_years: 0,
-          additional_institution_name_exp: '',
-          additional_position: '',
-          additional_experience_from_date: '',
-          additional_experience_to_date: '',
-          additional_experience_subjects_classes: '',
-          additional_responsibilities: '',
+          
+          // Current Role Information (5 fields - 3 required, 2 optional)
+          current_campus: '6', // Default to Campus 6 for principal
           joining_date: '',
-          current_role_title: '',
-          current_campus: '',
+          shift: 'morning',
           current_subjects: '',
           current_classes_taught: '',
           current_extra_responsibilities: '',
-          role_start_date: '',
-          role_end_date: '',
-          is_currently_active: true,
-          shift: 'morning',
-          is_class_teacher: false,
-          assigned_classroom: null,
-          save_status: 'draft'
+          
+          // System fields
+          is_currently_active: true
         })
         
         // Reset to first step and close preview
         setCurrentStep(1)
         setShowPreview(false)
         setInvalidFields([])
+        setFieldErrors({})
+        setIsValidating({})
         
         toast({
-          title: "Success! 🎉",
-          description: "Teacher has been added successfully!",
+          title: "Teacher Added Successfully! 🎉",
+          description: `Employee Code: ${result.employee_code}\nDefault Password: 12345`,
         })
       } else {
-        const errorData = await response.text()
-        console.error('Error creating teacher:', errorData)
+        const errorData = await response.json();
+        console.log('API Error Response:', errorData);
+        
+        // Handle specific error cases with user-friendly messages
+        let errorMessage = 'Failed to create teacher. Please try again.';
+        
+        console.log('Error details:', errorData);
+        
+        if (errorData.email && Array.isArray(errorData.email) && errorData.email[0].includes('already exists')) {
+          errorMessage = 'This email is already registered. Please use a different email address.';
+        } else if (errorData.cnic && Array.isArray(errorData.cnic) && errorData.cnic[0].includes('already exists')) {
+          errorMessage = 'This CNIC is already registered. Please check your CNIC number.';
+        } else if (errorData.email && Array.isArray(errorData.email)) {
+          errorMessage = `Email error: ${errorData.email[0]}`;
+        } else if (errorData.cnic && Array.isArray(errorData.cnic)) {
+          errorMessage = `CNIC error: ${errorData.cnic[0]}`;
+        } else if (errorData.non_field_errors) {
+          errorMessage = Array.isArray(errorData.non_field_errors) 
+            ? errorData.non_field_errors.join(', ')
+            : errorData.non_field_errors;
+        } else if (typeof errorData === 'object') {
+          // Handle field-specific errors
+          const fieldErrors = Object.values(errorData);
+          if (fieldErrors.length > 0) {
+            const firstError = Array.isArray(fieldErrors[0]) ? fieldErrors[0][0] : fieldErrors[0];
+            errorMessage = firstError;
+          }
+        }
+        
         toast({
           title: "Error",
-          description: `Failed to create teacher: ${errorData}`,
+          description: errorMessage,
           variant: "destructive"
-        })
+        });
       }
     } catch (error) {
       console.error('Error submitting teacher:', error)
       toast({
         title: "Error",
-        description: "An error occurred while creating the teacher",
+        description: "Network error. Please check your connection and try again.",
         variant: "destructive"
-      })
+      });
     } finally {
       setIsSubmitting(false)
     }
@@ -304,7 +413,7 @@ export function TeacherForm() {
 
     switch (currentStep) {
       case 1:
-        return <PersonalInfoStep formData={formData} invalidFields={invalidFields} onInputChange={handleInputChange} />
+        return <PersonalInfoStep formData={formData} invalidFields={invalidFields} onInputChange={handleInputChange} fieldErrors={fieldErrors} setFieldErrors={setFieldErrors} isValidating={isValidating} setIsValidating={setIsValidating} />
       case 2:
         return <EducationStep formData={formData} invalidFields={invalidFields} onInputChange={handleInputChange} />
       case 3:
@@ -368,6 +477,17 @@ export function TeacherForm() {
       )}
 
       {renderCurrentStep()}
+
+      {/* Error Display */}
+      {generalError && (
+        <div className="mt-4">
+          <ErrorDisplay 
+            error={{ title: "Error", message: generalError, type: "error" }}
+            variant="compact"
+            onDismiss={() => setGeneralError('')}
+          />
+        </div>
+      )}
 
       {!showPreview && (
         <div className="flex justify-between">

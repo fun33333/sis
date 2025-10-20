@@ -98,3 +98,25 @@ class TeacherViewSet(viewsets.ModelViewSet):
             })
         
         return Response(data)
+    
+    @decorators.action(detail=False, methods=['get'], url_path='check-email', permission_classes=[])
+    def check_email(self, request):
+        """Check if email already exists"""
+        email = request.query_params.get('email')
+        if not email:
+            return Response({'exists': False})
+        
+        exists = Teacher.objects.filter(email=email).exists()
+        return Response({'exists': exists})
+    
+    @decorators.action(detail=False, methods=['get'], url_path='check-cnic', permission_classes=[])
+    def check_cnic(self, request):
+        """Check if CNIC already exists"""
+        cnic = request.query_params.get('cnic')
+        if not cnic:
+            return Response({'exists': False})
+        
+        # Clean CNIC (remove non-numeric characters)
+        clean_cnic = ''.join(filter(str.isdigit, cnic))
+        exists = Teacher.objects.filter(cnic=clean_cnic).exists()
+        return Response({'exists': exists})

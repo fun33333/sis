@@ -179,7 +179,10 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         title: "Students",
         icon: Users,
         href: "/admin/students/student-list",
-        subItems: [],
+        subItems: [
+          { title: "Student List", href: "/admin/students/student-list" },
+          { title: "Add Student", href: "/admin/students/add" },
+        ],
       },
       {
         key: "teachers",

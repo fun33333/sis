@@ -19,6 +19,7 @@ interface StudentPreviewProps {
 export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: StudentPreviewProps) {
   const [saving, setSaving] = useState(false)
   const [campuses, setCampuses] = useState<any[]>([])
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   useEffect(() => {
     // Fetch campuses to get proper IDs (handle paginated or direct list)
@@ -96,30 +97,32 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
       zakat_status: normalizeZakatStatus(formData.zakatStatus),
       
       // Academic Information
-      campus: getCampusId(formData.campus),
+      campus: formData.campus ? Number(formData.campus) : null,
       current_grade: formData.currentGrade || null,
       section: formData.section || null,
       enrollment_year: formData.admissionYear ? Number(formData.admissionYear) : null,
-      student_number: formData.studentNumber ? Number(formData.studentNumber) : null,
       shift: normalizeShift(formData.shift),
       last_class_passed: formData.lastClassPassed || null,
-      last_school_name: formData.lastSchoolName || null,
-      current_state: formData.currentState || "active",
-      gr_no: formData.grNumber || null,
+      last_class_result: formData.lastClassResult || null,
+      from_year: formData.fromYear ? Number(formData.fromYear) : null,
+      to_year: formData.toYear ? Number(formData.toYear) : null,
+      siblings_count: formData.siblingsCount ? Number(formData.siblingsCount) : null,
+      father_status: formData.fatherStatus || null,
+      sibling_in_alkhair: formData.siblingInAlkhair || null,
       
       // Family Information
       father_name: formData.fatherName || null,
       father_contact: formData.fatherContact || null,
       father_cnic: formData.fatherCNIC || null,
-      father_occupation: formData.fatherOccupation || null,
+      father_profession: formData.fatherProfession || null,
       mother_name: formData.motherName || null,
       mother_contact: formData.motherContact || null,
       mother_cnic: formData.motherCNIC || null,
       mother_status: formData.motherStatus || null,
-      mother_occupation: formData.motherOccupation || null,
+      mother_profession: formData.motherProfession || null,
       guardian_name: formData.guardianName || null,
       guardian_cnic: formData.guardianCNIC || null,
-      guardian_occupation: formData.guardianOccupation || null,
+      guardian_profession: formData.guardianProfession || null,
       
       // Photo - Skip for now, handle separately if needed
       // photo: uploadedImages.studentPhoto || null,
@@ -140,6 +143,7 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
 
   const handleSave = async () => {
     setSaving(true)
+    setSubmitError(null)
     try {
       const payload = buildPayload()
       
@@ -187,15 +191,36 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
       // Notify parent to reset/redirect to step 1
       onSaved?.()
     } catch (err: any) {
-      // Debug: Log the full error
-      console.error("API Error:", err)
-      console.error("Error details:", err.message)
-      
-      // Show polished Sonner error toast with more details
-      toast.error("Failed to save student", {
-        description: err?.message || "An unexpected error occurred while saving.",
-        duration: 6000,
-      })
+      // Avoid Next.js Dev overlay by not using console.error for expected API errors
+      console.warn("Student save failed:", err)
+      const msg: string = err?.message || "An unexpected error occurred while saving."
+
+      // Try to extract field-wise errors if available
+      let friendly = msg
+      try {
+        if (err?.response) {
+          const data = JSON.parse(err.response)
+          if (data && typeof data === 'object') {
+            const entries = Object.entries(data as Record<string, any>)
+            if (entries.length > 0) {
+              const [field, value] = entries[0]
+              const first = Array.isArray(value) ? value[0] : String(value)
+              friendly = `${first}`
+            }
+          }
+        }
+      } catch {}
+
+      // Special friendly message for missing classroom
+      if (friendly.toLowerCase().includes('no classroom is available')) {
+        const combo = `${formData.currentGrade || 'Grade'}-${formData.section || ''} ${formData.shift || ''}`.trim()
+        const uiMsg = `No classroom found for ${combo} in the selected campus. Please create the classroom first, then try again.`
+        setSubmitError(uiMsg)
+        toast.error("Classroom not available", { description: uiMsg, duration: 7000 })
+      } else {
+        setSubmitError(friendly)
+        toast.error("Failed to save student", { description: friendly, duration: 6000 })
+      }
     } finally {
       setSaving(false)
     }
@@ -221,6 +246,12 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
         <CardDescription>Review all information before submitting</CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
+        {submitError && (
+          <div className="rounded-md border border-red-300 bg-red-50 p-3 text-red-700">
+            <div className="font-semibold">Unable to save</div>
+            <div className="text-sm mt-1">{submitError}</div>
+          </div>
+        )}
         {/* Image preview intentionally removed per request */}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -294,6 +325,8 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
               { label: "Current Grade", value: formData.currentGrade },
               { label: "Section", value: formData.section },
               { label: "Shift", value: formData.shift },
+              { label: "Assigned Classroom", value: formData.assignedClassroom || "Will be auto-assigned" },
+              { label: "Class Teacher", value: formData.classTeacher || "Will be auto-assigned" },
               { label: "Year of Admission", value: formData.admissionYear },
               { label: "Last Class Passed", value: formData.lastClassPassed },
               { label: "Last School Name", value: formData.lastSchoolName },
@@ -307,12 +340,17 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
               <Card className="border-[#a3cef1]">
                 <CardHeader>
                   <CardTitle className="text-[#274c77]">Academic Information</CardTitle>
-                  <CardDescription>Schooling details</CardDescription>
+                  <CardDescription>Schooling details - Classroom will be auto-assigned based on grade, section, and shift</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                     {academic.map((f) => (
-                      <div key={f.label}><strong>{f.label}:</strong> {f.value}</div>
+                      <div key={f.label}>
+                        <strong>{f.label}:</strong> 
+                        <span className={f.value.includes("Will be auto-assigned") ? "text-blue-600 italic" : ""}>
+                          {f.value}
+                        </span>
+                      </div>
                     ))}
                   </div>
                 </CardContent>
@@ -327,25 +365,24 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
               { label: "Father Contact", value: formData.fatherContact },
               { label: "Father CNIC", value: formData.fatherCNIC },
               { label: "Father Status", value: formData.fatherStatus },
-              { label: "Father Occupation", value: formData.fatherOccupation },
+              { label: "Father Profession", value: formData.fatherProfession },
               { label: "Mother Name", value: formData.motherName },
               { label: "Mother Contact", value: formData.motherContact },
               { label: "Mother CNIC", value: formData.motherCNIC },
               { label: "Mother Status", value: formData.motherStatus },
-              { label: "Mother Occupation", value: formData.motherOccupation },
+              { label: "Mother Profession", value: formData.motherProfession },
               { label: "Guardian Name", value: formData.guardianName },
               { label: "Guardian Relation", value: formData.guardianRelation },
               { label: "Guardian Phone", value: formData.guardianPhone },
               { label: "Guardian CNIC", value: formData.guardianCNIC },
-              { label: "Guardian Occupation", value: formData.guardianOccupation },
+              { label: "Guardian Profession", value: formData.guardianProfession },
             ].filter((f) => hasValue(f.value))
 
-            const siblingsChips = String(formData.siblingsNames || "")
-              .split(',')
-              .map((s: string) => s.trim())
-              .filter(Boolean)
+            const siblingsInfo = formData.siblingInAlkhair === "yes" 
+              ? `Count: ${formData.siblingsCount || 0}`
+              : "No siblings in Al-Khair"
 
-            if (family.length === 0 && siblingsChips.length === 0 && !hasValue(formData.siblingsInAlkhair)) return null
+            if (family.length === 0 && !hasValue(formData.siblingInAlkhair)) return null
 
             return (
               <Card className="border-[#a3cef1]">
@@ -358,18 +395,8 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
                     {family.map((f) => (
                       <div key={f.label}><strong>{f.label}:</strong> {f.value}</div>
                     ))}
-                    {hasValue(formData.siblingsInAlkhair) && (
-                      <div className="sm:col-span-2"><strong>Siblings in Alkhair:</strong> {formData.siblingsInAlkhair}</div>
-                    )}
-                    {siblingsChips.length > 0 && (
-                      <div className="sm:col-span-2">
-                        <strong>Siblings Names:</strong>
-                        <div className="mt-1 flex flex-wrap gap-2">
-                          {siblingsChips.map((n: string, i: number) => (
-                            <Badge key={i} variant="secondary">{n}</Badge>
-                          ))}
-                        </div>
-                      </div>
+                    {hasValue(formData.siblingInAlkhair) && (
+                      <div className="sm:col-span-2"><strong>Siblings in Alkhair:</strong> {siblingsInfo}</div>
                     )}
                   </div>
                 </CardContent>

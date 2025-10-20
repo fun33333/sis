@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import F
 from .models import User
 from campus.models import Campus
 
@@ -22,37 +23,30 @@ def generate_class_code(campus_code, grade, section):
 
 def get_next_student_number(campus, enrollment_year):
     """
-    Get next available student number for a campus and year
+    System-wide strictly increasing student number (never repeats).
+    Ignores campus/year to guarantee global uniqueness as requested.
     """
-    from students.models import Student
-    
-    # Get all students for this campus and year
-    students = Student.objects.filter(
-        campus=campus,
-        enrollment_year=enrollment_year
-    ).order_by('-student_number')
-    
-    if students.exists():
-        return students.first().student_number + 1
-    else:
-        return 1
+    from services.models import GlobalCounter
+
+    with transaction.atomic():
+        counter, _ = GlobalCounter.objects.select_for_update().get_or_create(key='student')
+        counter.value = F('value') + 1
+        counter.save(update_fields=['value'])
+        counter.refresh_from_db()
+        return counter.value
 
 def get_next_teacher_number(campus, joining_year):
     """
-    Get next available teacher number for a campus and year
+    System-wide strictly increasing employee number (never repeats).
     """
-    from teachers.models import Teacher
-    
-    # Get all teachers for this campus and year
-    teachers = Teacher.objects.filter(
-        campus=campus,
-        joining_year=joining_year
-    ).order_by('-teacher_number')
-    
-    if teachers.exists():
-        return teachers.first().teacher_number + 1
-    else:
-        return 1
+    from services.models import GlobalCounter
+
+    with transaction.atomic():
+        counter, _ = GlobalCounter.objects.select_for_update().get_or_create(key='employee')
+        counter.value = F('value') + 1
+        counter.save(update_fields=['value'])
+        counter.refresh_from_db()
+        return counter.value
 
 def get_role_code(role):
     """

@@ -116,6 +116,7 @@ class Grade(models.Model):
                 'Grade-8': 'G08',
                 'Grade-9': 'G09',
                 'Grade-10': 'G10',
+                'Special Class': 'SC',
             }
             grade_code = grade_mapping.get(self.name, self.name[:3].upper())
             self.code = f"{level_code}-{grade_code}"

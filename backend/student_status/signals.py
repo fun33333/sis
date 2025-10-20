@@ -9,11 +9,14 @@ def apply_exit_record(sender, instance: ExitRecord, created, **kwargs):
         student = instance.student
         # Update student's status so they are excluded next academic year etc.
         if instance.exit_type == "termination":
-            student.current_state = "terminated"
+            student.terminated_on = instance.exit_date
+            student.termination_reason = instance.reason
         elif instance.exit_type == "transfer":
-            student.current_state = "transferred"
+            student.terminated_on = instance.exit_date
+            student.termination_reason = f"Transferred: {instance.reason}"
         elif instance.exit_type == "leaving":
-            student.current_state = "left"
+            student.terminated_on = instance.exit_date
+            student.termination_reason = f"Left: {instance.reason}"
         # Make student read-only in admin/UI logic separately (see admin snippet)
         # Save minimal student changes
-        student.save(update_fields=["current_state"])
+        student.save(update_fields=["terminated_on", "termination_reason"])

@@ -27,10 +27,6 @@ class StudentFilter(django_filters.FilterSet):
         help_text="Filter by section"
     )
     
-    current_state = django_filters.ChoiceFilter(
-        choices=Student._meta.get_field('current_state').choices,
-        help_text="Filter by current state"
-    )
     
     gender = django_filters.ChoiceFilter(
         choices=Student._meta.get_field('gender').choices,
@@ -100,7 +96,7 @@ class StudentFilter(django_filters.FilterSet):
     class Meta:
         model = Student
         fields = [
-            'campus', 'current_grade', 'section', 'current_state', 
+            'campus', 'current_grade', 'section',  
             'gender', 'shift', 'classroom', 'enrollment_year',
             'created_after', 'created_before', 'is_draft', 'is_deleted'
         ]

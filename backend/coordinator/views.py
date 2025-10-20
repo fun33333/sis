@@ -150,15 +150,42 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
         if coordinator.campus:
             students_count = Student.objects.filter(
                 campus=coordinator.campus,
-                current_state='active'
+                is_deleted=False
             ).count()
         
-        # Get classes count - ClassRoom model doesn't have campus field
-        # So we'll get all classes for now, or implement a different logic
-        classes_count = ClassRoom.objects.count()
+        # Get classes count for this coordinator's level and campus
+        classes_count = 0
+        if coordinator.level and coordinator.campus:
+            classes_count = ClassRoom.objects.filter(
+                grade__level=coordinator.level,
+                grade__level__campus=coordinator.campus
+            ).count()
         
         # Get pending requests (if any)
         pending_requests = 0  # This would need to be implemented based on your request system
+        
+        # Get teacher distribution by subjects
+        teachers = Teacher.objects.filter(
+            assigned_coordinators=coordinator,
+            is_currently_active=True
+        )
+        
+        subject_distribution = {}
+        for teacher in teachers:
+            if teacher.current_subjects:
+                # Split subjects by comma and clean them
+                subjects = [s.strip() for s in teacher.current_subjects.split(',') if s.strip()]
+                for subject in subjects:
+                    subject_distribution[subject] = subject_distribution.get(subject, 0) + 1
+        
+        # Convert to list format for frontend
+        subject_data = []
+        for subject, count in subject_distribution.items():
+            subject_data.append({
+                'name': subject,
+                'value': count,
+                'color': f'#{hash(subject) % 0xFFFFFF:06x}'  # Generate color based on subject name
+            })
         
         return response.Response({
             'coordinator': {
@@ -172,5 +199,6 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
                 'total_students': students_count,
                 'total_classes': classes_count,
                 'pending_requests': pending_requests,
-            }
+            },
+            'subject_distribution': subject_data
         })

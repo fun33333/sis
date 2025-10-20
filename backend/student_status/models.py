@@ -39,13 +39,11 @@ class ExitRecord(models.Model):
     def save(self, *args, **kwargs):
         # Auto-update student's state depending on exit_type
         if self.exit_type == "termination":
-            self.student.current_state = "terminated"
             self.student.termination_reason = self.get_reason_display()
             self.student.terminated_on = timezone.now()
         elif self.exit_type in ["transfer", "leaving"]:
-            self.student.current_state = "inactive"
             self.student.termination_reason = self.get_reason_display()
             self.student.terminated_on = timezone.now()
 
-        self.student.save(update_fields=["current_state", "termination_reason", "terminated_on"])
+        self.student.save(update_fields=["termination_reason", "terminated_on"])
         super().save(*args, **kwargs)

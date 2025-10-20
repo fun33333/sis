@@ -21,73 +21,79 @@ export function ExperienceStep({ formData, invalidFields, onInputChange }: Exper
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
-            <Label htmlFor="previous_institution_name">Previous institution name</Label>
-            <Input id="previous_institution_name" value={formData.previous_institution_name || ""} onChange={(e) => onInputChange("previous_institution_name", e.target.value)} />
+            <Label htmlFor="previous_institution_name">Previous Institution Name (Optional)</Label>
+            <Input 
+              id="previous_institution_name" 
+              value={formData.previous_institution_name || ""} 
+              onChange={(e) => onInputChange("previous_institution_name", e.target.value)}
+              placeholder="e.g., ABC School"
+            />
           </div>
+          
           <div>
-            <Label htmlFor="previous_position">Previous position</Label>
-            <Input id="previous_position" value={formData.previous_position || ""} onChange={(e) => onInputChange("previous_position", e.target.value)} />
+            <Label htmlFor="previous_position">Previous Position (Optional)</Label>
+            <Input 
+              id="previous_position" 
+              value={formData.previous_position || ""} 
+              onChange={(e) => onInputChange("previous_position", e.target.value)}
+              placeholder="e.g., Math Teacher"
+            />
           </div>
+          
           <div>
-            <Label htmlFor="experience_from_date">Experience from date</Label>
-            <Input id="experience_from_date" type="date" value={formData.experience_from_date || ""} onChange={(e) => onInputChange("experience_from_date", e.target.value)} />
+            <Label htmlFor="total_experience_years">Total Experience Years (Optional)</Label>
+            <Input 
+              id="total_experience_years" 
+              type="number" 
+              step="0.1"
+              min="0"
+              max="50"
+              placeholder="e.g., 5.5"
+              value={formData.total_experience_years || ""} 
+              onChange={(e) => onInputChange("total_experience_years", e.target.value)} 
+            />
           </div>
+          
           <div>
-            <Label htmlFor="experience_to_date">Experience to date</Label>
-            <Input id="experience_to_date" type="date" value={formData.experience_to_date || ""} onChange={(e) => onInputChange("experience_to_date", e.target.value)} />
+            <Label htmlFor="experience_from_date">Experience From Date (Optional)</Label>
+            <Input 
+              id="experience_from_date" 
+              type="date" 
+              value={formData.experience_from_date || ""} 
+              onChange={(e) => onInputChange("experience_from_date", e.target.value)}
+              max={new Date().toISOString().split('T')[0]}
+            />
           </div>
+          
+          <div>
+            <Label htmlFor="experience_to_date">Experience To Date (Optional)</Label>
+            <Input 
+              id="experience_to_date" 
+              type="date" 
+              value={formData.experience_to_date || ""} 
+              onChange={(e) => onInputChange("experience_to_date", e.target.value)}
+              max={new Date().toISOString().split('T')[0]}
+            />
+          </div>
+          
           <div className="md:col-span-2">
-            <Label htmlFor="experience_subjects_classes_taught">Experience subjects classes taught</Label>
-            <Input id="experience_subjects_classes_taught" value={formData.experience_subjects_classes_taught || ""} onChange={(e) => onInputChange("experience_subjects_classes_taught", e.target.value)} />
+            <Label htmlFor="experience_subjects_classes_taught">Subjects/Classes Taught (Optional)</Label>
+            <Input 
+              id="experience_subjects_classes_taught" 
+              value={formData.experience_subjects_classes_taught || ""} 
+              onChange={(e) => onInputChange("experience_subjects_classes_taught", e.target.value)}
+              placeholder="e.g., Mathematics (Grade 6-8), Physics (Grade 9-10)"
+            />
           </div>
+          
           <div className="md:col-span-2">
-            <Label htmlFor="previous_responsibilities">Previous responsibilities</Label>
-            <Textarea id="previous_responsibilities" value={formData.previous_responsibilities || ""} onChange={(e) => onInputChange("previous_responsibilities", e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="total_experience_years">Total experience years</Label>
-                <Input 
-                id="total_experience_years" 
-                type="number" 
-                step="0.01"
-                min="0"
-                max="99.99"  // Realistic max experience
-                placeholder="e.g., 5.5 years"
-                value={formData.total_experience_years || ""} 
-                onChange={(e) => {
-                const value = parseFloat(e.target.value);
-                if (value > 99.99) {
-                // Show warning but don't block
-                console.warn("Experience seems high, please verify");
-                }
-                onInputChange("total_experience_years", e.target.value);
-                }} 
-                />
-          </div>
-
-          <div className="md:col-span-2">
-            <Label htmlFor="additional_institution_name_exp">Additional institution name (exp)</Label>
-            <Input id="additional_institution_name_exp" value={formData.additional_institution_name_exp || ""} onChange={(e) => onInputChange("additional_institution_name_exp", e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="additional_position">Additional position</Label>
-            <Input id="additional_position" value={formData.additional_position || ""} onChange={(e) => onInputChange("additional_position", e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="additional_experience_from_date">Additional experience from date</Label>
-            <Input id="additional_experience_from_date" type="date" value={formData.additional_experience_from_date || ""} onChange={(e) => onInputChange("additional_experience_from_date", e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="additional_experience_to_date">Additional experience to date</Label>
-            <Input id="additional_experience_to_date" type="date" value={formData.additional_experience_to_date || ""} onChange={(e) => onInputChange("additional_experience_to_date", e.target.value)} />
-          </div>
-          <div className="md:col-span-2">
-            <Label htmlFor="additional_experience_subjects_classes">Additional experience subjects classes</Label>
-            <Input id="additional_experience_subjects_classes" value={formData.additional_experience_subjects_classes || ""} onChange={(e) => onInputChange("additional_experience_subjects_classes", e.target.value)} />
-          </div>
-          <div className="md:col-span-2">
-            <Label htmlFor="additional_responsibilities">Additional responsibilities</Label>
-            <Textarea id="additional_responsibilities" value={formData.additional_responsibilities || ""} onChange={(e) => onInputChange("additional_responsibilities", e.target.value)} />
+            <Label htmlFor="previous_responsibilities">Previous Responsibilities (Optional)</Label>
+            <Textarea 
+              id="previous_responsibilities" 
+              value={formData.previous_responsibilities || ""} 
+              onChange={(e) => onInputChange("previous_responsibilities", e.target.value)}
+              placeholder="Describe your previous responsibilities and achievements..."
+            />
           </div>
         </div>
       </CardContent>

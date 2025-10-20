@@ -1,9 +1,13 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect, useMemo } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { StudentFormValidator } from "@/lib/student-validation"
+import { getAllCampuses, apiGet, API_ENDPOINTS, getStoredUserProfile } from "@/lib/api"
+import { getCurrentUser, getCurrentUserRole } from "@/lib/permissions"
 
 interface AcademicDetailsStepProps {
   formData: any
@@ -12,66 +16,130 @@ interface AcademicDetailsStepProps {
 }
 
 export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: AcademicDetailsStepProps) {
-  const requiredFields = [
-    "campus",
-    "currentGrade",
-    "section",
-    "shift",
-    "admissionYear",
-    "lastClassPassed",
-    "lastSchoolName",
-    "lastClassResult",
-    "currentState",
-  ]
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [campuses, setCampuses] = useState<any[]>([])
+  const [grades, setGrades] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const missingRequired = requiredFields.filter((f) => {
-    const v = formData?.[f]
-    return v === undefined || v === null || v === ""
-  })
+  // Determine principal campus from localStorage/user
+  const principalCampusId = undefined
+
+  useEffect(() => {
+    loadCampuses()
+  }, [])
+
+  const loadCampuses = async () => {
+    try {
+      setLoading(true)
+      const user = getCurrentUser()
+      const userRole = getCurrentUserRole()
+      
+      // Show all campuses for everyone
+      const allCampuses = await getAllCampuses()
+      setCampuses(allCampuses)
+      // Optionally preload all grades (no campus filter)
+      if (!formData.campus) {
+        await loadGrades("")
+      }
+    } catch (error) {
+      console.error('Error loading campuses:', error)
+      setCampuses([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadGrades = async (campusId: string) => {
+    try {
+      const endpoint = campusId ? `${API_ENDPOINTS.GRADES}?campus_id=${campusId}` : `${API_ENDPOINTS.GRADES}`
+      const data = await apiGet(endpoint)
+      const list = Array.isArray(data) ? data : (Array.isArray((data as any)?.results) ? (data as any).results : [])
+      setGrades(list)
+    } catch (e) {
+      console.error('Failed to load grades:', e)
+      setGrades([])
+    }
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    onInputChange(field, value)
+    
+    // Clear error when user starts typing
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+    
+    // Real-time validation - only validate on blur, not on every keystroke
+    // This prevents premature validation errors
+  }
+
+  const handleBlur = (field: string, value: string) => {
+    // Validation only triggers on blur
+    let validation: any = { isValid: true }
+    
+    switch (field) {
+      case 'admissionYear':
+        validation = StudentFormValidator.validateYear(value, "Admission Year")
+        break
+      case 'fromYear':
+        if (value) {
+          validation = StudentFormValidator.validateYear(value, "From Year")
+        }
+        break
+      case 'toYear':
+        if (value) {
+          validation = StudentFormValidator.validateYear(value, "To Year")
+        }
+        break
+    }
+    
+    if (!validation.isValid) {
+      setFieldErrors(prev => ({ ...prev, [field]: validation.message }))
+    } else {
+      // Clear error if validation passes
+      setFieldErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+  }
+
+  const getFieldError = (field: string) => {
+    return fieldErrors[field] || (invalidFields.includes(field) ? `${field} is required` : '')
+  }
 
   return (
     <Card className="border-2">
       <CardHeader>
         <CardTitle>Academic Details</CardTitle>
+        <CardDescription>📝 Classroom and teacher will be automatically assigned based on campus, grade, section, and shift</CardDescription>
+        <p className="text-sm text-gray-600">Fields marked with * are required</p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="campus">Select Campus *</Label>
-            <Select value={formData.campus || ""} onValueChange={(v) => onInputChange("campus", v)}>
+            <Select value={formData.campus || ""} onValueChange={(v) => { onInputChange("campus", v); loadGrades(v) }}>
               <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("campus") ? "border-red-500" : ""}`}>
-                <SelectValue placeholder="Select campus" />
+                <SelectValue placeholder={loading ? "Loading campuses..." : "Select campus"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="campus-1">Campus 1</SelectItem>
-                <SelectItem value="campus-2">Campus 2</SelectItem>
-                <SelectItem value="campus-3">Campus 3</SelectItem>
-                <SelectItem value="campus-4">Campus 4</SelectItem>
-                <SelectItem value="campus-5">Campus 5</SelectItem>
-                <SelectItem value="campus-6">Campus 6</SelectItem>
-                <SelectItem value="campus-8">Campus 8</SelectItem>
+                {(campuses || []).map((campus) => (
+                  <SelectItem key={campus.id} value={campus.id.toString()}>
+                    {campus.campus_name || campus.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            {(invalidFields.includes("campus") || missingRequired.includes("campus")) && (
-              <p className="text-sm text-red-600 mt-1">Campus is required</p>
+            {getFieldError("campus") && (
+              <p className="text-sm text-red-600 mt-1">{getFieldError("campus")}</p>
             )}
           </div>
-
-        <div>
-          <Label htmlFor="currentState">Current state *</Label>
-          <Select value={formData.currentState || ""} onValueChange={(v) => onInputChange("currentState", v)}>
-            <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("currentState") ? "border-red-500" : ""}`}>
-              <SelectValue placeholder="Select state" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-          {(invalidFields.includes("currentState") || missingRequired.includes("currentState")) && (
-            <p className="text-sm text-red-600 mt-1">Current state is required</p>
-          )}
-        </div>
 
           <div>
             <Label htmlFor="currentGrade">Current Grade/Class *</Label>
@@ -80,24 +148,13 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
                 <SelectValue placeholder="Select grade/class" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="special">Special Class</SelectItem>
-                <SelectItem value="nursery">Nursery</SelectItem>
-                <SelectItem value="kg-1">KG-1</SelectItem>
-                <SelectItem value="kg-2">KG-2</SelectItem>
-                <SelectItem value="grade-1">Grade 1</SelectItem>
-                <SelectItem value="grade-2">Grade 2</SelectItem>
-                <SelectItem value="grade-3">Grade 3</SelectItem>
-                <SelectItem value="grade-4">Grade 4</SelectItem>
-                <SelectItem value="grade-5">Grade 5</SelectItem>
-                <SelectItem value="grade-6">Grade 6</SelectItem>
-                <SelectItem value="grade-7">Grade 7</SelectItem>
-                <SelectItem value="grade-8">Grade 8</SelectItem>
-                <SelectItem value="grade-9">Grade 9</SelectItem>
-                <SelectItem value="grade-10">Grade 10</SelectItem>
+                {grades.map((g) => (
+                  <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            {(invalidFields.includes("currentGrade") || missingRequired.includes("currentGrade")) && (
-              <p className="text-sm text-red-600 mt-1">Current grade/class is required</p>
+            {getFieldError("currentGrade") && (
+              <p className="text-sm text-red-600 mt-1">{getFieldError("currentGrade")}</p>
             )}
           </div>
 
@@ -112,10 +169,11 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
                 <SelectItem value="B">B</SelectItem>
                 <SelectItem value="C">C</SelectItem>
                 <SelectItem value="D">D</SelectItem>
+                <SelectItem value="E">E</SelectItem>
               </SelectContent>
             </Select>
-            {(invalidFields.includes("section") || missingRequired.includes("section")) && (
-              <p className="text-sm text-red-600 mt-1">Section is required</p>
+            {getFieldError("section") && (
+              <p className="text-sm text-red-600 mt-1">{getFieldError("section")}</p>
             )}
           </div>
 
@@ -128,10 +186,11 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
               <SelectContent>
                 <SelectItem value="morning">Morning</SelectItem>
                 <SelectItem value="afternoon">Afternoon</SelectItem>
+                <SelectItem value="evening">Evening</SelectItem>
               </SelectContent>
             </Select>
-            {(invalidFields.includes("shift") || missingRequired.includes("shift")) && (
-              <p className="text-sm text-red-600 mt-1">Shift is required</p>
+            {getFieldError("shift") && (
+              <p className="text-sm text-red-600 mt-1">{getFieldError("shift")}</p>
             )}
           </div>
 
@@ -140,11 +199,16 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
             <Input
               id="admissionYear"
               type="number"
+              min="2000"
+              max="2030"
               value={formData.admissionYear || ""}
-              onChange={(e) => onInputChange("admissionYear", e.target.value)}
+              onChange={(e) => handleInputChange("admissionYear", e.target.value)}
+              onBlur={(e) => handleBlur("admissionYear", e.target.value)}
+              className={getFieldError("admissionYear") ? "border-red-500" : ""}
+              placeholder="e.g., 2025"
             />
-            {(invalidFields.includes("admissionYear") || missingRequired.includes("admissionYear")) && (
-              <p className="text-sm text-red-600 mt-1">Year of admission is required</p>
+            {getFieldError("admissionYear") && (
+              <p className="text-sm text-red-600 mt-1">{getFieldError("admissionYear")}</p>
             )}
           </div>
 
@@ -155,69 +219,81 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
                 <SelectValue placeholder="Select last class passed" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="nursery">Nursery</SelectItem>
-                <SelectItem value="kg-1">KG-1</SelectItem>
-                <SelectItem value="kg-2">KG-2</SelectItem>
-                <SelectItem value="special">Special class</SelectItem>
-                <SelectItem value="grade-1">Grade 1</SelectItem>
-                <SelectItem value="grade-2">Grade 2</SelectItem>
-                <SelectItem value="grade-3">Grade 3</SelectItem>
-                <SelectItem value="grade-4">Grade 4</SelectItem>
-                <SelectItem value="grade-5">Grade 5</SelectItem>
-                <SelectItem value="grade-6">Grade 6</SelectItem>
-                <SelectItem value="grade-7">Grade 7</SelectItem>
-                <SelectItem value="grade-8">Grade 8</SelectItem>
-                <SelectItem value="grade-9">Grade 9</SelectItem>
-                <SelectItem value="grade-10">Grade 10</SelectItem>
+                <SelectItem value="KG-I">KG-I</SelectItem>
+                <SelectItem value="KG-II">KG-II</SelectItem>
+                <SelectItem value="Grade-I">Grade-I</SelectItem>
+                <SelectItem value="Grade-II">Grade-II</SelectItem>
+                <SelectItem value="Grade-III">Grade-III</SelectItem>
+                <SelectItem value="Grade-IV">Grade-IV</SelectItem>
+                <SelectItem value="Grade-V">Grade-V</SelectItem>
+                <SelectItem value="Grade-VI">Grade-VI</SelectItem>
+                <SelectItem value="Grade-VII">Grade-VII</SelectItem>
+                <SelectItem value="Grade-VIII">Grade-VIII</SelectItem>
+                <SelectItem value="Grade-IX">Grade-IX</SelectItem>
+                <SelectItem value="Grade-X">Grade-X</SelectItem>
+                <SelectItem value="Special Class">Special Class</SelectItem>
               </SelectContent>
             </Select>
-            {(invalidFields.includes("lastClassPassed") || missingRequired.includes("lastClassPassed")) && (
-              <p className="text-sm text-red-600 mt-1">Last class passed is required</p>
+            {getFieldError("lastClassPassed") && (
+              <p className="text-sm text-red-600 mt-1">{getFieldError("lastClassPassed")}</p>
             )}
           </div>
 
-          <div className="md:col-span-2">
-            <Label htmlFor="lastSchoolName">Last School Name *</Label>
+          <div>
+            <Label htmlFor="lastSchoolName">Last School Name</Label>
             <Input
               id="lastSchoolName"
               value={formData.lastSchoolName || ""}
-              onChange={(e) => onInputChange("lastSchoolName", e.target.value)}
+              onChange={(e) => handleInputChange("lastSchoolName", e.target.value)}
+              placeholder="Enter previous school name"
             />
-            {(invalidFields.includes("lastSchoolName") || missingRequired.includes("lastSchoolName")) && (
-              <p className="text-sm text-red-600 mt-1">Last school name is required</p>
-            )}
           </div>
 
-          <div className="md:col-span-2">
-            <Label htmlFor="lastClassResult">Last Class Result *</Label>
+          <div>
+            <Label htmlFor="lastClassResult">Last Class Result</Label>
             <Input
               id="lastClassResult"
               value={formData.lastClassResult || ""}
-              onChange={(e) => onInputChange("lastClassResult", e.target.value)}
+              onChange={(e) => handleInputChange("lastClassResult", e.target.value)}
+              placeholder="Enter result/grade obtained"
             />
-            {(invalidFields.includes("lastClassResult") || missingRequired.includes("lastClassResult")) && (
-              <p className="text-sm text-red-600 mt-1">Last class result is required</p>
+          </div>
+
+          <div>
+            <Label htmlFor="fromYear">From Year</Label>
+            <Input
+              id="fromYear"
+              type="number"
+              min="2000"
+              max="2030"
+              value={formData.fromYear || ""}
+              onChange={(e) => handleInputChange("fromYear", e.target.value)}
+              onBlur={(e) => handleBlur("fromYear", e.target.value)}
+              className={getFieldError("fromYear") ? "border-red-500" : ""}
+              placeholder="e.g., 2020"
+            />
+            {getFieldError("fromYear") && (
+              <p className="text-sm text-red-600 mt-1">{getFieldError("fromYear")}</p>
             )}
           </div>
 
-        <div>
-          <Label htmlFor="grNumber">Old gr no</Label>
-          <Input id="grNumber" value={formData.grNumber || ""} onChange={(e) => onInputChange("grNumber", e.target.value)} />
-        </div>
-
-        <div>
-          <Label htmlFor="fromYear">From year</Label>
-          <Input id="fromYear" type="number" value={formData.fromYear || ""} onChange={(e) => onInputChange("fromYear", e.target.value)} />
-        </div>
-        <div>
-          <Label htmlFor="toYear">To year</Label>
-          <Input id="toYear" type="number" value={formData.toYear || ""} onChange={(e) => onInputChange("toYear", e.target.value)} />
-        </div>
-
-        <div className="md:col-span-2">
-          <Label htmlFor="reasonForTransfer">Reason for transfer</Label>
-          <Input id="reasonForTransfer" value={formData.reasonForTransfer || ""} onChange={(e) => onInputChange("reasonForTransfer", e.target.value)} />
-        </div>
+          <div>
+            <Label htmlFor="toYear">To Year</Label>
+            <Input
+              id="toYear"
+              type="number"
+              min="2000"
+              max="2030"
+              value={formData.toYear || ""}
+              onChange={(e) => handleInputChange("toYear", e.target.value)}
+              onBlur={(e) => handleBlur("toYear", e.target.value)}
+              className={getFieldError("toYear") ? "border-red-500" : ""}
+              placeholder="e.g., 2024"
+            />
+            {getFieldError("toYear") && (
+              <p className="text-sm text-red-600 mt-1">{getFieldError("toYear")}</p>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

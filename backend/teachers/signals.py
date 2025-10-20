@@ -4,10 +4,9 @@ from .models import Teacher
 from services.user_creation_service import UserCreationService
 
 @receiver(post_save, sender=Teacher)
-def create_class_teacher_user(sender, instance, created, **kwargs):
-    """Auto-create user ONLY when teacher becomes class teacher"""
-    # Check if teacher is class teacher and has classroom
-    if instance.is_class_teacher and instance.assigned_classroom:
+def create_teacher_user(sender, instance, created, **kwargs):
+    """Auto-create user when ANY teacher is created"""
+    if created:  # Only on creation, not updates
         try:
             # Check if user already exists
             from users.models import User
@@ -17,11 +16,11 @@ def create_class_teacher_user(sender, instance, created, **kwargs):
             
             user, message = UserCreationService.create_user_from_entity(instance, 'teacher')
             if not user:
-                print(f"Failed to create user for class teacher {instance.id}: {message}")
+                print(f"Failed to create user for teacher {instance.id}: {message}")
             else:
-                print(f"✅ Created user for class teacher: {instance.full_name}")
+                print(f"✅ Created user for teacher: {instance.full_name} ({instance.employee_code})")
         except Exception as e:
-            print(f"Error creating user for class teacher {instance.id}: {str(e)}")
+            print(f"Error creating user for teacher {instance.id}: {str(e)}")
 
 @receiver(pre_save, sender=Teacher)
 def update_class_teacher_status(sender, instance, **kwargs):

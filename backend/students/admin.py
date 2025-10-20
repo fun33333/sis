@@ -14,14 +14,20 @@ class StudentAdmin(admin.ModelAdmin):
         "section",
         "classroom", 
         "get_class_teacher",
-        "current_state", 
         "is_deleted",
         "terminated_on", 
         "created_at"
     )
-    list_filter = ("current_state", "campus", "classroom", "is_deleted")
+    list_filter = ("campus", "classroom", "is_deleted")
     search_fields = ("name", "student_code", "gr_no")
-    readonly_fields = ("student_code", "student_id", "created_at", "updated_at", "deleted_at")
+    readonly_fields = ("student_code", "student_id", "gr_no", "created_at", "updated_at", "deleted_at")
+    # Hide deprecated/internal fields from the admin form
+    exclude = (
+        "old_gr_number",          # removed per new requirements
+        "transfer_reason",        # removed from UI flow
+        "terminated_on",          # managed automatically
+        "termination_reason",     # managed automatically
+    )
 
     actions = ["mark_as_terminated", "soft_delete_students", "hard_delete_students", "restore_students"]
 
@@ -47,7 +53,7 @@ class StudentAdmin(admin.ModelAdmin):
 
     # --- Custom Actions ---
     def mark_as_terminated(self, request, queryset):
-        count = queryset.update(current_state="terminated", terminated_on=timezone.now())
+        count = queryset.update(terminated_on=timezone.now())
         self.message_user(request, f"{count} student(s) marked as Terminated.")
     
     mark_as_terminated.short_description = "🛑 Terminate Selected Students"

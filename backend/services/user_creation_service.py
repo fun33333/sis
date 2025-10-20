@@ -7,6 +7,7 @@ from principals.models import Principal
 from utils.id_generator import IDGenerator
 
 class UserCreationService:
+    DEFAULT_PASSWORD = '12345'
     
     @staticmethod
     def validate_entity_data(entity, entity_type):
@@ -95,13 +96,23 @@ class UserCreationService:
                     role=entity_type,
                     campus=campus,  # Use the correct campus field
                     phone_number=entity.contact_number,
-                    password=make_password('12345'),  # Default password
+                    password=make_password(UserCreationService.DEFAULT_PASSWORD),  # Default password
                     is_verified=True  # Auto-verify since created by admin
                 )
                 
                 # Update entity with employee code
                 entity.employee_code = employee_code
                 entity.save()
+                
+                # Send credentials email
+                from services.email_notification_service import EmailNotificationService
+                email_sent, email_message = EmailNotificationService.send_credentials_email(
+                    user, employee_code, entity_type
+                )
+                if email_sent:
+                    print(f"📧 Credentials email sent to {user.email}")
+                else:
+                    print(f"⚠️ Failed to send email: {email_message}")
                 
                 return user, "User created successfully"
                 

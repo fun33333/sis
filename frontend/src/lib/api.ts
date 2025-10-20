@@ -67,6 +67,12 @@ function handleApiError(response: Response, errorText: string): never {
     } else if (errorData.detail) {
       // DRF detail field
       errorMessage = errorData.detail;
+    } else if (errorData.non_field_errors) {
+      // Handle non_field_errors (DRF specific)
+      const messages = Array.isArray(errorData.non_field_errors) 
+        ? errorData.non_field_errors.join(', ')
+        : String(errorData.non_field_errors);
+      errorMessage = messages;
     } else if (typeof errorData === 'object') {
       // Handle ValidationError format - extract first field error
       const fieldErrors = Object.values(errorData);
@@ -1278,19 +1284,23 @@ export async function getCoordinatorRequests(filters?: {
   }
 }
 
-export async function getCoordinatorDashboardStats() {
+export async function getCoordinatorDashboardStats(coordinatorId?: number) {
   try {
-    return await apiGet('/api/requests/coordinator/dashboard-stats/');
+    if (coordinatorId) {
+      return await apiGet(`/api/coordinators/${coordinatorId}/dashboard_stats/`);
+    } else {
+      // Fallback to requests stats if no coordinator ID provided
+      return await apiGet('/api/requests/coordinator/dashboard-stats/');
+    }
   } catch (error) {
     console.error('Failed to fetch coordinator dashboard stats:', error);
     return {
-      total_requests: 0,
-      submitted: 0,
-      under_review: 0,
-      in_progress: 0,
-      waiting: 0,
-      resolved: 0,
-      rejected: 0
+      stats: {
+        total_teachers: 0,
+        total_students: 0,
+        total_classes: 0,
+        pending_requests: 0,
+      }
     };
   }
 }

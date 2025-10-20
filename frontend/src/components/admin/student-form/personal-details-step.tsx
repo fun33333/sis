@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useState } from "react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Upload, X } from "lucide-react"
+import { StudentFormValidator } from "@/lib/student-validation"
 
 interface PersonalDetailsStepProps {
   formData: any
@@ -28,15 +30,56 @@ export function PersonalDetailsStep({
   onRemoveImage,
   fileInputRef,
 }: PersonalDetailsStepProps) {
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const handleInputChange = (field: string, value: string) => {
+    onInputChange(field, value)
+    
+    // Clear error when user starts typing
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+    
+    // Real-time validation
+    let validation: any = { isValid: true }
+    
+    switch (field) {
+      case 'name':
+        validation = StudentFormValidator.validateName(value)
+        break
+      case 'dob':
+        validation = StudentFormValidator.validateDateOfBirth(value)
+        break
+      case 'placeOfBirth':
+        if (value && value.trim().length < 2) {
+          validation = { isValid: false, message: "Place of birth must be at least 2 characters" }
+        }
+        break
+    }
+    
+    if (!validation.isValid) {
+      setFieldErrors(prev => ({ ...prev, [field]: validation.message }))
+    }
+  }
+
+  const getFieldError = (field: string) => {
+    return fieldErrors[field] || (invalidFields.includes(field) ? `${field} is required` : '')
+  }
+
   return (
     <Card className="border-2">
       <CardHeader>
         <CardTitle>Personal Details</CardTitle>
+        <p className="text-sm text-gray-600">Fields marked with * are required</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Student Photo Upload */}
         <div>
-          <Label>Student Photo *</Label>
+          <Label>Student Photo</Label>
           <div className="mt-2">
             {uploadedImages.studentPhoto ? (
               <div className="relative inline-block">
@@ -74,26 +117,23 @@ export function PersonalDetailsStep({
               onChange={(e) => onImageUpload(e, "studentPhoto")}
             />
           </div>
-          {invalidFields.includes("studentPhoto") && (
-            <p className="text-sm text-red-600 mt-1">Student photo is required</p>
-          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
           <div>
             <Label htmlFor="name">Student Name *</Label>
             <Input
               id="name"
               value={formData.name || ""}
-              onChange={(e) => onInputChange("name", e.target.value)}
-              className={invalidFields.includes("name") ? "border-red-500" : ""}
+              onChange={(e) => handleInputChange("name", e.target.value)}
+              className={getFieldError("name") ? "border-red-500" : ""}
+              placeholder="Enter full name"
             />
-            {invalidFields.includes("name") && <p className="text-sm text-red-600 mt-1">Name is required</p>}
+            {getFieldError("name") && <p className="text-sm text-red-600 mt-1">{getFieldError("name")}</p>}
           </div>
 
           <div>
-            <Label htmlFor="gender">Gender</Label>
+            <Label htmlFor="gender">Gender *</Label>
             <Select value={formData.gender || ""} onValueChange={(v) => onInputChange("gender", v)}>
               <SelectTrigger
                 className={`border-2 focus:border-primary ${invalidFields.includes("gender") ? "border-red-500" : ""}`}
@@ -109,15 +149,15 @@ export function PersonalDetailsStep({
           </div>
 
           <div>
-            <Label htmlFor="dob">Date of Birth</Label>
+            <Label htmlFor="dob">Date of Birth *</Label>
             <Input
               id="dob"
               type="date"
               value={formData.dob || ""}
-              onChange={(e) => onInputChange("dob", e.target.value)}
-              className={invalidFields.includes("dob") ? "border-red-500" : ""}
+              onChange={(e) => handleInputChange("dob", e.target.value)}
+              className={getFieldError("dob") ? "border-red-500" : ""}
             />
-            {invalidFields.includes("dob") && <p className="text-sm text-red-600 mt-1">Date of birth is required</p>}
+            {getFieldError("dob") && <p className="text-sm text-red-600 mt-1">{getFieldError("dob")}</p>}
           </div>
 
           <div>
@@ -125,16 +165,15 @@ export function PersonalDetailsStep({
             <Input
               id="placeOfBirth"
               value={formData.placeOfBirth || ""}
-              onChange={(e) => onInputChange("placeOfBirth", e.target.value)}
-              className={invalidFields.includes("placeOfBirth") ? "border-red-500" : ""}
+              onChange={(e) => handleInputChange("placeOfBirth", e.target.value)}
+              className={getFieldError("placeOfBirth") ? "border-red-500" : ""}
+              placeholder="Enter place of birth"
             />
-            {invalidFields.includes("placeOfBirth") && (
-              <p className="text-sm text-red-600 mt-1">Place of birth is required</p>
-            )}
+            {getFieldError("placeOfBirth") && <p className="text-sm text-red-600 mt-1">{getFieldError("placeOfBirth")}</p>}
           </div>
 
           <div>
-            <Label htmlFor="religion">Religion</Label>
+            <Label htmlFor="religion">Religion *</Label>
             <Select value={formData.religion || ""} onValueChange={(v) => onInputChange("religion", v)}>
               <SelectTrigger
                 className={`border-2 focus:border-primary ${invalidFields.includes("religion") ? "border-red-500" : ""}`}
@@ -152,7 +191,7 @@ export function PersonalDetailsStep({
           </div>
 
           <div>
-            <Label htmlFor="motherTongue">Mother Tongue</Label>
+            <Label htmlFor="motherTongue">Mother Tongue *</Label>
             <Select value={formData.motherTongue || ""} onValueChange={(v) => onInputChange("motherTongue", v)}>
               <SelectTrigger
                 className={`border-2 focus:border-primary ${invalidFields.includes("motherTongue") ? "border-red-500" : ""}`}

@@ -58,8 +58,8 @@ export function StudentForm() {
 
   const validateCurrentStep = () => {
     const requiredFields: { [step: number]: string[] } = {
-      1: ["studentPhoto", "name", "gender", "dob", "placeOfBirth", "religion", "motherTongue"],
-      2: ["emergencyContact", "zakatStatus", "familyIncome", "houseOwned", "address"],
+      1: ["name", "gender", "dob", "religion", "motherTongue"],
+      2: ["emergencyContact"],
       // Step 3 (Academic) - require the fields that actually exist in AcademicDetailsStep
       3: [
         "campus",
@@ -68,8 +68,6 @@ export function StudentForm() {
         "shift",
         "admissionYear",
         "lastClassPassed",
-        "lastSchoolName",
-        "lastClassResult",
       ],
     }
 
@@ -85,6 +83,28 @@ export function StudentForm() {
       const value = formData[field]
       if (!value || (typeof value === "string" && value.trim() === "")) {
         invalid.push(field)
+      }
+    }
+
+    // Add conditional validation for step 2
+    if (currentStep === 2) {
+      // Guardian fields are required if father status is "dead"
+      if (formData.fatherStatus === "dead") {
+        const guardianFields = ["guardianName", "guardianRelation", "guardianCNIC", "guardianPhone", "guardianProfession"]
+        for (const field of guardianFields) {
+          const value = formData[field]
+          if (!value || (typeof value === "string" && value.trim() === "")) {
+            invalid.push(field)
+          }
+        }
+      }
+
+      // Siblings count is required if sibling in alkhair is "yes"
+      if (formData.siblingInAlkhair === "yes") {
+        const value = formData.siblingsCount
+        if (!value || (typeof value === "string" && value.trim() === "")) {
+          invalid.push("siblingsCount")
+        }
       }
     }
 

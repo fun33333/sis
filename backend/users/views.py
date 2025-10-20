@@ -360,9 +360,6 @@ def current_user_profile(request):
                 'guardian_contact': student.guardian_contact,
                 'guardian_relation': student.guardian_relation,
                 'photo': student.photo.url if student.photo else None,
-                'student_id_number': student.student_id_number,
-                'admission_date': student.admission_date,
-                'current_state': student.current_state,
                 'classroom': {
                     'id': student.classroom.id,
                     'name': str(student.classroom),

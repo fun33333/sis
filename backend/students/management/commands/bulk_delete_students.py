@@ -65,7 +65,11 @@ class Command(BaseCommand):
             filters_applied.append(f"grade={options['grade']}")
         
         if options['status']:
-            query = query.filter(current_state=options['status'])
+            # Since current_state is removed, we'll use is_deleted status instead
+            if options['status'] == 'active':
+                query = query.filter(is_deleted=False)
+            elif options['status'] == 'deleted':
+                query = query.filter(is_deleted=True)
             filters_applied.append(f"status={options['status']}")
         
         if options['year']:

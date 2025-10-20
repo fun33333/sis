@@ -2,6 +2,10 @@
 
 from django.db import models
 from django.utils import timezone
+from django.db.models import Q
+from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
+from .validators import StudentValidator
 
 
 class StudentManager(models.Manager):
@@ -25,39 +29,84 @@ class Student(models.Model):
     
     # --- Personal Details ---
     photo = models.ImageField(upload_to="students/photos/", null=True, blank=True)
-    name = models.CharField(max_length=200)
+    name = models.CharField(
+        max_length=200,
+        validators=[StudentValidator.validate_name],
+        help_text="Student's full name"
+    )
     gender = models.CharField(
         max_length=10,
         choices=(("male", "Male"), ("female", "Female")),
         null=True,
         blank=True
     )
-    dob = models.DateField(null=True, blank=True)
+    dob = models.DateField(
+        null=True, 
+        blank=True,
+        validators=[StudentValidator.validate_date_of_birth],
+        help_text="Date of birth (student must be 3-25 years old)"
+    )
     place_of_birth = models.CharField(max_length=200, null=True, blank=True)
     religion = models.CharField(max_length=100, null=True, blank=True)
     mother_tongue = models.CharField(max_length=100, null=True, blank=True)
 
     # --- Contact Details ---
-    emergency_contact = models.CharField(max_length=20, null=True, blank=True)
+    emergency_contact = models.CharField(
+        max_length=20, 
+        null=True, 
+        blank=True,
+        validators=[StudentValidator.validate_phone_number],
+        help_text="Emergency contact number (11 digits starting with 03)"
+    )
     father_name = models.CharField(max_length=200, null=True, blank=True)
-    father_cnic = models.CharField(max_length=20, null=True, blank=True)
-    father_contact = models.CharField(max_length=20, null=True, blank=True)
-    father_occupation = models.CharField(max_length=200, null=True, blank=True)
+    father_cnic = models.CharField(
+        max_length=20, 
+        null=True, 
+        blank=True,
+        validators=[StudentValidator.validate_cnic],
+        help_text="Father's CNIC (13 digits)"
+    )
+    father_contact = models.CharField(
+        max_length=20, 
+        null=True, 
+        blank=True,
+        validators=[StudentValidator.validate_phone_number],
+        help_text="Father's contact number (11 digits starting with 03)"
+    )
+    father_profession = models.CharField(max_length=200, null=True, blank=True)
 
     guardian_name = models.CharField(max_length=200, null=True, blank=True)
-    guardian_cnic = models.CharField(max_length=20, null=True, blank=True)
-    guardian_occupation = models.CharField(max_length=200, null=True, blank=True)
+    guardian_cnic = models.CharField(
+        max_length=20, 
+        null=True, 
+        blank=True,
+        validators=[StudentValidator.validate_cnic],
+        help_text="Guardian's CNIC (13 digits)"
+    )
+    guardian_profession = models.CharField(max_length=200, null=True, blank=True)
 
     mother_name = models.CharField(max_length=200, null=True, blank=True)
-    mother_cnic = models.CharField(max_length=20, null=True, blank=True)
+    mother_cnic = models.CharField(
+        max_length=20, 
+        null=True, 
+        blank=True,
+        validators=[StudentValidator.validate_cnic],
+        help_text="Mother's CNIC (13 digits)"
+    )
     mother_status = models.CharField(
         max_length=20,
         choices=(("widowed", "Widowed"), ("divorced", "Divorced"), ("married", "Married")),
         null=True,
         blank=True
     )
-    mother_contact = models.CharField(max_length=20, null=True, blank=True)
-    mother_occupation = models.CharField(max_length=200, null=True, blank=True)
+    mother_contact = models.CharField(
+        max_length=20, 
+        null=True, 
+        blank=True,
+        validators=[StudentValidator.validate_phone_number],
+        help_text="Mother's contact number (11 digits starting with 03)"
+    )
+    mother_profession = models.CharField(max_length=200, null=True, blank=True)
 
     zakat_status = models.CharField(
         max_length=20,
@@ -66,36 +115,89 @@ class Student(models.Model):
         blank=True
     )
 
-    address = models.TextField(null=True, blank=True)
-    family_income = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    address = models.TextField(
+        null=True, 
+        blank=True,
+        validators=[StudentValidator.validate_address],
+        help_text="Complete address (10-500 characters)"
+    )
+    family_income = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        validators=[StudentValidator.validate_positive_number],
+        help_text="Monthly family income in PKR"
+    )
     house_owned = models.BooleanField(default=False)
-    rent_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    rent_amount = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        validators=[StudentValidator.validate_positive_number],
+        help_text="Monthly rent amount in PKR"
+    )
 
     # --- Academic Details ---
-    current_state = models.CharField(
-        max_length=20,
-        choices=(
-            ("active", "Active"),
-            ("inactive", "Inactive"),
-            ("terminated", "Terminated"),
-        ),
-        default="active"
-    )
     terminated_on = models.DateTimeField(null=True, blank=True)
     termination_reason = models.TextField(null=True, blank=True)
 
-    campus = models.ForeignKey("campus.Campus", on_delete=models.SET_NULL, null=True, blank=True)
+    # Campus is required; protect to avoid accidental nulling on campus delete
+    campus = models.ForeignKey("campus.Campus", on_delete=models.PROTECT, null=False, blank=False)
     current_grade = models.CharField(max_length=50, null=True, blank=True)
     section = models.CharField(max_length=10, null=True, blank=True)
     last_class_passed = models.CharField(max_length=50, null=True, blank=True)
     last_school_name = models.CharField(max_length=200, null=True, blank=True)
+    last_class_result = models.CharField(max_length=200, null=True, blank=True)
+    old_gr_number = models.CharField(max_length=50, null=True, blank=True)
+    from_year = models.IntegerField(
+        null=True, 
+        blank=True,
+        validators=[StudentValidator.validate_year],
+        help_text="From year (2000-2030)"
+    )
+    to_year = models.IntegerField(
+        null=True, 
+        blank=True,
+        validators=[StudentValidator.validate_year],
+        help_text="To year (2000-2030)"
+    )
+    transfer_reason = models.TextField(null=True, blank=True)
+    siblings_count = models.PositiveIntegerField(
+        null=True, 
+        blank=True,
+        help_text="Number of siblings (positive integer)"
+    )
+    father_status = models.CharField(
+        max_length=20,
+        choices=(
+            ("alive", "Alive"),
+            ("dead", "Dead"),
+        ),
+        null=True,
+        blank=True
+    )
+    sibling_in_alkhair = models.CharField(
+        max_length=10,
+        choices=(
+            ("yes", "Yes"),
+            ("no", "No"),
+        ),
+        null=True,
+        blank=True
+    )
     gr_no = models.CharField(max_length=50, null=True, blank=True, unique=False)
 
     # --- ID Generation Fields ---
     student_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
     student_code = models.CharField(max_length=20, unique=True, editable=False, null=True, blank=True)
-    enrollment_year = models.IntegerField(null=True, blank=True)
-    student_number = models.IntegerField(null=True, blank=True)
+    enrollment_year = models.IntegerField(
+        null=True, 
+        blank=True,
+        validators=[StudentValidator.validate_year],
+        help_text="Year of enrollment (2000-2030)"
+    )
     shift = models.CharField(max_length=10, null=True, blank=True)
 
     # --- System Fields ---
@@ -128,6 +230,14 @@ class Student(models.Model):
         return self.classroom.grade if self.classroom else None
 
     @property
+    def level(self):
+        # Expose level based on classroom/grade relationship when available
+        try:
+            return self.classroom.grade.level if self.classroom and self.classroom.grade else None
+        except Exception:
+            return None
+
+    @property
     def class_teacher(self):
         return self.classroom.class_teacher if self.classroom else None
 
@@ -138,7 +248,6 @@ class Student(models.Model):
         """Soft delete the student"""
         self.is_deleted = True
         self.deleted_at = timezone.now()
-        self.current_state = "terminated"
         self.terminated_on = timezone.now()
         self.termination_reason = "Deleted from system"
         self.save()
@@ -147,7 +256,6 @@ class Student(models.Model):
         """Restore a soft deleted student"""
         self.is_deleted = False
         self.deleted_at = None
-        self.current_state = "active"
         self.terminated_on = None
         self.termination_reason = None
         self.save()
@@ -155,17 +263,78 @@ class Student(models.Model):
     def hard_delete(self):
         """Permanently delete the student from database"""
         super().delete()
+    
+    def _auto_assign_classroom(self):
+        """
+        Automatically assign classroom based on campus, grade, section, and shift
+        """
+        try:
+            from classes.models import ClassRoom, Grade
+            
+            # Normalize grade names for matching
+            grade_name_variations = [
+                self.current_grade,
+                self.current_grade.replace('-', ' '),  # Grade-4 -> Grade 4
+                self.current_grade.replace(' ', '-'),  # Grade 4 -> Grade-4
+            ]
+            
+            # Find matching grade
+            grade_query = Q()
+            for grade_var in grade_name_variations:
+                grade_query |= Q(name__icontains=grade_var)
+            
+            # Find grades in the same campus
+            matching_grades = Grade.objects.filter(
+                grade_query,
+                level__campus=self.campus
+            )
+            
+            if not matching_grades.exists():
+                print(f"❌ No matching grade found for '{self.current_grade}' in campus '{self.campus.campus_name}'")
+                return
+            
+            # Find classroom with matching grade, section, and shift
+            classroom = ClassRoom.objects.filter(
+                grade__in=matching_grades,
+                section=self.section,
+                shift=self.shift
+            ).first()
+            
+            if classroom:
+                self.classroom = classroom
+                print(f"✅ Auto-assigned student '{self.name}' to classroom '{classroom.grade.name}-{classroom.section}' ({classroom.shift})")
+                
+                # If classroom has a teacher, student is automatically connected to that teacher
+                if classroom.class_teacher:
+                    print(f"✅ Student '{self.name}' is now connected to teacher '{classroom.class_teacher.full_name}'")
+            else:
+                print(f"❌ No classroom found for Grade: {self.current_grade}, Section: {self.section}, Shift: {self.shift} in campus '{self.campus.campus_name}'")
+                print(f"💡 Please create a classroom first for this combination")
+                
+        except Exception as e:
+            print(f"❌ Error in auto-assignment: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     def save(self, *args, **kwargs):
         # Set termination date automatically
-        if self.current_state == "terminated" and not self.terminated_on:
+        if hasattr(self, 'current_state') and self.current_state == "terminated" and not self.terminated_on:
             self.terminated_on = timezone.now()
 
         # Prevent termination fields from appearing at add time
         if not self.pk:  # means this is a new student
-            self.current_state = "active"
             self.terminated_on = None
             self.termination_reason = None
+
+        # AUTO-ASSIGN CLASSROOM BASED ON CAMPUS, GRADE, SECTION, SHIFT
+        is_create = not self.pk
+        if not self.classroom and all([self.campus, self.current_grade, self.section, self.shift]):
+            self._auto_assign_classroom()
+            # If creating and still no classroom, prevent save with clear message
+            if is_create and not self.classroom:
+                raise ValidationError({
+                    'classroom': 'No classroom is available for the selected campus/grade/section/shift. Please create the classroom first.'
+                })
 
         # Generate student code or ID
         if not self.student_code and self.classroom:
@@ -177,12 +346,20 @@ class Student(models.Model):
             except Exception as e:
                 print(f"Error generating student code: {str(e)}")
 
-        if not self.student_id and all([self.campus, self.shift, self.enrollment_year, self.student_number]):
-            from users.utils import generate_student_id, get_shift_code
-            campus_code = self.campus.campus_code or f"C{self.campus.id:02d}"
-            shift_code = get_shift_code(self.shift)
-            year = str(self.enrollment_year)[-2:]
-            self.student_id = generate_student_id(campus_code, shift_code, year, self.student_number)
+        # Generate student_id using global student sequence
+        if not self.student_id and all([self.campus, self.shift, self.enrollment_year]):
+            try:
+                from users.utils import generate_student_id, get_shift_code, get_next_student_number
+                campus_code = self.campus.campus_code or f"C{self.campus.id:02d}"
+                shift_code = get_shift_code(self.shift)
+                year = str(self.enrollment_year)[-2:]
+                seq = get_next_student_number(self.campus, self.enrollment_year)
+                self.student_id = generate_student_id(campus_code, shift_code, year, seq)
+                # Set GR number from sequence
+                if not self.gr_no:
+                    self.gr_no = f"GR-{seq:05d}"
+            except Exception as e:
+                print(f"Error generating student id: {e}")
 
         # Auto-generate GR No. from Student ID (last 5 digits)
         if self.student_id and not self.gr_no:

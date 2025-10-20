@@ -44,10 +44,10 @@ class Teacher(models.Model):
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
     contact_number = models.CharField(max_length=20)
     email = models.EmailField(unique=True)
-    permanent_address = models.TextField()
+    permanent_address = models.TextField(blank=True, null=True)
     current_address = models.TextField(blank=True, null=True)
     marital_status = models.CharField(max_length=20, choices=MARITAL_STATUS_CHOICES, blank=True, null=True)
-    cnic = models.CharField(max_length=15, unique=True, blank=True, null=True)
+    cnic = models.CharField(max_length=15, unique=True)
 
     # Education Information
     education_level = models.CharField(max_length=100, blank=True, null=True)

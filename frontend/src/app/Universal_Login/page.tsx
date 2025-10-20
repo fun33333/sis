@@ -11,7 +11,9 @@ import {
   Shield,
   User
 } from "lucide-react";
-import { loginWithEmailPassword } from "@/lib/api";
+import { loginWithEmailPassword, ApiError } from "@/lib/api";
+import { ErrorDisplay } from "@/components/ui/error-display";
+import { parseApiError, isAuthError } from "@/lib/error-handling";
 
 
 type Teacher = {
@@ -28,7 +30,7 @@ export default function LoginPage() {
   const [animate, setAnimate] = useState(false);
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   // Store logged-in teacher info (for demo, can use context/global state)
@@ -85,15 +87,31 @@ export default function LoginPage() {
   // Login handler: all roles use backend email/password
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError(null);
     setLoading(true);
+    
     try {
       const email = id.trim();
       
-      // All roles now use employee code format
+      // Validate employee code format
       const employeeCodeOk = /^[A-Z0-9-]+$/.test(email);
       if (!employeeCodeOk) {
-        setError("Please enter a valid employee code (e.g., C01-M-25-T-0068)");
+        setError({
+          title: "Invalid Employee Code",
+          message: "Please enter a valid employee code (e.g., C01-M-25-T-0068)",
+          type: "error"
+        });
+        setLoading(false);
+        return;
+      }
+      
+      // Validate password
+      if (!password.trim()) {
+        setError({
+          title: "Password Required",
+          message: "Please enter your password",
+          type: "error"
+        });
         setLoading(false);
         return;
       }
@@ -112,9 +130,23 @@ export default function LoginPage() {
         router.push("/admin");
       }
     } catch (err: any) {
-      setError(err?.response || err?.message || "Login failed");
+      console.error('Login error:', err);
+      
+      // Handle authentication errors specially
+      if (isAuthError(err)) {
+        setError({
+          title: "Authentication Failed",
+          message: "Invalid employee code or password. Please check your credentials and try again.",
+          type: "error"
+        });
+      } else {
+        // Parse other errors using our error handling utility
+        const errorInfo = parseApiError(err);
+        setError(errorInfo);
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // If already logged in, show info (for demo)
@@ -203,12 +235,22 @@ export default function LoginPage() {
                 {/* Login Button */}
                 <button
                   type="submit"
-                  className="w-full h-11 bg-[#a3cef1] border-none rounded-full shadow-sm cursor-pointer text-base text-black font-semibold mt-3 hover:bg-[#87b9e3] transition-colors"
+                  className="w-full h-11 bg-[#a3cef1] border-none rounded-full shadow-sm cursor-pointer text-base text-black font-semibold mt-3 hover:bg-[#87b9e3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={loading}
                 >
                   {loading ? "Logging in..." : detectedRole ? `Login as ${detectedRole}` : "Login"}
                 </button>
-                {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
+                
+                {/* Error Display */}
+                {error && (
+                  <div className="mt-3">
+                    <ErrorDisplay 
+                      error={error} 
+                      variant="compact"
+                      onDismiss={() => setError(null)}
+                    />
+                  </div>
+                )}
 
                 {/* Forgot Password Link */}
                 <div className="text-sm text-center my-5">

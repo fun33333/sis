@@ -57,20 +57,14 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
       marital_status: formData.marital_status || null,
       cnic: formData.cnic || null,
 
-      // Education tab fields
+      // Education tab fields (simplified)
       education_level: formData.education_level || null,
       institution_name: formData.institution_name || null,
       year_of_passing: formData.year_of_passing ? Number(formData.year_of_passing) : null,
       education_subjects: formData.education_subjects || null,
       education_grade: formData.education_grade || null,
 
-      additional_education_level: formData.additional_education_level || null,
-      additional_institution_name: formData.additional_institution_name || null,
-      additional_year_of_passing: formData.additional_year_of_passing ? Number(formData.additional_year_of_passing) : null,
-      additional_education_subjects: formData.additional_education_subjects || null,
-      additional_education_grade: formData.additional_education_grade || null,
-
-      // Experience tab fields
+      // Experience tab fields (simplified)
       previous_institution_name: formData.previous_institution_name || null,
       previous_position: formData.previous_position || null,
       experience_from_date: formData.experience_from_date || null,
@@ -79,29 +73,14 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
       previous_responsibilities: formData.previous_responsibilities || null,
       total_experience_years: formData.total_experience_years ? Number(formData.total_experience_years) : null,
 
-      additional_institution_name_exp: formData.additional_institution_name_exp || null,
-      additional_position: formData.additional_position || null,
-      additional_experience_from_date: formData.additional_experience_from_date || null,
-      additional_experience_to_date: formData.additional_experience_to_date || null,
-      additional_experience_subjects_classes: formData.additional_experience_subjects_classes || null,
-      additional_responsibilities: formData.additional_responsibilities || null,
-
-      // Current role tab fields
+      // Current role tab fields (simplified)
       joining_date: formData.joining_date || null,
-      current_role_title: formData.current_role_title || null,
       current_campus: getCampusId(formData.current_campus),
       current_subjects: formData.current_subjects || null,
       current_classes_taught: formData.current_classes_taught || null,
       current_extra_responsibilities: formData.current_extra_responsibilities || null,
-      role_start_date: formData.role_start_date || null,
-      role_end_date: formData.role_end_date || null,
-      is_currently_active: typeof formData.is_currently_active === 'boolean' ? formData.is_currently_active : null,
+      is_currently_active: typeof formData.is_currently_active === 'boolean' ? formData.is_currently_active : true,
       shift: formData.shift || 'morning',
-      is_class_teacher: typeof formData.is_class_teacher === 'boolean' ? formData.is_class_teacher : false,
-      assigned_classroom: formData.assigned_classroom || null,
-
-      // System tab fields
-      save_status: formData.save_status || 'draft',
     }
 
     // Strip null/empty values
@@ -114,7 +93,15 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
 
   const handleSave = async () => {
     if (onSubmit) {
-      onSubmit()
+      setSaving(true)
+      try {
+        await onSubmit()
+        // Success handling is done in the parent component
+      } catch (error) {
+        console.error("Save failed:", error)
+      } finally {
+        setSaving(false)
+      }
       return
     }
     
@@ -127,8 +114,11 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
       if (!formData.gender) missing.push("Gender")
       if (!formData.contact_number) missing.push("Contact number")
       if (!formData.email) missing.push("Email")
-      if (!formData.permanent_address) missing.push("Permanent address")
+      if (!formData.current_address) missing.push("Current address")
       if (!formData.cnic) missing.push("CNIC")
+      if (!formData.current_campus) missing.push("Current campus")
+      if (!formData.joining_date) missing.push("Joining date")
+      if (!formData.shift) missing.push("Shift")
       if (missing.length > 0) {
         toast.error("Please fill required fields", { description: missing.join(", ") })
         return
@@ -207,11 +197,6 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
                  <div><strong>Year of passing:</strong> {formData.year_of_passing || "N/A"}</div>
                  <div><strong>Education subjects:</strong> {formData.education_subjects || "N/A"}</div>
                  <div className="sm:col-span-2"><strong>Education grade:</strong> {formData.education_grade || "N/A"}</div>
-                 <div className="sm:col-span-2"><strong>Additional education level:</strong> {formData.additional_education_level || "N/A"}</div>
-                 <div className="sm:col-span-2"><strong>Additional institution name:</strong> {formData.additional_institution_name || "N/A"}</div>
-                 <div><strong>Additional year of passing:</strong> {formData.additional_year_of_passing || "N/A"}</div>
-                 <div className="sm:col-span-2"><strong>Additional education subjects:</strong> {formData.additional_education_subjects || "N/A"}</div>
-                 <div className="sm:col-span-2"><strong>Additional education grade:</strong> {formData.additional_education_grade || "N/A"}</div>
               </div>
             </CardContent>
           </Card>
@@ -224,17 +209,11 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                  <div><strong>Joining Date:</strong> {formData.joining_date || "N/A"}</div>
                  <div><strong>Shift:</strong> {formData.shift || "N/A"}</div>
-                 <div className="sm:col-span-2"><strong>Current role title:</strong> {formData.current_role_title || "N/A"}</div>
-                 <div><strong>Current campus:</strong> {formData.current_campus || "N/A"}</div>
-                 <div><strong>Is Class Teacher:</strong> {typeof formData.is_class_teacher === "boolean" ? (formData.is_class_teacher ? "Yes" : "No") : "N/A"}</div>
+                 <div><strong>Current campus:</strong> Campus {formData.current_campus || "N/A"}</div>
+                 <div><strong>Is currently active:</strong> {typeof formData.is_currently_active === "boolean" ? (formData.is_currently_active ? "Yes" : "No") : "N/A"}</div>
                  <div className="sm:col-span-2"><strong>Current subjects:</strong> {formData.current_subjects || "N/A"}</div>
                  <div className="sm:col-span-2"><strong>Current classes taught:</strong> {formData.current_classes_taught || "N/A"}</div>
                  <div className="sm:col-span-2"><strong>Current extra responsibilities:</strong> {formData.current_extra_responsibilities || "N/A"}</div>
-                 <div><strong>Role start date:</strong> {formData.role_start_date || "N/A"}</div>
-                 <div><strong>Role end date:</strong> {formData.role_end_date || "N/A"}</div>
-                 <div><strong>Is currently active:</strong> {typeof formData.is_currently_active === "boolean" ? (formData.is_currently_active ? "Yes" : "No") : "N/A"}</div>
-                 {/* <div><strong>Assigned Classroom:</strong> {formData.assigned_classroom || "N/A"}</div> */}
-                 <div><strong>Save status:</strong> {formData.save_status || "N/A"}</div>
                </div>
             </CardContent>
           </Card>
@@ -253,12 +232,6 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
                  <div className="sm:col-span-2"><strong>Experience subjects classes taught:</strong> {formData.experience_subjects_classes_taught || "N/A"}</div>
                  <div className="sm:col-span-2"><strong>Previous responsibilities:</strong> {formData.previous_responsibilities || "N/A"}</div>
                  <div><strong>Total experience years:</strong> {formData.total_experience_years || "N/A"}</div>
-                 <div className="sm:col-span-2"><strong>Additional institution name (exp):</strong> {formData.additional_institution_name_exp || "N/A"}</div>
-                 <div><strong>Additional position:</strong> {formData.additional_position || "N/A"}</div>
-                 <div><strong>Additional experience from date:</strong> {formData.additional_experience_from_date || "N/A"}</div>
-                 <div><strong>Additional experience to date:</strong> {formData.additional_experience_to_date || "N/A"}</div>
-                 <div className="sm:col-span-2"><strong>Additional experience subjects classes:</strong> {formData.additional_experience_subjects_classes || "N/A"}</div>
-                 <div className="sm:col-span-2"><strong>Additional responsibilities:</strong> {formData.additional_responsibilities || "N/A"}</div>
                </div>
             </CardContent>
           </Card>

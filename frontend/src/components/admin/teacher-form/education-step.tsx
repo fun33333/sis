@@ -23,11 +23,6 @@ export function EducationStep({ formData, invalidFields, onInputChange }: Educat
     "year_of_passing",
     "education_subjects",
     "education_grade",
-    "additional_education_level",
-    "additional_institution_name",
-    "additional_year_of_passing",
-    "additional_education_subjects",
-    "additional_education_grade",
   ]
   function isEmptyValue(val: any) {
     return val === undefined || val === null || String(val).trim() === ""
@@ -70,51 +65,56 @@ export function EducationStep({ formData, invalidFields, onInputChange }: Educat
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="education_level">Education level</Label>
-            <Input id="education_level" value={formData.education_level || ""} onChange={(e) => onInputChange("education_level", e.target.value)} />
+            <Label htmlFor="education_level">Education Level (Optional)</Label>
+            <Input 
+              id="education_level" 
+              value={formData.education_level || ""} 
+              onChange={(e) => onInputChange("education_level", e.target.value)}
+              placeholder="e.g., Bachelor's, Master's"
+            />
           </div>
 
           <div>
-            <Label htmlFor="institution_name">Institution name</Label>
-            <Input id="institution_name" value={formData.institution_name || ""} onChange={(e) => onInputChange("institution_name", e.target.value)} />
+            <Label htmlFor="institution_name">Institution Name (Optional)</Label>
+            <Input 
+              id="institution_name" 
+              value={formData.institution_name || ""} 
+              onChange={(e) => onInputChange("institution_name", e.target.value)}
+              placeholder="e.g., University of Karachi"
+            />
           </div>
 
           <div>
-            <Label htmlFor="year_of_passing">Year of passing</Label>
-            <Input id="year_of_passing" type="number" value={formData.year_of_passing || ""} onChange={(e) => onInputChange("year_of_passing", e.target.value)} />
+            <Label htmlFor="year_of_passing">Year of Passing (Optional)</Label>
+            <Input 
+              id="year_of_passing" 
+              type="number" 
+              min="1950"
+              max={new Date().getFullYear()}
+              value={formData.year_of_passing || ""} 
+              onChange={(e) => onInputChange("year_of_passing", e.target.value)}
+              placeholder="e.g., 2020"
+            />
           </div>
 
           <div>
-            <Label htmlFor="education_subjects">Education subjects</Label>
-            <Input id="education_subjects" value={formData.education_subjects || ""} onChange={(e) => onInputChange("education_subjects", e.target.value)} />
+            <Label htmlFor="education_subjects">Subjects Studied (Optional)</Label>
+            <Input 
+              id="education_subjects" 
+              value={formData.education_subjects || ""} 
+              onChange={(e) => onInputChange("education_subjects", e.target.value)}
+              placeholder="e.g., Mathematics, Physics"
+            />
           </div>
 
           <div className="md:col-span-2">
-            <Label htmlFor="education_grade">Education grade</Label>
-            <Input id="education_grade" value={formData.education_grade || ""} onChange={(e) => onInputChange("education_grade", e.target.value)} />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="additional_education_level">Additional education level</Label>
-            <Input id="additional_education_level" value={formData.additional_education_level || ""} onChange={(e) => onInputChange("additional_education_level", e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="additional_institution_name">Additional institution name</Label>
-            <Input id="additional_institution_name" value={formData.additional_institution_name || ""} onChange={(e) => onInputChange("additional_institution_name", e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="additional_year_of_passing">Additional year of passing</Label>
-            <Input id="additional_year_of_passing" type="number" value={formData.additional_year_of_passing || ""} onChange={(e) => onInputChange("additional_year_of_passing", e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="additional_education_subjects">Additional education subjects</Label>
-            <Input id="additional_education_subjects" value={formData.additional_education_subjects || ""} onChange={(e) => onInputChange("additional_education_subjects", e.target.value)} />
-          </div>
-          <div className="md:col-span-2">
-            <Label htmlFor="additional_education_grade">Additional education grade</Label>
-            <Input id="additional_education_grade" value={formData.additional_education_grade || ""} onChange={(e) => onInputChange("additional_education_grade", e.target.value)} />
+            <Label htmlFor="education_grade">Grade/GPA (Optional)</Label>
+            <Input 
+              id="education_grade" 
+              value={formData.education_grade || ""} 
+              onChange={(e) => onInputChange("education_grade", e.target.value)}
+              placeholder="e.g., A+, 3.8/4.0"
+            />
           </div>
         </div>
       </CardContent>

@@ -80,7 +80,6 @@ class Command(BaseCommand):
                 address=f"{random.randint(1, 100)} Street {random.randint(1, 50)}, Sector {random.randint(1, 20)}",
                 family_income=random.randint(30000, 200000),
                 house_owned=random.choice([True, False]),
-                current_state='active',
                 campus=random.choice([campus1, campus2]),
                 current_grade=random.choice(grades),
                 section=random.choice(['A', 'B', 'C']),

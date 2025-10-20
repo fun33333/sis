@@ -10,6 +10,8 @@ import { WorkAssignmentStep } from "./coordinator-form/work-assignment-step"
 import { CoordinatorPreview } from "./coordinator-form/coordinator-preview"
 import { useToast } from "@/hooks/use-toast"
 import { getCurrentUser, getCurrentUserRole } from "@/lib/permissions"
+import { useFormErrorHandler } from "@/hooks/use-error-handler"
+import { ErrorDisplay } from "@/components/ui/error-display"
 
 const steps = [
   { id: 1, title: "Personal" },
@@ -56,6 +58,17 @@ export function CoordinatorForm({
   const [levels, setLevels] = useState<any[]>([])
   const [currentUserCampus, setCurrentUserCampus] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [generalError, setGeneralError] = useState<string>('')
+  
+  // Use form error handler
+  const { handleFormError, clearAllErrors, getFieldError } = useFormErrorHandler({
+    onFieldError: (field, message) => {
+      setDuplicateErrors(prev => ({ ...prev, [field]: message }))
+    },
+    onGeneralError: (message) => {
+      setGeneralError(message)
+    }
+  })
 
   const totalSteps = steps.length
 
@@ -500,7 +513,7 @@ export function CoordinatorForm({
         console.log('Success response:', responseData);
         toast({
           title: "Success",
-          description: isEdit ? 'Coordinator updated successfully! 🎉' : 'Coordinator added successfully! 🎉',
+          description: `Coordinator ${isEdit ? 'updated' : 'added'} successfully! 🎉\n\n${!isEdit ? `Employee Code: ${responseData.employee_code}\nDefault Password: 12345\n\nCredentials have been sent to ${responseData.email}` : ''}`,
         });
         
         // Reset form and go to first step
@@ -530,57 +543,17 @@ export function CoordinatorForm({
         
         onSuccess?.();
       } else {
-        let errorMessage = 'Failed to save coordinator';
-        try {
-          const errorData = await response.json();
-          console.error('Error response:', errorData);
-          
-          // Handle validation errors
-          if (errorData.email && Array.isArray(errorData.email)) {
-            errorMessage = `Email error: ${errorData.email[0]}`;
-          } else if (errorData.cnic && Array.isArray(errorData.cnic)) {
-            errorMessage = `CNIC error: ${errorData.cnic[0]}`;
-          } else if (errorData.detail) {
-            errorMessage = errorData.detail;
-          } else if (errorData.error) {
-            errorMessage = errorData.error;
-          } else if (errorData.message) {
-            errorMessage = errorData.message;
-          } else {
-            // Handle other validation errors
-            const fieldErrors = Object.keys(errorData).map(field => 
-              `${field}: ${Array.isArray(errorData[field]) ? errorData[field][0] : errorData[field]}`
-            ).join(', ');
-            errorMessage = `Validation errors: ${fieldErrors}`;
-          }
-        } catch (parseError) {
-          console.error('Error parsing response:', parseError);
-          errorMessage = `Server error: ${response.status} ${response.statusText}`;
-        }
+        const errorText = await response.text();
+        const error = new Error(errorText);
+        (error as any).status = response.status;
+        (error as any).statusText = response.statusText;
+        (error as any).response = errorText;
         
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive"
-        });
+        handleFormError(error);
       }
     } catch (error) {
       console.error('Network/Request error:', error);
-      let errorMessage = 'An error occurred while saving';
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      } else if (error && typeof error === 'object') {
-        errorMessage = JSON.stringify(error);
-      }
-      
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      handleFormError(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -715,6 +688,17 @@ export function CoordinatorForm({
                 />
               )}
             </div>
+
+            {/* Error Display */}
+            {generalError && (
+              <div className="px-8 pb-4">
+                <ErrorDisplay 
+                  error={{ title: "Error", message: generalError, type: "error" }}
+                  variant="compact"
+                  onDismiss={() => setGeneralError('')}
+                />
+              </div>
+            )}
 
             {/* Enhanced Navigation */}
             <div className="bg-gray-50 px-8 py-6 border-t">
