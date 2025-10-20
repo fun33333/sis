@@ -66,7 +66,7 @@ def get_shift_code(shift):
     """
     shift_codes = {
         'morning': 'M',
-        'evening': 'E',
+        'afternoon': 'F',
         'night': 'N'
     }
     return shift_codes.get(shift.lower(), 'M')

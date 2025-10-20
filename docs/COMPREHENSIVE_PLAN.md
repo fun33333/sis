@@ -58,7 +58,7 @@
 C03-M-25-00456
 │   │  │  └── Student Number (Permanent)
 │   │  └────── Enrollment Year (2025)
-│   └────────── Shift (M=Morning, E=Evening)
+│   └────────── Shift (M=Morning, A=Afternon)
 └────────────── Campus Code (C01, C02, C03...)
 
 

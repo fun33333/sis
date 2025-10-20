@@ -17,7 +17,6 @@ LEVEL_CHOICES = [
 SHIFT_CHOICES = [
     ('morning', 'Morning'),
     ('afternoon', 'Afternoon'),
-    ('evening', 'Evening'),
     ('both', 'Morning + Afternoon'),
     ('all', 'All Shifts'),
 ]
@@ -145,7 +144,6 @@ class ClassRoom(models.Model):
         choices=[
             ('morning', 'Morning'),
             ('afternoon', 'Afternoon'),
-            ('evening', 'Evening'),
             ('both', 'Morning + Afternoon'),
             ('all', 'All Shifts')
         ],

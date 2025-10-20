@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 ('institution_name', models.CharField(max_length=200)),
                 ('year_of_passing', models.IntegerField()),
                 ('total_experience_years', models.PositiveIntegerField()),
-                ('shift', models.CharField(choices=[('morning', 'Morning'), ('afternoon', 'Afternoon'), ('evening', 'Evening'), ('both', 'Morning + Afternoon'), ('all', 'All Shifts')], default='morning', help_text="Principal's working shift", max_length=20)),
+                ('shift', models.CharField(choices=[('morning', 'Morning'), ('afternoon', 'Afternoon'), ('both', 'Morning + Afternoon'), ('all', 'All Shifts')], default='morning', help_text="Principal's working shift", max_length=20)),
                 ('joining_date', models.DateField()),
                 ('is_currently_active', models.BooleanField(default=True)),
                 ('employee_code', models.CharField(blank=True, editable=False, max_length=20, null=True, unique=True)),

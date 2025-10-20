@@ -12,7 +12,6 @@ class IDGenerator:
         shift_map = {
             'morning': 'M',
             'afternoon': 'A', 
-            'evening': 'E',
             'both': 'B',        # Morning + Afternoon
             'all': 'ALL'        # All shifts
         }

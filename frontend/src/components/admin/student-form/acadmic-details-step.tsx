@@ -186,7 +186,6 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
               <SelectContent>
                 <SelectItem value="morning">Morning</SelectItem>
                 <SelectItem value="afternoon">Afternoon</SelectItem>
-                <SelectItem value="evening">Evening</SelectItem>
               </SelectContent>
             </Select>
             {getFieldError("shift") && (

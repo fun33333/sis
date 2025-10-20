@@ -193,7 +193,7 @@ export default function UpdateStudentPage() {
                     <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Morning">Morning</SelectItem>
-                      <SelectItem value="Evening">Evening</SelectItem>
+                      <SelectItem value="Afternoon">Afternoon</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

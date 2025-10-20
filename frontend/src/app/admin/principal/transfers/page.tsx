@@ -186,12 +186,12 @@ export default function TransferManagementPage() {
               <div className="flex items-center gap-2 text-sm">
                 <Building className="h-4 w-4 text-gray-400" />
                 <span className="font-medium">From:</span>
-                <span>{request.from_campus_name} ({request.from_shift === 'M' ? 'Morning' : 'Evening'})</span>
+                <span>{request.from_campus_name} ({request.from_shift === 'M' ? 'Morning' : 'Afternoon'})</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Building className="h-4 w-4 text-gray-400" />
                 <span className="font-medium">To:</span>
-                <span>{request.to_campus_name} ({request.to_shift === 'M' ? 'Morning' : 'Evening'})</span>
+                <span>{request.to_campus_name} ({request.to_shift === 'M' ? 'Morning' : 'Afternoon'})</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="h-4 w-4 text-gray-400" />
@@ -402,13 +402,13 @@ export default function TransferManagementPage() {
                   <div>
                     <Label className="text-sm font-medium text-gray-500">From</Label>
                     <p className="text-sm">
-                      {selectedRequest.from_campus_name} ({selectedRequest.from_shift === 'M' ? 'Morning' : 'Evening'})
+                      {selectedRequest.from_campus_name} ({selectedRequest.from_shift === 'M' ? 'Morning' : 'Afternoon'})
                     </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">To</Label>
                     <p className="text-sm">
-                      {selectedRequest.to_campus_name} ({selectedRequest.to_shift === 'M' ? 'Morning' : 'Evening'})
+                      {selectedRequest.to_campus_name} ({selectedRequest.to_shift === 'M' ? 'Morning' : 'Afternoon'})
                     </p>
                   </div>
                 </div>

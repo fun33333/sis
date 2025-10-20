@@ -434,7 +434,6 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
                 <SelectContent>
                   <SelectItem value="morning">Morning</SelectItem>
                   <SelectItem value="afternoon">Afternoon</SelectItem>
-                  <SelectItem value="evening">Evening</SelectItem>
                   <SelectItem value="both">Morning + Afternoon</SelectItem>
                   <SelectItem value="all">All Shifts</SelectItem>
                 </SelectContent>

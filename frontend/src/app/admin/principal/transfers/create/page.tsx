@@ -438,7 +438,7 @@ export default function CreateTransferRequestPage() {
       
       // Better error handling with specific messages
       if (error.message?.includes('not a valid choice')) {
-        toast.error('Invalid shift selection. Please choose Morning or Evening.');
+        toast.error('Invalid shift selection. Please choose Morning or Afternoon.');
       } else if (error.message?.includes('Only principals can create')) {
         toast.error('You do not have permission to create transfer requests.');
       } else if (error.message?.includes('Invalid pk')) {

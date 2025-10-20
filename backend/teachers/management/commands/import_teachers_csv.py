@@ -174,10 +174,8 @@ class Command(BaseCommand):
         shift_map = {
             'morning': 'morning',
             'afternoon': 'afternoon',
-            'evening': 'evening',
             'Morning': 'morning',
             'Afternoon': 'afternoon',
-            'Evening': 'evening'
         }
         shift = shift_map.get(clean_field(row.get('Shift:')), 'morning')
 

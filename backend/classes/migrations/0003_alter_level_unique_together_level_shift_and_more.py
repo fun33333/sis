@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='level',
             name='shift',
-            field=models.CharField(choices=[('morning', 'Morning'), ('afternoon', 'Afternoon'), ('evening', 'Evening'), ('both', 'Morning + Afternoon'), ('all', 'All Shifts')], default='morning', help_text='Shift for this level', max_length=20),
+            field=models.CharField(choices=[('morning', 'Morning'), ('afternoon', 'Afternoon'),  ('both', 'Morning + Afternoon'), ('all', 'All Shifts')], default='morning', help_text='Shift for this level', max_length=20),
         ),
         migrations.AlterUniqueTogether(
             name='level',

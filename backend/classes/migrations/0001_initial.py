@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('section', models.CharField(choices=[('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D'), ('E', 'E')], max_length=3)),
-                ('shift', models.CharField(choices=[('morning', 'Morning'), ('afternoon', 'Afternoon'), ('evening', 'Evening'), ('both', 'Morning + Afternoon'), ('all', 'All Shifts')], default='morning', help_text='Shift for this classroom', max_length=20)),
+                ('shift', models.CharField(choices=[('morning', 'Morning'), ('afternoon', 'Afternoon'), ('both', 'Morning + Afternoon'), ('all', 'All Shifts')], default='morning', help_text='Shift for this classroom', max_length=20)),
                 ('capacity', models.PositiveIntegerField(default=30)),
                 ('code', models.CharField(editable=False, max_length=30, unique=True)),
                 ('assigned_at', models.DateTimeField(blank=True, null=True)),

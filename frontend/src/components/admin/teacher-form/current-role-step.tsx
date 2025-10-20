@@ -76,7 +76,6 @@ export function CurrentRoleStep({ formData, invalidFields, onInputChange }: Curr
               <SelectContent>
                 <SelectItem value="morning">Morning</SelectItem>
                 <SelectItem value="afternoon">Afternoon</SelectItem>
-                <SelectItem value="evening">Evening</SelectItem>
               </SelectContent>
             </Select>
             {invalidFields.includes("shift") && <p className="text-sm text-red-600 mt-1">Shift is required</p>}

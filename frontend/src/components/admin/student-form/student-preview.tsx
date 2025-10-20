@@ -62,7 +62,7 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
     const v = (value || '').toString().trim().toLowerCase()
     if (!v) return null
     if (v === 'morning' || v === 'm') return 'morning'
-    if (v === 'afternoon' || v === 'evening' || v === 'e') return 'evening'
+    if (v === 'afternoon' || v === 'a') return 'afternoon'
     // Only morning and afternoon supported; anything else becomes null
     return null
   }

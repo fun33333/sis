@@ -65,7 +65,7 @@ class Migration(migrations.Migration):
                 ('additional_responsibilities', models.TextField(blank=True, null=True)),
                 ('joining_date', models.DateField(blank=True, null=True)),
                 ('current_role_title', models.CharField(blank=True, max_length=150, null=True)),
-                ('shift', models.CharField(choices=[('morning', 'Morning'), ('afternoon', 'Afternoon'), ('evening', 'Evening')], default='morning', help_text="Teacher's working shift", max_length=20)),
+                ('shift', models.CharField(choices=[('morning', 'Morning'), ('afternoon', 'Afternoon')], default='morning', help_text="Teacher's working shift", max_length=20)),
                 ('current_subjects', models.CharField(blank=True, max_length=200, null=True)),
                 ('current_classes_taught', models.CharField(blank=True, max_length=200, null=True)),
                 ('current_extra_responsibilities', models.TextField(blank=True, null=True)),

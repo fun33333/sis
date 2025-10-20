@@ -14,7 +14,6 @@ GENDER_CHOICES = [
 SHIFT_CHOICES = [
     ("morning", "Morning"),
     ("afternoon", "Afternoon"),
-    ("evening", "Evening"),
     ("both", "Morning + Afternoon"),
     ("all", "All Shifts"),
 ]

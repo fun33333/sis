@@ -109,7 +109,6 @@ class Teacher(models.Model):
         choices=[
             ('morning', 'Morning'),
             ('afternoon', 'Afternoon'),
-            ('evening', 'Evening'),
         ],
         default='morning',
         help_text="Teacher's working shift"

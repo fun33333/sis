@@ -60,9 +60,7 @@ export function UserGreeting({ className }: UserGreetingProps) {
         setGreeting("Good Morning")
       } else if (hour < 17) {
         setGreeting("Good Afternoon")
-      } else {
-        setGreeting("Good Evening")
-      }
+      } 
     }
   }, [])
 
