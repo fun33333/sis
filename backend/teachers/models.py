@@ -132,6 +132,14 @@ class Teacher(models.Model):
     
     # Class Teacher Information - FIXED
     is_class_teacher = models.BooleanField(default=False, help_text="Is this teacher a class teacher?")
+    class_teacher_level = models.ForeignKey(
+        'classes.Level',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='class_teachers',
+        help_text="Level for class teacher assignment"
+    )
     class_teacher_grade = models.CharField(
         max_length=50, 
         blank=True, 

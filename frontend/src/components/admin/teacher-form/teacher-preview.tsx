@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Eye, ArrowLeft, Save } from "lucide-react"
 import { useEffect, useState } from "react"
-import { API_ENDPOINTS, apiPost, getAllCampuses } from "@/lib/api"
+import { API_ENDPOINTS, apiPost, getAllCampuses, getLevels, getGrades, getClassrooms } from "@/lib/api"
 import { toast } from "sonner"
-import { Badge } from "@/components/ui/badge"
 
 interface TeacherPreviewProps {
   formData: any
@@ -18,6 +17,9 @@ interface TeacherPreviewProps {
 export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewProps) {
   const [saving, setSaving] = useState(false)
   const [campuses, setCampuses] = useState<any[]>([])
+  const [levels, setLevels] = useState<any[]>([])
+  const [grades, setGrades] = useState<any[]>([])
+  const [classrooms, setClassrooms] = useState<any[]>([])
 
   useEffect(() => {
     getAllCampuses()
@@ -29,6 +31,43 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
         toast.error("Failed to load campuses for mapping")
       })
   }, [])
+
+  // Load levels, grades, and classrooms for display
+  useEffect(() => {
+    if (formData.current_campus) {
+      // Load levels
+      getLevels(formData.current_campus)
+        .then((data: any) => {
+          const levelsList = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+          setLevels(levelsList)
+        })
+        .catch(err => console.error('Error fetching levels:', err))
+    }
+  }, [formData.current_campus])
+
+  useEffect(() => {
+    if (formData.class_teacher_level) {
+      // Load grades
+      getGrades(formData.class_teacher_level)
+        .then((data: any) => {
+          const gradesList = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+          setGrades(gradesList)
+        })
+        .catch(err => console.error('Error fetching grades:', err))
+    }
+  }, [formData.class_teacher_level])
+
+  useEffect(() => {
+    if (formData.class_teacher_grade) {
+      // Load classrooms
+      getClassrooms(formData.class_teacher_grade)
+        .then((data: any) => {
+          const classroomsList = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+          setClassrooms(classroomsList)
+        })
+        .catch(err => console.error('Error fetching classrooms:', err))
+    }
+  }, [formData.class_teacher_grade])
 
   const getCampusId = (value: string) => {
     if (!value) return null
@@ -44,11 +83,50 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
     return campus ? campus.id : null
   }
 
-  const buildPayload = () => {
+  // Helper functions to get names from IDs
+  const getLevelName = (levelId: string | number) => {
+    if (!levelId) return "N/A"
+    const level = levels.find(l => l.id === parseInt(String(levelId)))
+    return level ? `${level.name} - ${level.shift_display || level.shift}` : `Level ${levelId}`
+  }
+
+  const getGradeName = (gradeId: string | number) => {
+    if (!gradeId) return "N/A"
+    const grade = grades.find(g => g.id === parseInt(String(gradeId)))
+    return grade ? grade.name : `Grade ${gradeId}`
+  }
+
+  const getClassroomName = (classroomId: string | number) => {
+    if (!classroomId) return "N/A"
+    const classroom = classrooms.find(c => c.id === parseInt(String(classroomId)))
+    return classroom ? `${classroom.grade_name || classroom.grade} - ${classroom.section}` : `Classroom ${classroomId}`
+  }
+
+  const buildPayload = (overrideAssignedClassroom?: number | string | null) => {
+    // Manual classroom assignment if we have level, grade, and section but no classroom
+    let assignedClassroom = overrideAssignedClassroom ?? formData.assigned_classroom
+    
+    // (debug removed)
+    
+    if (!assignedClassroom && formData.class_teacher_level && formData.class_teacher_grade && formData.class_teacher_section && classrooms.length > 0) {
+      const matchingClassroom = classrooms.find(classroom => {
+        const gradeMatch = classroom.grade === parseInt(formData.class_teacher_grade) || classroom.grade === formData.class_teacher_grade
+        const sectionMatch = classroom.section === formData.class_teacher_section
+        return gradeMatch && sectionMatch
+      })
+      if (matchingClassroom) {
+        assignedClassroom = matchingClassroom.id
+      } else {
+        // no-op
+      }
+    } else {
+      // no-op
+    }
+
     const payload: any = {
       // Personal info tab fields
       full_name: formData.full_name || null,
-      dob: formData.dob || null,
+      dob: formData.dob && typeof formData.dob === 'string' ? formData.dob : null,
       gender: formData.gender || null,
       contact_number: formData.contact_number || null,
       email: formData.email || null,
@@ -67,12 +145,12 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
       // Experience tab fields (simplified)
       previous_institution_name: formData.previous_institution_name || null,
       previous_position: formData.previous_position || null,
-      experience_from_date: formData.experience_from_date || null,
-      experience_to_date: formData.experience_to_date || null,
+      experience_from_date: formData.experience_from_date && typeof formData.experience_from_date === 'string' ? formData.experience_from_date : null,
+      experience_to_date: formData.experience_to_date && typeof formData.experience_to_date === 'string' ? formData.experience_to_date : null,
       total_experience_years: formData.total_experience_years ? Number(formData.total_experience_years) : null,
 
       // Current role tab fields (simplified)
-      joining_date: formData.joining_date || null,
+      joining_date: formData.joining_date && typeof formData.joining_date === 'string' ? formData.joining_date : null,
       current_campus: getCampusId(formData.current_campus),
       current_subjects: formData.current_subjects || null,
       current_classes_taught: formData.current_classes_taught || null,
@@ -81,16 +159,25 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
       shift: formData.shift || 'morning',
       
       // Class teacher fields
-      is_class_teacher: typeof formData.is_class_teacher === 'boolean' ? formData.is_class_teacher : false,
+      is_class_teacher: formData.is_class_teacher === true || (formData.class_teacher_level && formData.class_teacher_grade && formData.class_teacher_section),
+      class_teacher_level: formData.class_teacher_level || null,
       class_teacher_grade: formData.class_teacher_grade || null,
       class_teacher_section: formData.class_teacher_section || null,
+      assigned_classroom: assignedClassroom || null,
     }
 
-    // Strip null/empty values
+    // (debug removed)
+    
+    // Strip null/empty values (but keep assigned_classroom even if null for debugging)
     Object.keys(payload).forEach((k) => {
       const v = payload[k]
-      if (v === null || v === undefined || v === "") delete payload[k]
+      if (v === null || v === undefined || v === "") {
+        if (k !== 'assigned_classroom') { // Keep assigned_classroom for debugging
+          delete payload[k]
+        }
+      }
     })
+    
     return payload
   }
 
@@ -127,13 +214,37 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
         return
       }
 
-      const payload = buildPayload()
-      console.log("Teacher create payload:", payload)
+      // Resolve assigned classroom just-in-time to avoid race conditions with state updates
+      let overrideAssignedClassroom: number | null = null
+      try {
+        if (!formData.assigned_classroom && formData.class_teacher_level && formData.class_teacher_grade && formData.class_teacher_section) {
+          const data: any = await getClassrooms(formData.class_teacher_grade)
+          const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+          const match = list.find((c: any) => (c.grade === parseInt(formData.class_teacher_grade) || c.grade === formData.class_teacher_grade) && c.section === formData.class_teacher_section)
+          if (match) {
+            overrideAssignedClassroom = match.id
+          } else {
+            // no-op
+          }
+        }
+      } catch (e) {
+        // keep silent
+      }
+
+      const payload = buildPayload(overrideAssignedClassroom)
+      // (debug removed)
 
       // Timeout safety so UI doesn't hang forever if the request takes too long
       const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timeout")), 15000))
-      await Promise.race([apiPost(API_ENDPOINTS.TEACHERS, payload), timeout])
-      toast.success("Teacher saved", { description: "Record has been created successfully." })
+      const response = await Promise.race([apiPost(API_ENDPOINTS.TEACHERS, payload), timeout]) as any
+      
+      // Extract teacher name and employee code from response
+      const teacherName = response?.full_name || formData.full_name || "Teacher"
+      const employeeCode = response?.employee_code || "Pending"
+      
+      toast.success("Teacher Added Successfully!", { 
+        description: `${teacherName} (${employeeCode}) has been added to the system.` 
+      })
       onBack()
     } catch (err: any) {
       console.error("Failed to save teacher", err)
@@ -222,8 +333,10 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
                <div><strong>Is class teacher:</strong> {typeof formData.is_class_teacher === "boolean" ? (formData.is_class_teacher ? "Yes" : "No") : "N/A"}</div>
                  {formData.is_class_teacher && (
                    <>
-                     <div><strong>Class teacher grade:</strong> {formData.class_teacher_grade || "N/A"}</div>
+                     <div><strong>Class teacher level:</strong> {getLevelName(formData.class_teacher_level)}</div>
+                     <div><strong>Class teacher grade:</strong> {getGradeName(formData.class_teacher_grade)}</div>
                      <div><strong>Class teacher section:</strong> {formData.class_teacher_section || "N/A"}</div>
+                     <div><strong>Assigned classroom:</strong> {getClassroomName(formData.assigned_classroom)}</div>
                    </>
                  )}
             </CardContent>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { ArrowLeft, ArrowRight, Eye } from "lucide-react"
@@ -11,6 +11,8 @@ import CurrentRoleStep from "./teacher-form/current-role-step"
 import { ExperienceStep } from "./teacher-form/experience-step"
 import { TeacherPreview } from "./teacher-form/teacher-preview"
 import { useToast } from "@/hooks/use-toast"
+import { toast as sonnerToast } from "sonner"
+import { getClassrooms } from "@/lib/api"
 import { useFormErrorHandler } from "@/hooks/use-error-handler"
 import { ErrorDisplay } from "@/components/ui/error-display"
 
@@ -64,13 +66,21 @@ export function TeacherForm() {
     current_extra_responsibilities: '',
     
     // System fields
-    is_currently_active: true
+    is_currently_active: true,
+    
+    // Class teacher fields
+    is_class_teacher: false,
+    class_teacher_level: '',
+    class_teacher_grade: '',
+    class_teacher_section: '',
+    assigned_classroom: ''
   })
   const [invalidFields, setInvalidFields] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [generalError, setGeneralError] = useState<string>('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isValidating, setIsValidating] = useState<Record<string, boolean>>({})
+  const [submitError, setSubmitError] = useState<string>('')
   
   // Use form error handler
   const { handleFormError, clearAllErrors } = useFormErrorHandler({
@@ -252,7 +262,19 @@ export function TeacherForm() {
     }
     
     setIsSubmitting(true)
+    setSubmitError('') // Clear any previous errors
     try {
+      // Resolve assigned classroom just-in-time if needed
+      let resolvedAssignedClassroom: number | null = formData.assigned_classroom ? parseInt(formData.assigned_classroom) : null
+      try {
+        if (!resolvedAssignedClassroom && formData.class_teacher_level && formData.class_teacher_grade && formData.class_teacher_section) {
+          const data: any = await getClassrooms(formData.class_teacher_grade)
+          const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+          const match = list.find((c: any) => (c.grade === parseInt(formData.class_teacher_grade) || c.grade === formData.class_teacher_grade) && c.section === formData.class_teacher_section)
+          if (match) resolvedAssignedClassroom = match.id
+        }
+      } catch {}
+
       // Prepare data for API submission
       const submitData = {
         ...formData,
@@ -263,8 +285,9 @@ export function TeacherForm() {
         total_experience_years: formData.total_experience_years ? parseFloat(formData.total_experience_years) : null,
         // Convert boolean fields
         is_currently_active: Boolean(formData.is_currently_active),
-        // Remove fields that don't exist in backend
-        assigned_classroom: null,
+        // Class-teacher consistency
+        is_class_teacher: Boolean(formData.is_class_teacher || (formData.class_teacher_level && formData.class_teacher_grade && formData.class_teacher_section)),
+        assigned_classroom: resolvedAssignedClassroom,
       }
 
       console.log('Submitting teacher data:', submitData)
@@ -280,7 +303,10 @@ export function TeacherForm() {
 
       if (response.ok) {
         const result = await response.json()
-        console.log('Teacher created successfully:', result)
+        // Success toast with teacher name, employee code, and classroom (if any)
+        const teacherName = result?.full_name || formData.full_name || "Teacher"
+        const employeeCode = result?.employee_code || "Pending"
+        const classroomName = result?.classroom_name || (formData.class_teacher_section ? `Grade ${formData.class_teacher_grade} - ${formData.class_teacher_section}` : "N/A")
         
         // Reset form to initial state
         setFormData({
@@ -332,27 +358,32 @@ export function TeacherForm() {
         setFieldErrors({})
         setIsValidating({})
         
-        toast({
-          title: "Teacher Added Successfully! 🎉",
-          description: `Employee Code: ${result.employee_code}\nDefault Password: 12345`,
+        // Show success message in UI card
+        setSubmitError('') // Clear any errors
+        sonnerToast.success("Teacher Added Successfully!", {
+          description: `${teacherName} (${employeeCode})${formData.is_class_teacher ? ` • Classroom: ${classroomName}` : ''}`,
         })
       } else {
         const errorData = await response.json();
-        console.log('API Error Response:', errorData);
         
         // Handle specific error cases with user-friendly messages
         let errorMessage = 'Failed to create teacher. Please try again.';
-        
-        console.log('Error details:', errorData);
         
         if (errorData.email && Array.isArray(errorData.email) && errorData.email[0].includes('already exists')) {
           errorMessage = 'This email is already registered. Please use a different email address.';
         } else if (errorData.cnic && Array.isArray(errorData.cnic) && errorData.cnic[0].includes('already exists')) {
           errorMessage = 'This CNIC is already registered. Please check your CNIC number.';
+        } else if (errorData.assigned_classroom && Array.isArray(errorData.assigned_classroom)) {
+          // Unique constraint from backend: one teacher per classroom
+          errorMessage = 'This classroom is already assigned to another class teacher. Please choose a different section.';
         } else if (errorData.email && Array.isArray(errorData.email)) {
           errorMessage = `Email error: ${errorData.email[0]}`;
         } else if (errorData.cnic && Array.isArray(errorData.cnic)) {
           errorMessage = `CNIC error: ${errorData.cnic[0]}`;
+        } else if (errorData.experience_from_date && Array.isArray(errorData.experience_from_date)) {
+          errorMessage = errorData.experience_from_date[0];
+        } else if (errorData.experience_to_date && Array.isArray(errorData.experience_to_date)) {
+          errorMessage = errorData.experience_to_date[0];
         } else if (errorData.non_field_errors) {
           errorMessage = Array.isArray(errorData.non_field_errors) 
             ? errorData.non_field_errors.join(', ')
@@ -366,17 +397,17 @@ export function TeacherForm() {
           }
         }
         
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive"
-        });
+        // Show error in UI card
+        setSubmitError(errorMessage)
+        sonnerToast.error("Failed to save teacher", { description: errorMessage })
       }
     } catch (error) {
       console.error('Error submitting teacher:', error)
+      const networkError = "Network error. Please check your connection and try again."
+      setSubmitError(networkError)
       toast({
         title: "Error",
-        description: "Network error. Please check your connection and try again.",
+        description: networkError,
         variant: "destructive"
       });
     } finally {
@@ -427,6 +458,41 @@ export function TeacherForm() {
 
   return (
     <div className="space-y-6">
+      {/* Error Popup Modal */}
+      {submitError && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        <Card className="border-red-500 bg-white shadow-2xl max-w-md w-full mx-4">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-red-600 text-xl">⚠</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-red-800 text-lg">Error</h3>
+                  <p className="text-red-700 text-sm mt-1">{submitError}</p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setSubmitError('')}
+                  className="text-red-600 hover:text-red-800 hover:bg-red-100"
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  onClick={() => setSubmitError('')}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  OK
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {!showPreview && (
         <Card className="border-2">
           <CardHeader>

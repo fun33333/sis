@@ -51,7 +51,7 @@ class TeacherAdmin(admin.ModelAdmin):
             )
         }),
         ('Class Teacher Information', {
-            'fields': ('is_class_teacher', 'class_teacher_grade', 'class_teacher_section', 'assigned_classroom'),
+            'fields': ('is_class_teacher', 'class_teacher_level', 'class_teacher_grade', 'class_teacher_section', 'assigned_classroom'),
         }),
         ('System Fields', {
             'fields': ('employee_code', 'teacher_id', 'save_status', 'date_created', 'date_updated'),

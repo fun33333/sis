@@ -3,8 +3,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { useEffect, useState } from "react"
+import { getLevels, getGrades, getClassrooms } from "@/lib/api"
+import { toast as sonnerToast } from "sonner"
 
 interface CurrentRoleStepProps {
   formData: any
@@ -14,6 +16,82 @@ interface CurrentRoleStepProps {
 
 
 export function CurrentRoleStep({ formData, invalidFields, onInputChange }: CurrentRoleStepProps) {
+  const [levels, setLevels] = useState<any[]>([])
+  const [grades, setGrades] = useState<any[]>([])
+  const [classrooms, setClassrooms] = useState<any[]>([])
+  const [loadingLevels, setLoadingLevels] = useState(false)
+  const [loadingGrades, setLoadingGrades] = useState(false)
+  const [loadingClassrooms, setLoadingClassrooms] = useState(false)
+
+  // Fetch levels for the selected campus
+  useEffect(() => {
+    if (formData.current_campus) {
+      setLoadingLevels(true)
+      getLevels(formData.current_campus)
+        .then((data: any) => {
+          const levelsList = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+          setLevels(levelsList)
+        })
+        .catch(err => console.error('Error fetching levels:', err))
+        .finally(() => setLoadingLevels(false))
+    }
+  }, [formData.current_campus])
+
+  // Fetch grades when level is selected
+  useEffect(() => {
+    if (formData.class_teacher_level) {
+      setLoadingGrades(true)
+      getGrades(formData.class_teacher_level)
+        .then((data: any) => {
+          const gradesList = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+          setGrades(gradesList)
+        })
+        .catch(err => console.error('Error fetching grades:', err))
+        .finally(() => setLoadingGrades(false))
+    }
+  }, [formData.class_teacher_level])
+
+  // Fetch classrooms when grade is selected
+  useEffect(() => {
+    if (formData.class_teacher_grade) {
+      setLoadingClassrooms(true)
+      getClassrooms(formData.class_teacher_grade)
+        .then((data: any) => {
+          const classroomsList = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+          setClassrooms(classroomsList)
+        })
+        .catch(err => console.error('Error fetching classrooms:', err))
+        .finally(() => setLoadingClassrooms(false))
+    }
+  }, [formData.class_teacher_grade])
+
+  // Auto-assign classroom when level, grade, and section are selected
+  useEffect(() => {
+    if (formData.class_teacher_level && formData.class_teacher_grade && formData.class_teacher_section && classrooms.length > 0) {
+      const matchingClassroom = classrooms.find(classroom => {
+        const gradeMatch = classroom.grade === parseInt(formData.class_teacher_grade) || classroom.grade === formData.class_teacher_grade
+        const sectionMatch = classroom.section === formData.class_teacher_section
+        return gradeMatch && sectionMatch
+      })
+      
+      if (matchingClassroom && formData.assigned_classroom !== matchingClassroom.id) {
+        // Prevent assigning if already occupied
+        if (matchingClassroom.class_teacher) {
+          sonnerToast.error("Classroom already assigned", {
+            description: "This classroom is already assigned to another class teacher. Please choose a different section.",
+          })
+          return
+        }
+        // Use setTimeout to ensure the state update happens
+        setTimeout(() => {
+          onInputChange("assigned_classroom", matchingClassroom.id)
+        }, 100)
+      }
+    }
+  }, [formData.class_teacher_level, formData.class_teacher_grade, formData.class_teacher_section, classrooms.length])
+
+  // Minimal debug only on errors (none by default)
+
   return (
     <Card className="border-2">
       <CardHeader>
@@ -115,7 +193,10 @@ export function CurrentRoleStep({ formData, invalidFields, onInputChange }: Curr
           </div>
           <div>
             <Label htmlFor="is_class_teacher">Is Class Teacher</Label>
-            <Select value={String(Boolean(formData.is_class_teacher))} onValueChange={(v) => onInputChange("is_class_teacher", v === "true")}>
+            <Select 
+              value={String(Boolean(formData.is_class_teacher))} 
+              onValueChange={(v) => onInputChange("is_class_teacher", v === "true")}
+            >
               <SelectTrigger className="mt-2 border-2 focus:border-primary">
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
@@ -124,30 +205,58 @@ export function CurrentRoleStep({ formData, invalidFields, onInputChange }: Curr
                 <SelectItem value="false">No</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-sm text-gray-500 mt-1">Current value: {String(Boolean(formData.is_class_teacher))}</p>
           </div>
           
           {formData.is_class_teacher && (
             <>
               <div>
-                <Label htmlFor="class_teacher_grade">Class Teacher Grade *</Label>
-                <Select value={formData.class_teacher_grade || ""} onValueChange={(v) => onInputChange("class_teacher_grade", v)}>
-                  <SelectTrigger className={`mt-2 border-2 focus:border-primary ${invalidFields.includes("class_teacher_grade") ? "border-red-500" : ""}`}>
-                    <SelectValue placeholder="Select grade" />
+                <Label htmlFor="class_teacher_level">Class Teacher Level *</Label>
+                <Select 
+                  value={formData.class_teacher_level || ""} 
+                  onValueChange={(v) => {
+                    onInputChange("class_teacher_level", v)
+                    // Reset grade and section when level changes
+                    onInputChange("class_teacher_grade", "")
+                    onInputChange("class_teacher_section", "")
+                    onInputChange("assigned_classroom", "")
+                  }}
+                >
+                  <SelectTrigger className={`mt-2 border-2 focus:border-primary ${invalidFields.includes("class_teacher_level") ? "border-red-500" : ""}`}>
+                    <SelectValue placeholder={loadingLevels ? "Loading levels..." : "Select level"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Nursery">Nursery</SelectItem>
-                    <SelectItem value="KG-I">KG-I</SelectItem>
-                    <SelectItem value="KG-II">KG-II</SelectItem>
-                    <SelectItem value="Grade-1">Grade-1</SelectItem>
-                    <SelectItem value="Grade-2">Grade-2</SelectItem>
-                    <SelectItem value="Grade-3">Grade-3</SelectItem>
-                    <SelectItem value="Grade-4">Grade-4</SelectItem>
-                    <SelectItem value="Grade-5">Grade-5</SelectItem>
-                    <SelectItem value="Grade-6">Grade-6</SelectItem>
-                    <SelectItem value="Grade-7">Grade-7</SelectItem>
-                    <SelectItem value="Grade-8">Grade-8</SelectItem>
-                    <SelectItem value="Grade-9">Grade-9</SelectItem>
-                    <SelectItem value="Grade-10">Grade-10</SelectItem>
+                    {levels.map((level) => (
+                      <SelectItem key={level.id} value={level.id.toString()}>
+                        {level.name} - {level.shift_display || level.shift}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {invalidFields.includes("class_teacher_level") && <p className="text-sm text-red-600 mt-1">Class teacher level is required</p>}
+              </div>
+              
+              <div>
+                <Label htmlFor="class_teacher_grade">Class Teacher Grade *</Label>
+                <Select 
+                  value={formData.class_teacher_grade || ""} 
+                  onValueChange={(v) => {
+                    onInputChange("class_teacher_grade", v)
+                    // Reset section when grade changes
+                    onInputChange("class_teacher_section", "")
+                    onInputChange("assigned_classroom", "")
+                  }}
+                  disabled={!formData.class_teacher_level || loadingGrades}
+                >
+                  <SelectTrigger className={`mt-2 border-2 focus:border-primary ${invalidFields.includes("class_teacher_grade") ? "border-red-500" : ""}`}>
+                    <SelectValue placeholder={loadingGrades ? "Loading grades..." : "Select grade"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {grades.map((grade) => (
+                      <SelectItem key={grade.id} value={grade.id.toString()}>
+                        {grade.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 {invalidFields.includes("class_teacher_grade") && <p className="text-sm text-red-600 mt-1">Class teacher grade is required</p>}
@@ -155,16 +264,25 @@ export function CurrentRoleStep({ formData, invalidFields, onInputChange }: Curr
               
               <div>
                 <Label htmlFor="class_teacher_section">Class Teacher Section *</Label>
-                <Select value={formData.class_teacher_section || ""} onValueChange={(v) => onInputChange("class_teacher_section", v)}>
+                <Select 
+                  value={formData.class_teacher_section || ""} 
+                  onValueChange={(v) => {
+                    onInputChange("class_teacher_section", v)
+                    // Auto-assign classroom will be handled by useEffect
+                  }}
+                  disabled={!formData.class_teacher_grade || loadingClassrooms}
+                >
                   <SelectTrigger className={`mt-2 border-2 focus:border-primary ${invalidFields.includes("class_teacher_section") ? "border-red-500" : ""}`}>
-                    <SelectValue placeholder="Select section" />
+                    <SelectValue placeholder={loadingClassrooms ? "Loading sections..." : "Select section"}>
+                      {formData.class_teacher_section || "Select section"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="A">A</SelectItem>
-                    <SelectItem value="B">B</SelectItem>
-                    <SelectItem value="C">C</SelectItem>
-                    <SelectItem value="D">D</SelectItem>
-                    <SelectItem value="E">E</SelectItem>
+                    {classrooms.map((classroom) => (
+                      <SelectItem key={classroom.id} value={classroom.section}>
+                        {classroom.section}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 {invalidFields.includes("class_teacher_section") && <p className="text-sm text-red-600 mt-1">Class teacher section is required</p>}
