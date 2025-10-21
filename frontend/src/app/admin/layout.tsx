@@ -6,7 +6,6 @@ import { useState, useEffect } from "react"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { UserProfilePopup } from "@/components/admin/user-profile-popup"
 import ProtectedRoute from "@/components/ProtectedRoute"
-import { GraphQLProvider } from "@/components/providers/GraphQLProvider"
 
 export default function AdminLayout({
   children,
@@ -38,7 +37,6 @@ export default function AdminLayout({
   }, [])
 
   return (
-    <GraphQLProvider>
       <div className="bg-[#e7ecef] flex h-screen overflow-hidden">
         <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
@@ -56,7 +54,6 @@ export default function AdminLayout({
           </ProtectedRoute>
         </main>
       </div>
-    </GraphQLProvider>
   )
 
 
