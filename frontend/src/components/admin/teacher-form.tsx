@@ -81,9 +81,10 @@ export function TeacherForm() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isValidating, setIsValidating] = useState<Record<string, boolean>>({})
   const [submitError, setSubmitError] = useState<string>('')
+  const [submitSuccess, setSubmitSuccess] = useState<{name: string, code: string, classroom?: string} | null>(null)
   
   // Use form error handler
-  const { handleFormError, clearAllErrors } = useFormErrorHandler({
+  useFormErrorHandler({
     onGeneralError: (message) => {
       setGeneralError(message)
     }
@@ -358,8 +359,13 @@ export function TeacherForm() {
         setFieldErrors({})
         setIsValidating({})
         
-        // Show success message in UI card
+        // Show success popup modal
         setSubmitError('') // Clear any errors
+        setSubmitSuccess({
+          name: teacherName,
+          code: employeeCode,
+          classroom: formData.is_class_teacher ? classroomName : undefined
+        })
         sonnerToast.success("Teacher Added Successfully!", {
           description: `${teacherName} (${employeeCode})${formData.is_class_teacher ? ` • Classroom: ${classroomName}` : ''}`,
         })
@@ -484,6 +490,51 @@ export function TeacherForm() {
                 <Button 
                   onClick={() => setSubmitError('')}
                   className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  OK
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Success Popup Modal */}
+      {submitSuccess && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <Card className="border-green-500 bg-white shadow-2xl max-w-md w-full mx-4">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-green-600 text-xl">✓</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-green-800 text-lg">Success!</h3>
+                  <p className="text-green-700 text-sm mt-1">
+                    <strong>{submitSuccess.name}</strong> has been added successfully!
+                  </p>
+                  <p className="text-green-600 text-xs mt-1">
+                    Employee Code: <strong>{submitSuccess.code}</strong>
+                  </p>
+                  {submitSuccess.classroom && (
+                    <p className="text-green-600 text-xs mt-1">
+                      Classroom: <strong>{submitSuccess.classroom}</strong>
+                    </p>
+                  )}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setSubmitSuccess(null)}
+                  className="text-green-600 hover:text-green-800 hover:bg-green-100"
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  onClick={() => setSubmitSuccess(null)}
+                  className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   OK
                 </Button>

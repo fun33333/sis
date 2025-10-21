@@ -14,9 +14,10 @@ interface StudentPreviewProps {
   uploadedImages: { [key: string]: string }
   onBack: () => void
   onSaved?: () => void
+  onError?: (error: string) => void
 }
 
-export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: StudentPreviewProps) {
+export function StudentPreview({ formData, uploadedImages, onBack, onSaved, onError }: StudentPreviewProps) {
   const [saving, setSaving] = useState(false)
   const [campuses, setCampuses] = useState<any[]>([])
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -216,9 +217,11 @@ export function StudentPreview({ formData, uploadedImages, onBack, onSaved }: St
         const combo = `${formData.currentGrade || 'Grade'}-${formData.section || ''} ${formData.shift || ''}`.trim()
         const uiMsg = `No classroom found for ${combo} in the selected campus. Please create the classroom first, then try again.`
         setSubmitError(uiMsg)
+        onError?.(uiMsg) // Pass error to parent
         toast.error("Classroom not available", { description: uiMsg, duration: 7000 })
       } else {
         setSubmitError(friendly)
+        onError?.(friendly) // Pass error to parent
         toast.error("Failed to save student", { description: friendly, duration: 6000 })
       }
     } finally {

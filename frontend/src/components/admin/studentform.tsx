@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useRef } from "react"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { ArrowLeft, ArrowRight, Eye } from "lucide-react"
@@ -11,6 +11,7 @@ import { StudentPreview } from "./student-form/student-preview"
 import { ContactDetailsStep } from "./student-form/contect-details-step"
 import { AcademicDetailsStep } from "./student-form/acadmic-details-step"
 import { useToast } from "@/hooks/use-toast"
+import { toast as sonnerToast } from "sonner"
 
 const steps = [
   { id: 1, title: "Personal Details" },
@@ -25,6 +26,8 @@ export function StudentForm() {
   const [formData, setFormData] = useState<any>({})
   const [uploadedImages, setUploadedImages] = useState<{ [key: string]: string }>({})
   const [invalidFields, setInvalidFields] = useState<string[]>([])
+  const [submitError, setSubmitError] = useState<string>('')
+  const [submitSuccess, setSubmitSuccess] = useState<{name: string, studentId?: string, grade?: string} | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null) as React.RefObject<HTMLInputElement>
 
   const totalSteps = steps.length
@@ -158,14 +161,27 @@ export function StudentForm() {
           formData={formData} 
           uploadedImages={uploadedImages} 
           onBack={() => setShowPreview(false)}
+          onError={(error) => setSubmitError(error)}
           onSaved={() => {
             setShowPreview(false)
             setFormData({})
             setUploadedImages({})
             setCurrentStep(1)
-            toast({
-              title: "Success",
-              description: "Student has been saved successfully!",
+            setSubmitError('') // Clear any errors
+            
+            // Show success popup modal
+            const studentName = formData.name || "Student"
+            const studentId = formData.studentId || "Pending"
+            const grade = formData.currentGrade || "N/A"
+            
+            setSubmitSuccess({
+              name: studentName,
+              studentId: studentId,
+              grade: grade
+            })
+            
+            sonnerToast.success("Student Added Successfully!", {
+              description: `${studentName} (${studentId}) • Grade: ${grade}`,
             })
           }}
         />
@@ -200,6 +216,86 @@ export function StudentForm() {
 
   return (
     <div className="space-y-6">
+      {/* Error Popup Modal */}
+      {submitError && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <Card className="border-red-500 bg-white shadow-2xl max-w-md w-full mx-4">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-red-600 text-xl">⚠</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-red-800 text-lg">Error</h3>
+                  <p className="text-red-700 text-sm mt-1">{submitError}</p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setSubmitError('')}
+                  className="text-red-600 hover:text-red-800 hover:bg-red-100"
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  onClick={() => setSubmitError('')}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  OK
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Success Popup Modal */}
+      {submitSuccess && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <Card className="border-green-500 bg-white shadow-2xl max-w-md w-full mx-4">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-green-600 text-xl">✓</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-green-800 text-lg">Success!</h3>
+                  <p className="text-green-700 text-sm mt-1">
+                    <strong>{submitSuccess.name}</strong> has been added successfully!
+                  </p>
+                  <p className="text-green-600 text-xs mt-1">
+                    Student ID: <strong>{submitSuccess.studentId}</strong>
+                  </p>
+                  {submitSuccess.grade && (
+                    <p className="text-green-600 text-xs mt-1">
+                      Grade: <strong>{submitSuccess.grade}</strong>
+                    </p>
+                  )}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setSubmitSuccess(null)}
+                  className="text-green-600 hover:text-green-800 hover:bg-green-100"
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  onClick={() => setSubmitSuccess(null)}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  OK
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {!showPreview && (
         <Card className="border-2">
           <CardHeader>

@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { getCurrentUser, getCurrentUserRole } from "@/lib/permissions"
 import { useFormErrorHandler } from "@/hooks/use-error-handler"
 import { ErrorDisplay } from "@/components/ui/error-display"
+import { toast as sonnerToast } from "sonner"
 
 const steps = [
   { id: 1, title: "Personal" },
@@ -59,6 +60,8 @@ export function CoordinatorForm({
   const [currentUserCampus, setCurrentUserCampus] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [generalError, setGeneralError] = useState<string>('')
+  const [submitError, setSubmitError] = useState<string>('')
+  const [submitSuccess, setSubmitSuccess] = useState<{name: string, code: string, level?: string} | null>(null)
   
   // Use form error handler
   const { handleFormError, clearAllErrors, getFieldError } = useFormErrorHandler({
@@ -511,10 +514,22 @@ export function CoordinatorForm({
       if (response.ok) {
         const responseData = await response.json();
         console.log('Success response:', responseData);
-        toast({
-          title: "Success",
-          description: `Coordinator ${isEdit ? 'updated' : 'added'} successfully! 🎉\n\n${!isEdit ? `Employee Code: ${responseData.employee_code}\nDefault Password: 12345\n\nCredentials have been sent to ${responseData.email}` : ''}`,
-        });
+        
+        // Show success popup modal
+        setSubmitError('') // Clear any errors
+        const coordinatorName = responseData.full_name || formData.full_name || "Coordinator"
+        const employeeCode = responseData.employee_code || "Pending"
+        const levelName = levels.find(l => l.id === parseInt(formData.level))?.name || "N/A"
+        
+        setSubmitSuccess({
+          name: coordinatorName,
+          code: employeeCode,
+          level: levelName
+        })
+        
+        sonnerToast.success(`Coordinator ${isEdit ? 'Updated' : 'Added'} Successfully!`, {
+          description: `${coordinatorName} (${employeeCode})${!isEdit ? ` • Level: ${levelName}` : ''}`,
+        })
         
         // Reset form and go to first step
         if (!isEdit) {
@@ -544,16 +559,37 @@ export function CoordinatorForm({
         onSuccess?.();
       } else {
         const errorText = await response.text();
-        const error = new Error(errorText);
-        (error as any).status = response.status;
-        (error as any).statusText = response.statusText;
-        (error as any).response = errorText;
+        let errorMessage = 'Failed to create coordinator. Please try again.';
         
-        handleFormError(error);
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.email && Array.isArray(errorData.email) && errorData.email[0].includes('already exists')) {
+            errorMessage = 'This email is already registered. Please use a different email address.';
+          } else if (errorData.cnic && Array.isArray(errorData.cnic) && errorData.cnic[0].includes('already exists')) {
+            errorMessage = 'This CNIC is already registered. Please check your CNIC number.';
+          } else if (errorData.level && Array.isArray(errorData.level)) {
+            errorMessage = 'This level already has a coordinator assigned. Please choose a different level.';
+          } else if (errorData.non_field_errors) {
+            errorMessage = Array.isArray(errorData.non_field_errors) 
+              ? errorData.non_field_errors.join(', ')
+              : errorData.non_field_errors;
+          } else if (typeof errorData === 'object') {
+            const fieldErrors = Object.values(errorData);
+            if (fieldErrors.length > 0) {
+              const firstError = Array.isArray(fieldErrors[0]) ? fieldErrors[0][0] : fieldErrors[0];
+              errorMessage = firstError;
+            }
+          }
+        } catch {}
+        
+        setSubmitError(errorMessage)
+        sonnerToast.error("Failed to save coordinator", { description: errorMessage })
       }
     } catch (error) {
       console.error('Network/Request error:', error);
-      handleFormError(error);
+      const networkError = "Network error. Please check your connection and try again."
+      setSubmitError(networkError)
+      sonnerToast.error("Error", { description: networkError });
     } finally {
       setIsSubmitting(false);
     }
@@ -576,6 +612,85 @@ export function CoordinatorForm({
 
               return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      {/* Error Popup Modal */}
+      {submitError && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <Card className="border-red-500 bg-white shadow-2xl max-w-md w-full mx-4">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-red-600 text-xl">⚠</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-red-800 text-lg">Error</h3>
+                  <p className="text-red-700 text-sm mt-1">{submitError}</p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setSubmitError('')}
+                  className="text-red-600 hover:text-red-800 hover:bg-red-100"
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  onClick={() => setSubmitError('')}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  OK
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Success Popup Modal */}
+      {submitSuccess && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <Card className="border-green-500 bg-white shadow-2xl max-w-md w-full mx-4">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-green-600 text-xl">✓</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-green-800 text-lg">Success!</h3>
+                  <p className="text-green-700 text-sm mt-1">
+                    <strong>{submitSuccess.name}</strong> has been added successfully!
+                  </p>
+                  <p className="text-green-600 text-xs mt-1">
+                    Employee Code: <strong>{submitSuccess.code}</strong>
+                  </p>
+                  {submitSuccess.level && (
+                    <p className="text-green-600 text-xs mt-1">
+                      Level: <strong>{submitSuccess.level}</strong>
+                    </p>
+                  )}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setSubmitSuccess(null)}
+                  className="text-green-600 hover:text-green-800 hover:bg-green-100"
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  onClick={() => setSubmitSuccess(null)}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  OK
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto">
         <Card className="shadow-2xl border-0">
           <CardHeader className="bg-white border-b-2 border-gray-200 rounded-t-lg">
