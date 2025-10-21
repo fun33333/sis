@@ -5,11 +5,12 @@ class LevelSerializer(serializers.ModelSerializer):
     campus_name = serializers.CharField(source='campus.campus_name', read_only=True)
     coordinator_name = serializers.SerializerMethodField()
     coordinator_code = serializers.SerializerMethodField()
+    shift_display = serializers.CharField(source='get_shift_display', read_only=True)
     
     class Meta:
         model = Level
         fields = [
-            'id', 'name', 'code', 'campus', 'campus_name', 
+            'id', 'name', 'shift', 'shift_display', 'code', 'campus', 'campus_name', 
             'coordinator_name', 'coordinator_code'
         ]
         read_only_fields = ['id', 'code']

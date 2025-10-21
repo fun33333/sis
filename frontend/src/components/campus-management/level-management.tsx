@@ -43,7 +43,7 @@ export default function LevelManagement({ campusId }: LevelManagementProps) {
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingLevel, setEditingLevel] = useState<any>(null)
-  const [formData, setFormData] = useState({ name: '' })
+  const [formData, setFormData] = useState({ name: '', shift: 'morning' })
   const [saving, setSaving] = useState(false)
   
   // Coordinator assignment state
@@ -54,7 +54,6 @@ export default function LevelManagement({ campusId }: LevelManagementProps) {
   const [assigning, setAssigning] = useState(false)
   const [loadingCoordinators, setLoadingCoordinators] = useState(false)
   
-  // Get campus ID from localStorage if not provided
   const userCampusId = campusId || getUserCampusId()
 
   useEffect(() => {
@@ -77,19 +76,23 @@ export default function LevelManagement({ campusId }: LevelManagementProps) {
 
   function handleCreate() {
     setEditingLevel(null)
-    setFormData({ name: '' })
+    setFormData({ name: '', shift: 'morning' })
     setIsDialogOpen(true)
   }
 
   function handleEdit(level: any) {
     setEditingLevel(level)
-    setFormData({ name: level.name })
+    setFormData({ name: level.name, shift: level.shift || 'morning' })
     setIsDialogOpen(true)
   }
 
   async function handleSave() {
     if (!formData.name.trim()) {
       alert('Please enter a level name')
+      return
+    }
+    if (!formData.shift) {
+      alert('Please select a shift')
       return
     }
 
@@ -225,6 +228,7 @@ export default function LevelManagement({ campusId }: LevelManagementProps) {
           <TableHeader>
             <TableRow style={{ backgroundColor: '#1976D2' }}>
               <TableHead className="text-white font-semibold">Name</TableHead>
+              <TableHead className="text-white font-semibold">Shift</TableHead>
               <TableHead className="text-white font-semibold">Code</TableHead>
               <TableHead className="text-white font-semibold">Coordinator</TableHead>
               <TableHead className="text-right text-white font-semibold">Actions</TableHead>
@@ -234,6 +238,7 @@ export default function LevelManagement({ campusId }: LevelManagementProps) {
             {levels.map((level) => (
               <TableRow key={level.id}>
                 <TableCell className="font-medium">{level.name}</TableCell>
+                <TableCell className="capitalize">{level.shift}</TableCell>
                 <TableCell>
                   <span className="px-2 py-1 bg-gray-100 rounded text-sm font-mono">
                     {level.code}
@@ -307,6 +312,19 @@ export default function LevelManagement({ campusId }: LevelManagementProps) {
                   {LEVEL_OPTIONS.map(opt => (
                     <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="shift">Shift *</Label>
+              <Select value={formData.shift} onValueChange={(value) => setFormData({ ...formData, shift: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a shift" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="morning">Morning</SelectItem>
+                  <SelectItem value="afternoon">Afternoon</SelectItem>
                 </SelectContent>
               </Select>
             </div>

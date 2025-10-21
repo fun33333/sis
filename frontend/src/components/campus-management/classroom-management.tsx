@@ -34,6 +34,7 @@ import {
   updateClassroom, 
   deleteClassroom,
   getGrades,
+  getLevels,
   getAvailableTeachers,
   assignTeacherToClassroom,
   getUserCampusId
@@ -47,6 +48,7 @@ interface ClassroomManagementProps {
 export default function ClassroomManagement({ campusId }: ClassroomManagementProps) {
   const [classrooms, setClassrooms] = useState<any[]>([])
   const [grades, setGrades] = useState<any[]>([])
+  const [levels, setLevels] = useState<any[]>([])
   const [availableTeachers, setAvailableTeachers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -54,6 +56,7 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
   const [editingClassroom, setEditingClassroom] = useState<any>(null)
   const [selectedClassroom, setSelectedClassroom] = useState<any>(null)
   const [formData, setFormData] = useState({
+    level: '',
     grade: '',
     section: 'A',
     capacity: '30',
@@ -75,22 +78,25 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
     try {
       const gradeId = selectedGrade !== 'all' ? parseInt(selectedGrade) : undefined
       
-      const [classroomsData, gradesData, teachersData] = await Promise.all([
+      const [classroomsData, gradesData, levelsData, teachersData] = await Promise.all([
         getClassrooms(
           gradeId,
           undefined,
           userCampusId || undefined
         ),
         getGrades(undefined, userCampusId || undefined),
+        getLevels(userCampusId || undefined),
         getAvailableTeachers(userCampusId || undefined)
       ])
       // Handle paginated responses
       const classroomsArray = (classroomsData as any)?.results || (Array.isArray(classroomsData) ? classroomsData : [])
       const gradesArray = (gradesData as any)?.results || (Array.isArray(gradesData) ? gradesData : [])
+      const levelsArray = (levelsData as any)?.results || (Array.isArray(levelsData) ? levelsData : [])
       const teachersArray = (teachersData as any)?.results || (Array.isArray(teachersData) ? teachersData : [])
       
       setClassrooms(classroomsArray)
       setGrades(gradesArray)
+      setLevels(levelsArray)
       setAvailableTeachers(teachersArray)
     } catch (error) {
       console.error('Failed to fetch data:', error)
@@ -101,8 +107,11 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
 
   function handleCreate() {
     setEditingClassroom(null)
+    const defaultLevelId = levels.length > 0 ? levels[0].id.toString() : ''
+    const firstGradeForLevel = defaultLevelId ? grades.find((g: any) => String(g.level) === defaultLevelId) : undefined
     setFormData({
-      grade: grades.length > 0 ? grades[0].id.toString() : '',
+      level: defaultLevelId,
+      grade: firstGradeForLevel ? firstGradeForLevel.id.toString() : '',
       section: 'A',
       capacity: '30',
       shift: 'morning'
@@ -112,7 +121,10 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
 
   function handleEdit(classroom: any) {
     setEditingClassroom(classroom)
+    const gradeObj = grades.find((g: any) => String(g.id) === String(classroom.grade))
+    const levelId = gradeObj ? String(gradeObj.level) : ''
     setFormData({
+      level: levelId,
       grade: classroom.grade.toString(),
       section: classroom.section,
       capacity: classroom.capacity.toString(),
@@ -122,16 +134,18 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
   }
 
   async function handleSave() {
-    if (!formData.grade || !formData.section) {
-      alert('Please select grade and section')
+    if (!formData.level || !formData.grade || !formData.section) {
+      alert('Please select level, grade and section')
       return
     }
 
     setSaving(true)
     try {
       const data = {
-        ...formData,
-        capacity: parseInt(formData.capacity)
+        grade: parseInt(formData.grade),
+        section: formData.section,
+        capacity: parseInt(formData.capacity),
+        shift: formData.shift
       }
       
       if (editingClassroom) {
@@ -244,11 +258,16 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
             <SelectItem value="all">All Grades</SelectItem>
             {grades.map((grade) => (
               <SelectItem key={grade.id} value={grade.id.toString()}>
-                {grade.name}
+                {grade.name} ({classrooms.filter(c => String(c.grade) === String(grade.id)).length})
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <div className="ml-2 inline-flex items-center">
+          <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: '#E3F2FD', color: '#1976D2' }}>
+            Total: {classrooms.length}
+          </span>
+        </div>
         
         {grades.length === 0 && (
           <p className="text-sm text-amber-600">
@@ -377,31 +396,67 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="grade">Grade *</Label>
-              {grades.length === 0 ? (
+            <Label htmlFor="level">Level *</Label>
+            {levels.length === 0 ? (
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
                   <p className="text-sm text-amber-800">
-                    No grades available. Please create a grade first.
+                  No levels available. Please create a level first.
                   </p>
                 </div>
               ) : (
                 <Select
-                  value={formData.grade}
-                  onValueChange={(value) => setFormData({ ...formData, grade: value })}
+                value={formData.level}
+                onValueChange={(value) => {
+                  const firstGrade = grades.find((g: any) => String(g.level) === value)
+                  setFormData({ 
+                    ...formData, 
+                    level: value, 
+                    grade: firstGrade ? firstGrade.id.toString() : '' 
+                  })
+                }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a grade" />
+                  <SelectValue placeholder="Select a level" />
                   </SelectTrigger>
                   <SelectContent>
-                    {grades.map((grade) => (
-                      <SelectItem key={grade.id} value={grade.id.toString()}>
-                        {grade.name} ({grade.level_name})
-                      </SelectItem>
-                    ))}
+                  {levels.map((level) => (
+                    <SelectItem key={level.id} value={level.id.toString()}>
+                      {level.name} ({String(level.shift || '').replace(/\b\w/g, (c: string) => c.toUpperCase())})
+                    </SelectItem>
+                  ))}
                   </SelectContent>
                 </Select>
               )}
             </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="grade">Grade *</Label>
+            {grades.length === 0 ? (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                <p className="text-sm text-amber-800">
+                  No grades available. Please create a grade first.
+                </p>
+              </div>
+            ) : (
+              <Select
+                value={formData.grade}
+                onValueChange={(value) => setFormData({ ...formData, grade: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a grade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {grades
+                    .filter((g: any) => !formData.level || String(g.level) === String(formData.level))
+                    .map((grade) => (
+                      <SelectItem key={grade.id} value={grade.id.toString()}>
+                        {grade.name} ({grade.level_name})
+                      </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
 
             <div className="space-y-2">
               <Label htmlFor="section">Section *</Label>

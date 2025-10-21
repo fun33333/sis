@@ -63,7 +63,7 @@ export function ExperienceStep({ formData, invalidFields, onInputChange }: Exper
               onChange={(e) => onInputChange("experience_from_date", e.target.value)}
               max={new Date().toISOString().split('T')[0]}
             />
-          </div>
+          </div> 
           
           <div>
             <Label htmlFor="experience_to_date">Experience To Date (Optional)</Label>
@@ -76,7 +76,7 @@ export function ExperienceStep({ formData, invalidFields, onInputChange }: Exper
             />
           </div>
           
-          <div className="md:col-span-2">
+          {/* <div className="md:col-span-2">
             <Label htmlFor="experience_subjects_classes_taught">Subjects/Classes Taught (Optional)</Label>
             <Input 
               id="experience_subjects_classes_taught" 
@@ -84,9 +84,9 @@ export function ExperienceStep({ formData, invalidFields, onInputChange }: Exper
               onChange={(e) => onInputChange("experience_subjects_classes_taught", e.target.value)}
               placeholder="e.g., Mathematics (Grade 6-8), Physics (Grade 9-10)"
             />
-          </div>
+          </div> */}
           
-          <div className="md:col-span-2">
+          {/* <div className="md:col-span-2">
             <Label htmlFor="previous_responsibilities">Previous Responsibilities (Optional)</Label>
             <Textarea 
               id="previous_responsibilities" 
@@ -94,7 +94,7 @@ export function ExperienceStep({ formData, invalidFields, onInputChange }: Exper
               onChange={(e) => onInputChange("previous_responsibilities", e.target.value)}
               placeholder="Describe your previous responsibilities and achievements..."
             />
-          </div>
+          </div> */}
         </div>
       </CardContent>
     </Card>

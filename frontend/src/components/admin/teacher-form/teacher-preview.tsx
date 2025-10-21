@@ -69,8 +69,6 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
       previous_position: formData.previous_position || null,
       experience_from_date: formData.experience_from_date || null,
       experience_to_date: formData.experience_to_date || null,
-      experience_subjects_classes_taught: formData.experience_subjects_classes_taught || null,
-      previous_responsibilities: formData.previous_responsibilities || null,
       total_experience_years: formData.total_experience_years ? Number(formData.total_experience_years) : null,
 
       // Current role tab fields (simplified)
@@ -81,6 +79,11 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
       current_extra_responsibilities: formData.current_extra_responsibilities || null,
       is_currently_active: typeof formData.is_currently_active === 'boolean' ? formData.is_currently_active : true,
       shift: formData.shift || 'morning',
+      
+      // Class teacher fields
+      is_class_teacher: typeof formData.is_class_teacher === 'boolean' ? formData.is_class_teacher : false,
+      class_teacher_grade: formData.class_teacher_grade || null,
+      class_teacher_section: formData.class_teacher_section || null,
     }
 
     // Strip null/empty values
@@ -207,6 +210,7 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
             </CardHeader>
             <CardContent>
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+               <div><strong>Current Role:</strong> {formData.current_role_title || "N/A"}</div>
                  <div><strong>Joining Date:</strong> {formData.joining_date || "N/A"}</div>
                  <div><strong>Shift:</strong> {formData.shift || "N/A"}</div>
                  <div><strong>Current campus:</strong> Campus {formData.current_campus || "N/A"}</div>
@@ -215,6 +219,13 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
                  <div className="sm:col-span-2"><strong>Current classes taught:</strong> {formData.current_classes_taught || "N/A"}</div>
                  <div className="sm:col-span-2"><strong>Current extra responsibilities:</strong> {formData.current_extra_responsibilities || "N/A"}</div>
                </div>
+               <div><strong>Is class teacher:</strong> {typeof formData.is_class_teacher === "boolean" ? (formData.is_class_teacher ? "Yes" : "No") : "N/A"}</div>
+                 {formData.is_class_teacher && (
+                   <>
+                     <div><strong>Class teacher grade:</strong> {formData.class_teacher_grade || "N/A"}</div>
+                     <div><strong>Class teacher section:</strong> {formData.class_teacher_section || "N/A"}</div>
+                   </>
+                 )}
             </CardContent>
           </Card>
 
@@ -229,8 +240,6 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
                  <div><strong>Previous position:</strong> {formData.previous_position || "N/A"}</div>
                  <div><strong>Experience from date:</strong> {formData.experience_from_date || "N/A"}</div>
                  <div><strong>Experience to date:</strong> {formData.experience_to_date || "N/A"}</div>
-                 <div className="sm:col-span-2"><strong>Experience subjects classes taught:</strong> {formData.experience_subjects_classes_taught || "N/A"}</div>
-                 <div className="sm:col-span-2"><strong>Previous responsibilities:</strong> {formData.previous_responsibilities || "N/A"}</div>
                  <div><strong>Total experience years:</strong> {formData.total_experience_years || "N/A"}</div>
                </div>
             </CardContent>

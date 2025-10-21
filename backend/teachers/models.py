@@ -57,28 +57,28 @@ class Teacher(models.Model):
     education_grade = models.CharField(max_length=50, blank=True, null=True)
     
     # Additional Education Fields
-    additional_education_level = models.CharField(max_length=100, blank=True, null=True)
-    additional_institution_name = models.CharField(max_length=200, blank=True, null=True)
-    additional_year_of_passing = models.IntegerField(blank=True, null=True)
-    additional_education_subjects = models.CharField(max_length=200, blank=True, null=True)
-    additional_education_grade = models.CharField(max_length=50, blank=True, null=True)
+    # additional_education_level = models.CharField(max_length=100, blank=True, null=True)
+    # additional_institution_name = models.CharField(max_length=200, blank=True, null=True)
+    # additional_year_of_passing = models.IntegerField(blank=True, null=True)
+    # additional_education_subjects = models.CharField(max_length=200, blank=True, null=True)
+    # additional_education_grade = models.CharField(max_length=50, blank=True, null=True)
     
     # Experience Information
     previous_institution_name = models.CharField(max_length=200, blank=True, null=True)
     previous_position = models.CharField(max_length=150, blank=True, null=True)
     experience_from_date = models.DateField(blank=True, null=True)
     experience_to_date = models.DateField(blank=True, null=True)
-    experience_subjects_classes_taught = models.CharField(max_length=200, blank=True, null=True)
-    previous_responsibilities = models.TextField(blank=True, null=True)
+    # experience_subjects_classes_taught = models.CharField(max_length=200, blank=True, null=True)
+    # previous_responsibilities = models.TextField(blank=True, null=True)
     total_experience_years = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
     
-    # Additional Experience Fields
-    additional_institution_name_exp = models.CharField(max_length=200, blank=True, null=True)
-    additional_position = models.CharField(max_length=150, blank=True, null=True)
-    additional_experience_from_date = models.DateField(blank=True, null=True)
-    additional_experience_to_date = models.DateField(blank=True, null=True)
-    additional_experience_subjects_classes = models.CharField(max_length=200, blank=True, null=True)
-    additional_responsibilities = models.TextField(blank=True, null=True)
+    # # Additional Experience Fields
+    # additional_institution_name_exp = models.CharField(max_length=200, blank=True, null=True)
+    # additional_position = models.CharField(max_length=150, blank=True, null=True)
+    # additional_experience_from_date = models.DateField(blank=True, null=True)
+    # additional_experience_to_date = models.DateField(blank=True, null=True)
+    # additional_experience_subjects_classes = models.CharField(max_length=200, blank=True, null=True)
+    # additional_responsibilities = models.TextField(blank=True, null=True)
     
     # Current Role Information
     joining_date = models.DateField(blank=True, null=True)
@@ -118,7 +118,7 @@ class Teacher(models.Model):
     current_classes_taught = models.CharField(max_length=200, blank=True, null=True)
     current_extra_responsibilities = models.TextField(blank=True, null=True)
     role_start_date = models.DateField(blank=True, null=True)
-    role_end_date = models.DateField(blank=True, null=True)
+    # role_end_date = models.DateField(blank=True, null=True)
     is_currently_active = models.BooleanField(default=True)
     
     # Auto Generated Fields
@@ -132,6 +132,18 @@ class Teacher(models.Model):
     
     # Class Teacher Information - FIXED
     is_class_teacher = models.BooleanField(default=False, help_text="Is this teacher a class teacher?")
+    class_teacher_grade = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True,
+        help_text="Grade for class teacher assignment"
+    )
+    class_teacher_section = models.CharField(
+        max_length=10, 
+        blank=True, 
+        null=True,
+        help_text="Section for class teacher assignment"
+    )
     assigned_classroom = models.OneToOneField(
         'classes.ClassRoom', 
         on_delete=models.SET_NULL, 
@@ -153,13 +165,10 @@ class Teacher(models.Model):
     classroom_assigned_at = models.DateTimeField(null=True, blank=True)
     
     def save(self, *args, **kwargs):
-        # Auto-generate employee_code (teacher_code) if not provided
         if not self.employee_code and self.current_campus:
             try:
-                # Use teacher's shift field instead of campus shift
                 shift = self.shift if self.shift else 'morning'
                 
-                # Get year from joining date or current year
                 if self.joining_date:
                     if isinstance(self.joining_date, str):
                         from datetime import datetime

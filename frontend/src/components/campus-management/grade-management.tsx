@@ -175,11 +175,16 @@ export default function GradeManagement({ campusId }: GradeManagementProps) {
             <SelectItem value="all">All Levels</SelectItem>
             {levels.map((level) => (
               <SelectItem key={level.id} value={level.id.toString()}>
-                {level.name}
+                {level.name} ({String(level.shift || '').replace(/\b\w/g, (c: string) => c.toUpperCase())}) ({grades.filter(g => String(g.level) === String(level.id)).length})
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <div className="ml-2 inline-flex items-center">
+          <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: '#E3F2FD', color: '#1976D2' }}>
+            Total: {grades.length}
+          </span>
+        </div>
         
         {levels.length === 0 && (
           <p className="text-sm text-amber-600">
@@ -283,7 +288,7 @@ export default function GradeManagement({ campusId }: GradeManagementProps) {
                   <SelectContent>
                     {levels.map((level) => (
                       <SelectItem key={level.id} value={level.id.toString()}>
-                        {level.name}
+                        {level.name} ({String(level.shift || '').replace(/\b\w/g, (c: string) => c.toUpperCase())})
                       </SelectItem>
                     ))}
                   </SelectContent>

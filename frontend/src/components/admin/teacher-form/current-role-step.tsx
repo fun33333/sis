@@ -12,25 +12,6 @@ interface CurrentRoleStepProps {
   onInputChange: (field: string, value: any) => void
 }
 
-function CheckboxRow({ items, field, formData, onInputChange }: { items: string[]; field: string; formData: any; onInputChange: (f: string, v: any) => void }) {
-  const values: string[] = formData[field] || []
-
-  function toggle(val: string) {
-    const next = values.includes(val) ? values.filter((v) => v !== val) : [...values, val]
-    onInputChange(field, next)
-  }
-
-  return (
-    <div className="flex flex-wrap gap-3 mt-2">
-      {items.map((it) => (
-        <label key={it} className="inline-flex items-center gap-2">
-          <Checkbox checked={values.includes(it)} onCheckedChange={() => toggle(it)} />
-          <span className="text-sm">{it}</span>
-        </label>
-      ))}
-    </div>
-  )
-}
 
 export function CurrentRoleStep({ formData, invalidFields, onInputChange }: CurrentRoleStepProps) {
   return (
@@ -40,6 +21,15 @@ export function CurrentRoleStep({ formData, invalidFields, onInputChange }: Curr
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="md:col-span-2">
+            <Label htmlFor="current_role_title">Current Role(Optional)</Label>
+            <Input 
+              id="current_subjects" 
+              value={formData.current_role_title || ""} 
+              onChange={(e) => onInputChange("current_role_title", e.target.value)}
+              placeholder="e.g., Teacher, Subject-teacher"
+            />
+          </div>
           <div>
             <Label htmlFor="current_campus">Current Campus *</Label>
             <Select value={formData.current_campus || ""} onValueChange={(v) => onInputChange("current_campus", v)}>
@@ -123,6 +113,65 @@ export function CurrentRoleStep({ formData, invalidFields, onInputChange }: Curr
               placeholder="e.g., Sports Coordinator, Library In-charge"
             />
           </div>
+          <div>
+            <Label htmlFor="is_class_teacher">Is Class Teacher</Label>
+            <Select value={String(Boolean(formData.is_class_teacher))} onValueChange={(v) => onInputChange("is_class_teacher", v === "true")}>
+              <SelectTrigger className="mt-2 border-2 focus:border-primary">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="true">Yes</SelectItem>
+                <SelectItem value="false">No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {formData.is_class_teacher && (
+            <>
+              <div>
+                <Label htmlFor="class_teacher_grade">Class Teacher Grade *</Label>
+                <Select value={formData.class_teacher_grade || ""} onValueChange={(v) => onInputChange("class_teacher_grade", v)}>
+                  <SelectTrigger className={`mt-2 border-2 focus:border-primary ${invalidFields.includes("class_teacher_grade") ? "border-red-500" : ""}`}>
+                    <SelectValue placeholder="Select grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Nursery">Nursery</SelectItem>
+                    <SelectItem value="KG-I">KG-I</SelectItem>
+                    <SelectItem value="KG-II">KG-II</SelectItem>
+                    <SelectItem value="Grade-1">Grade-1</SelectItem>
+                    <SelectItem value="Grade-2">Grade-2</SelectItem>
+                    <SelectItem value="Grade-3">Grade-3</SelectItem>
+                    <SelectItem value="Grade-4">Grade-4</SelectItem>
+                    <SelectItem value="Grade-5">Grade-5</SelectItem>
+                    <SelectItem value="Grade-6">Grade-6</SelectItem>
+                    <SelectItem value="Grade-7">Grade-7</SelectItem>
+                    <SelectItem value="Grade-8">Grade-8</SelectItem>
+                    <SelectItem value="Grade-9">Grade-9</SelectItem>
+                    <SelectItem value="Grade-10">Grade-10</SelectItem>
+                  </SelectContent>
+                </Select>
+                {invalidFields.includes("class_teacher_grade") && <p className="text-sm text-red-600 mt-1">Class teacher grade is required</p>}
+              </div>
+              
+              <div>
+                <Label htmlFor="class_teacher_section">Class Teacher Section *</Label>
+                <Select value={formData.class_teacher_section || ""} onValueChange={(v) => onInputChange("class_teacher_section", v)}>
+                  <SelectTrigger className={`mt-2 border-2 focus:border-primary ${invalidFields.includes("class_teacher_section") ? "border-red-500" : ""}`}>
+                    <SelectValue placeholder="Select section" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A">A</SelectItem>
+                    <SelectItem value="B">B</SelectItem>
+                    <SelectItem value="C">C</SelectItem>
+                    <SelectItem value="D">D</SelectItem>
+                    <SelectItem value="E">E</SelectItem>
+                  </SelectContent>
+                </Select>
+                {invalidFields.includes("class_teacher_section") && <p className="text-sm text-red-600 mt-1">Class teacher section is required</p>}
+              </div>
+            </>
+          )}
+          
         </div>
       </CardContent>
     </Card>

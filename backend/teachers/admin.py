@@ -33,39 +33,28 @@ class TeacherAdmin(admin.ModelAdmin):
         ('Education Information', {
             'fields': (
                 'education_level', 'institution_name', 'year_of_passing', 
-                'education_subjects', 'education_grade',
-                'additional_education_level', 'additional_institution_name', 
-                'additional_year_of_passing', 'additional_education_subjects', 
-                'additional_education_grade'
+                'education_subjects', 'education_grade'
             ),
-            'classes': ('collapse',)
         }),
         ('Experience Information', {
             'fields': (
                 'previous_institution_name', 'previous_position', 
                 'experience_from_date', 'experience_to_date', 
-                'experience_subjects_classes_taught', 'previous_responsibilities', 
-                'total_experience_years',
-                'additional_institution_name_exp', 'additional_position', 
-                'additional_experience_from_date', 'additional_experience_to_date', 
-                'additional_experience_subjects_classes', 'additional_responsibilities'
+                'total_experience_years'
             ),
-            'classes': ('collapse',)
         }),
         ('Current Role Information', {
             'fields': (
                 'joining_date', 'current_role_title', 'current_campus', 'shift',
                 'current_subjects', 'current_classes_taught', 'current_extra_responsibilities',
-                'assigned_coordinators', 'assigned_coordinator', 'role_start_date', 'role_end_date', 'is_currently_active'
+                'assigned_coordinators', 'is_currently_active'
             )
         }),
         ('Class Teacher Information', {
-            'fields': ('is_class_teacher', 'assigned_classroom'),
-            'classes': ('collapse',)
+            'fields': ('is_class_teacher', 'class_teacher_grade', 'class_teacher_section', 'assigned_classroom'),
         }),
         ('System Fields', {
             'fields': ('employee_code', 'teacher_id', 'save_status', 'date_created', 'date_updated'),
-            'classes': ('collapse',)
         }),
     )
 
@@ -75,7 +64,12 @@ class TeacherAdmin(admin.ModelAdmin):
         if coordinators:
             coordinator_names = []
             for coordinator in coordinators:
-                coordinator_names.append(f"{coordinator.full_name} ({coordinator.level.name})")
+                level_obj = getattr(coordinator, 'level', None)
+                level_name = getattr(level_obj, 'name', None)
+                if level_name:
+                    coordinator_names.append(f"{coordinator.full_name} ({level_name})")
+                else:
+                    coordinator_names.append(f"{coordinator.full_name}")
             return ", ".join(coordinator_names)
         return "Not Assigned"
     get_coordinator_info.short_description = "Coordinators"
