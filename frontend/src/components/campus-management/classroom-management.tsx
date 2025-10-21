@@ -108,13 +108,14 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
   function handleCreate() {
     setEditingClassroom(null)
     const defaultLevelId = levels.length > 0 ? levels[0].id.toString() : ''
+    const defaultShift = levels.length > 0 ? (levels[0].shift || 'morning') : 'morning'
     const firstGradeForLevel = defaultLevelId ? grades.find((g: any) => String(g.level) === defaultLevelId) : undefined
     setFormData({
       level: defaultLevelId,
       grade: firstGradeForLevel ? firstGradeForLevel.id.toString() : '',
       section: 'A',
       capacity: '30',
-      shift: 'morning'
+      shift: defaultShift
     })
     setIsDialogOpen(true)
   }
@@ -408,10 +409,13 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
                 value={formData.level}
                 onValueChange={(value) => {
                   const firstGrade = grades.find((g: any) => String(g.level) === value)
+                  const levelObj = levels.find((l: any) => String(l.id) === String(value))
+                  const levelShift = levelObj?.shift || 'morning'
                   setFormData({ 
                     ...formData, 
                     level: value, 
-                    grade: firstGrade ? firstGrade.id.toString() : '' 
+                    grade: firstGrade ? firstGrade.id.toString() : '',
+                    shift: levelShift
                   })
                 }}
                 >
@@ -487,10 +491,25 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="morning">Morning</SelectItem>
-                  <SelectItem value="afternoon">Afternoon</SelectItem>
-                  <SelectItem value="both">Morning + Afternoon</SelectItem>
-                  <SelectItem value="all">All Shifts</SelectItem>
+                  {(() => {
+                    const levelObj = levels.find((l: any) => String(l.id) === String(formData.level))
+                    const levelShift = (levelObj?.shift || '').toString()
+                    if (levelShift === 'afternoon') {
+                      return (<>
+                        <SelectItem value="afternoon">Afternoon</SelectItem>
+                      </>)
+                    }
+                    if (levelShift === 'morning') {
+                      return (<>
+                        <SelectItem value="morning">Morning</SelectItem>
+                      </>)
+                    }
+                    // fallback when no level selected
+                    return (<>
+                      <SelectItem value="morning">Morning</SelectItem>
+                      <SelectItem value="afternoon">Afternoon</SelectItem>
+                    </>)
+                  })()}
                 </SelectContent>
               </Select>
             </div>

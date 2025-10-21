@@ -157,8 +157,8 @@ export default function TransferPage() {
                     <SelectValue placeholder="Select shift" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Morning">Morning</SelectItem>
-                    <SelectItem value="Afternoon">Afternoon</SelectItem>
+                    <SelectItem value="morning">Morning</SelectItem>
+                    <SelectItem value="afternoon">Afternoon</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

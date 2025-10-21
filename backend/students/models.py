@@ -198,7 +198,16 @@ class Student(models.Model):
         validators=[StudentValidator.validate_year],
         help_text="Year of enrollment (2000-2030)"
     )
-    shift = models.CharField(max_length=10, null=True, blank=True)
+    shift = models.CharField(
+        max_length=20,
+        choices=[
+            ('morning', 'Morning'),
+            ('afternoon', 'Afternoon'),
+        ],
+        null=True,
+        blank=True,
+        help_text="Student's shift"
+    )
 
     # --- System Fields ---
     is_draft = models.BooleanField(default=True)

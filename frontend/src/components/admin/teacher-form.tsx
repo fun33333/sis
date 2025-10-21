@@ -73,7 +73,8 @@ export function TeacherForm() {
     class_teacher_level: '',
     class_teacher_grade: '',
     class_teacher_section: '',
-    assigned_classroom: ''
+    assigned_classroom: '',
+    assigned_classrooms: []
   })
   const [invalidFields, setInvalidFields] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)

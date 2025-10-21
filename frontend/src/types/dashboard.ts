@@ -46,6 +46,14 @@ export interface LegacyStudent {
 
 export type CampusStatus = "active" | "inactive" | "temporary_closed";
 
+// Shift Types
+export type Shift = 'morning' | 'afternoon' | 'both';
+
+export type ShiftOption = {
+  value: Shift;
+  label: string;
+};
+
 export type CampusCreateRequest = {
   name: string;
   code: string | null;

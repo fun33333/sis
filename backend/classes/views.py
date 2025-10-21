@@ -88,15 +88,15 @@ class LevelViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Update level
-            level.coordinator = coordinator
-            level.coordinator_assigned_by = request.user
-            level.coordinator_assigned_at = timezone.now()
-            level.save()
-            
-            # Update coordinator
-            coordinator.level = level
-            coordinator.save()
+            # Update assignment logic:
+            # If coordinator is 'both' shift, attach via assigned_levels M2M
+            # Otherwise keep single level FK
+            from coordinator.models import Coordinator as CoordModel
+            if coordinator.shift == 'both':
+                coordinator.assigned_levels.add(level)
+            else:
+                coordinator.level = level
+                coordinator.save()
             
             serializer = self.get_serializer(level)
             return Response({
@@ -192,6 +192,7 @@ class ClassRoomViewSet(viewsets.ModelViewSet):
         level_id = self.request.query_params.get('level_id')
         campus_id = self.request.query_params.get('campus_id')
         teacher_id = self.request.query_params.get('teacher_id')
+        shift_filter = self.request.query_params.get('shift')
         
         # Principal: Only their campus + all filtering options
         if hasattr(user, 'role') and user.role == 'principal':
@@ -213,6 +214,15 @@ class ClassRoomViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(grade__level__campus_id=campus_id)
             if teacher_id:
                 queryset = queryset.filter(class_teacher_id=teacher_id)
+        
+        # Handle shift filtering
+        if shift_filter:
+            if shift_filter in ['morning', 'afternoon']:
+                # Filter classrooms by shift
+                queryset = queryset.filter(shift=shift_filter)
+            elif shift_filter == 'both':
+                # Show classrooms from both shifts (no additional filtering needed)
+                pass
         
         return queryset
     

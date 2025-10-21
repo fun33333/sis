@@ -381,6 +381,7 @@ export default function TeacherListPage() {
               <option value="">All Shifts</option>
               <option value="morning">Morning</option>
               <option value="afternoon">Afternoon</option>
+              <option value="both">Both</option>
                  </select>
                </div>
                
@@ -910,6 +911,7 @@ export default function TeacherListPage() {
                     <SelectContent>
                       <SelectItem value="morning">Morning</SelectItem>
                       <SelectItem value="afternoon">Afternoon</SelectItem>
+                      <SelectItem value="both">Both</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

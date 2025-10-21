@@ -16,6 +16,7 @@ export default function AddClassPage() {
   const [formData, setFormData] = useState({
     grade: "", // ForeignKey to Grade
     section: "", // CharField with choices: A, B, C, D, E
+    shift: "morning", // CharField with choices: morning, afternoon, both
     class_teacher: "none", // OneToOneField to Teacher (optional)
     capacity: 30 // PositiveIntegerField, default=30
   })
@@ -39,6 +40,7 @@ export default function AddClassPage() {
         id: Date.now(), // Simple ID generation
         grade: formData.grade,
         section: formData.section,
+        shift: formData.shift,
         class_teacher: formData.class_teacher === "none" ? "No Teacher Assigned" : 
           formData.class_teacher === "1" ? "Ms. Sarah Ahmed" :
           formData.class_teacher === "2" ? "Mr. Ali Hassan" :
@@ -70,6 +72,7 @@ export default function AddClassPage() {
       setFormData({
         grade: "",
         section: "",
+        shift: "morning",
         class_teacher: "none",
         capacity: 30
       })
@@ -147,6 +150,20 @@ export default function AddClassPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="shift">Shift *</Label>
+                <Select value={formData.shift} onValueChange={(value) => handleInputChange("shift", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Shift" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="morning">Morning</SelectItem>
+                    <SelectItem value="afternoon">Afternoon</SelectItem>
+                    <SelectItem value="both">Both</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="class_teacher">Class Teacher</Label>
                 <Select value={formData.class_teacher} onValueChange={(value) => handleInputChange("class_teacher", value)}>
                   <SelectTrigger>
@@ -187,6 +204,7 @@ export default function AddClassPage() {
               <Button type="button" variant="outline" onClick={() => setFormData({
                 grade: "",
                 section: "",
+                shift: "morning",
                 class_teacher: "none",
                 capacity: 30
               })}>

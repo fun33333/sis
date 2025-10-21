@@ -16,6 +16,7 @@ export default function AddLevelPage() {
   const [formData, setFormData] = useState({
     name: "", // CharField, unique=True
     campus: "", // ForeignKey to Campus
+    shift: "morning", // CharField with choices: morning, afternoon, both
     coordinator: "none" // OneToOneField to Coordinator (optional)
   })
 
@@ -38,6 +39,7 @@ export default function AddLevelPage() {
         id: Date.now(), // Simple ID generation
         name: formData.name,
         campus: formData.campus,
+        shift: formData.shift,
         coordinator: formData.coordinator === "none" ? "No Coordinator Assigned" : formData.coordinator,
         code: `LV-${Date.now().toString().slice(-3)}`,
         total_grades: Math.floor(Math.random() * 8) + 2, // Random grade count
@@ -65,6 +67,7 @@ export default function AddLevelPage() {
       setFormData({
         name: "",
         campus: "",
+        shift: "morning",
         coordinator: "none"
       })
 
@@ -132,6 +135,20 @@ export default function AddLevelPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="shift">Shift *</Label>
+                <Select value={formData.shift} onValueChange={(value) => handleInputChange("shift", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Shift" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="morning">Morning</SelectItem>
+                    <SelectItem value="afternoon">Afternoon</SelectItem>
+                    <SelectItem value="both">Both</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="coordinator">Coordinator</Label>
                 <Select value={formData.coordinator} onValueChange={(value) => handleInputChange("coordinator", value)}>
                   <SelectTrigger>
@@ -159,6 +176,7 @@ export default function AddLevelPage() {
               <Button type="button" variant="outline" onClick={() => setFormData({
                 name: "",
                 campus: "",
+                shift: "morning",
                 coordinator: "none"
               })}>
                 Reset

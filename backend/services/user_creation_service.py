@@ -14,10 +14,23 @@ class UserCreationService:
         """Validate required fields for entity"""
         required_fields = {
             'teacher': ['full_name', 'email', 'contact_number'],  # joining_date remove karo
-            'coordinator': ['full_name', 'email', 'contact_number', 'campus', 'level', 'joining_date'],
             'principal': ['full_name', 'email', 'contact_number', 'campus', 'joining_date']
         }
-        
+
+        # Special validation for coordinator: require either single level or assigned_levels when shift == 'both'
+        if entity_type == 'coordinator':
+            base_fields = ['full_name', 'email', 'contact_number', 'campus', 'joining_date']
+            for field in base_fields:
+                value = getattr(entity, field, None)
+                if not value or (isinstance(value, str) and not value.strip()):
+                    return False, f"Missing or empty field: {field}"
+            # Level requirements
+            has_single_level = getattr(entity, 'level_id', None) is not None
+            has_multi_levels = hasattr(entity, 'assigned_levels') and entity.assigned_levels.exists()
+            if not has_single_level and not has_multi_levels:
+                return False, "Missing or empty field: level"
+            return True, "Valid"
+
         for field in required_fields.get(entity_type, []):
             value = getattr(entity, field, None)
             if not value or (isinstance(value, str) and not value.strip()):
@@ -38,14 +51,11 @@ class UserCreationService:
             if not campus:
                 raise ValueError("Campus is required for employee code generation")
                 
-            # Get shift from teacher's shift field or campus shift
-            if entity_type == 'teacher' and hasattr(entity, 'shift') and entity.shift:
+            # Prefer entity's own shift if available (teacher/coordinator/principal)
+            if hasattr(entity, 'shift') and entity.shift:
                 shift = entity.shift
             else:
                 shift = getattr(campus, 'shift_available', 'morning')
-                
-            if shift == 'both':
-                shift = 'morning'  # Default to morning for both
             
             # Get year from joining date or current year
             if hasattr(entity, 'joining_date') and entity.joining_date:

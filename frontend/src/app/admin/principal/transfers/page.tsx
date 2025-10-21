@@ -402,13 +402,13 @@ export default function TransferManagementPage() {
                   <div>
                     <Label className="text-sm font-medium text-gray-500">From</Label>
                     <p className="text-sm">
-                      {selectedRequest.from_campus_name} ({selectedRequest.from_shift === 'M' ? 'Morning' : 'Afternoon'})
+                      {selectedRequest.from_campus_name} ({selectedRequest.from_shift === 'M' ? 'Morning' : selectedRequest.from_shift === 'A' ? 'Afternoon' : 'Both'})
                     </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">To</Label>
                     <p className="text-sm">
-                      {selectedRequest.to_campus_name} ({selectedRequest.to_shift === 'M' ? 'Morning' : 'Afternoon'})
+                      {selectedRequest.to_campus_name} ({selectedRequest.to_shift === 'M' ? 'Morning' : selectedRequest.to_shift === 'A' ? 'Afternoon' : 'Both'})
                     </p>
                   </div>
                 </div>

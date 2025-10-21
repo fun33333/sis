@@ -463,10 +463,10 @@ export async function getDashboardStudents(pageSize: number = 50) {
   }
 }
 
-export async function getAllStudents(forceRefresh: boolean = false) {
+export async function getAllStudents(forceRefresh: boolean = false, shift?: string) {
   try {
-    // Try to get from cache first (unless force refresh)
-    if (!forceRefresh) {
+    // Try to get from cache first (unless force refresh or shift filter)
+    if (!forceRefresh && !shift) {
       const cached = CacheManager.get(CacheManager.KEYS.STUDENTS);
       if (cached) {
         return cached;
@@ -479,7 +479,11 @@ export async function getAllStudents(forceRefresh: boolean = false) {
     let hasNext = true;
     
     while (hasNext) {
-      const data = await apiGet(`${API_ENDPOINTS.STUDENTS}?page=${page}&page_size=1000`);
+      let url = `${API_ENDPOINTS.STUDENTS}?page=${page}&page_size=1000`;
+      if (shift) {
+        url += `&shift=${encodeURIComponent(shift)}`;
+      }
+      const data = await apiGet(url);
       
       if (Array.isArray(data)) {
         allStudents = [...allStudents, ...data];
@@ -619,12 +623,14 @@ export async function getAllCampuses() {
   }
 }
 
-export async function getAllTeachers() {
+export async function getAllTeachers(shift?: string) {
   try {
-    // Try to get from cache first
-    const cached = CacheManager.get(CacheManager.KEYS.TEACHERS);
-    if (cached) {
-      return cached;
+    // Try to get from cache first (only if no shift filter)
+    if (!shift) {
+      const cached = CacheManager.get(CacheManager.KEYS.TEACHERS);
+      if (cached) {
+        return cached;
+      }
     }
 
     // Fetch all teachers with pagination
@@ -633,7 +639,11 @@ export async function getAllTeachers() {
     let hasNext = true;
     
     while (hasNext) {
-      const data = await apiGet(`${API_ENDPOINTS.TEACHERS}?page=${page}&page_size=1000`);
+      let url = `${API_ENDPOINTS.TEACHERS}?page=${page}&page_size=1000`;
+      if (shift) {
+        url += `&shift=${encodeURIComponent(shift)}`;
+      }
+      const data = await apiGet(url);
       
       if (Array.isArray(data)) {
         allTeachers = [...allTeachers, ...data];
@@ -886,9 +896,13 @@ export async function getCurrentUserProfile() {
   }
 }
 
-export async function getAllCoordinators() {
+export async function getAllCoordinators(shift?: string) {
   try {
-    return await apiGet(API_ENDPOINTS.COORDINATORS);
+    let url = API_ENDPOINTS.COORDINATORS;
+    if (shift) {
+      url += `?shift=${encodeURIComponent(shift)}`;
+    }
+    return await apiGet(url);
   } catch (error) {
     console.error('Failed to fetch coordinators:', error);
     return [];
@@ -978,13 +992,14 @@ export async function deleteGrade(id: number) {
 }
 
 // Classroom Management APIs
-export async function getClassrooms(gradeId?: number, levelId?: number, campusId?: number) {
+export async function getClassrooms(gradeId?: number, levelId?: number, campusId?: number, shift?: string) {
   try {
     let url = API_ENDPOINTS.CLASSROOMS;
     const params = new URLSearchParams();
     if (gradeId) params.append('grade_id', gradeId.toString());
     if (levelId) params.append('level_id', levelId.toString());
     if (campusId) params.append('campus_id', campusId.toString());
+    if (shift) params.append('shift', shift);
     if (params.toString()) url += `?${params.toString()}`;
     return await apiGet(url);
   } catch (error) {

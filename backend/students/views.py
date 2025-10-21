@@ -65,6 +65,16 @@ class StudentViewSet(viewsets.ModelViewSet):
                 # If coordinator object doesn't exist, return empty queryset
                 queryset = queryset.none()
         
+        # Handle shift filtering
+        shift_filter = self.request.query_params.get('shift')
+        if shift_filter:
+            if shift_filter in ['morning', 'afternoon']:
+                # Filter students by shift
+                queryset = queryset.filter(shift=shift_filter)
+            elif shift_filter == 'both':
+                # Show students from both shifts (no additional filtering needed)
+                pass
+        
         return queryset
 
     @action(detail=False, methods=["get"])

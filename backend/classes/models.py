@@ -17,8 +17,7 @@ LEVEL_CHOICES = [
 SHIFT_CHOICES = [
     ('morning', 'Morning'),
     ('afternoon', 'Afternoon'),
-    ('both', 'Morning + Afternoon'),
-    ('all', 'All Shifts'),
+    ('both', 'Both'),
 ]
 
 # ----------------------
@@ -73,14 +72,37 @@ class Level(models.Model):
     
     @property
     def coordinator(self):
-        """Get the coordinator assigned to this level"""
-        return self.coordinator_set.first()
+        """Get a coordinator assigned to this level (supports FK and M2M)."""
+        # Prefer direct FK assignment via Coordinator.level
+        direct = self.coordinator_set.first()
+        if direct:
+            return direct
+        # Fallback to M2M via Coordinator.assigned_levels (for shift='both')
+        try:
+            return self.assigned_coordinators.first()
+        except Exception:
+            return None
     
     @property
     def coordinator_name(self):
-        """Get coordinator name for display"""
-        coord = self.coordinator
-        return f"{coord.full_name} ({coord.employee_code})" if coord else None
+        """Get coordinator name(s) for display (handles multiple)."""
+        names = []
+        try:
+            direct_list = list(self.coordinator_set.all())
+        except Exception:
+            direct_list = []
+        try:
+            m2m_list = list(self.assigned_coordinators.all())
+        except Exception:
+            m2m_list = []
+
+        seen = set()
+        for coord in direct_list + m2m_list:
+            if coord and coord.id not in seen:
+                seen.add(coord.id)
+                label = f"{coord.full_name} ({coord.employee_code or '-'})"
+                names.append(label)
+        return ", ".join(names) if names else None
 
 # ----------------------
 class Grade(models.Model):
@@ -141,12 +163,7 @@ class ClassRoom(models.Model):
     # Shift information
     shift = models.CharField(
         max_length=20,
-        choices=[
-            ('morning', 'Morning'),
-            ('afternoon', 'Afternoon'),
-            ('both', 'Morning + Afternoon'),
-            ('all', 'All Shifts')
-        ],
+        choices=SHIFT_CHOICES,
         default='morning',
         help_text="Shift for this classroom"
     )

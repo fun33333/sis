@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { getLevels, getGrades, getClassrooms } from "@/lib/api"
 import { toast as sonnerToast } from "sonner"
 
@@ -36,6 +36,32 @@ export function CurrentRoleStep({ formData, invalidFields, onInputChange }: Curr
         .finally(() => setLoadingLevels(false))
     }
   }, [formData.current_campus])
+
+  // When shift changes, clear level/grade/section if incompatible
+  useEffect(() => {
+    if (!formData.class_teacher_level) return
+    const selected = levels.find((l) => String(l.id) === String(formData.class_teacher_level))
+    if (!selected) return
+    const selectedShift = (selected.shift || '').toString()
+    const currentShift = (formData.shift || '').toString()
+    const isCompatible = currentShift === 'both' ? (selectedShift === 'morning' || selectedShift === 'afternoon') : selectedShift === currentShift
+    if (!isCompatible) {
+      onInputChange("class_teacher_level", "")
+      onInputChange("class_teacher_grade", "")
+      onInputChange("class_teacher_section", "")
+      onInputChange("assigned_classroom", "")
+    }
+  }, [formData.shift, levels])
+
+  // Filter levels based on selected shift
+  const filteredLevels = useMemo(() => {
+    const shift = (formData.shift || '').toString()
+    if (!shift) return levels
+    if (shift === 'both') {
+      return levels.filter((l) => (l.shift === 'morning' || l.shift === 'afternoon'))
+    }
+    return levels.filter((l) => l.shift === shift)
+  }, [levels, formData.shift])
 
   // Fetch grades when level is selected
   useEffect(() => {
@@ -144,6 +170,7 @@ export function CurrentRoleStep({ formData, invalidFields, onInputChange }: Curr
               <SelectContent>
                 <SelectItem value="morning">Morning</SelectItem>
                 <SelectItem value="afternoon">Afternoon</SelectItem>
+                <SelectItem value="both">Both</SelectItem>
               </SelectContent>
             </Select>
             {invalidFields.includes("shift") && <p className="text-sm text-red-600 mt-1">Shift is required</p>}
@@ -226,7 +253,7 @@ export function CurrentRoleStep({ formData, invalidFields, onInputChange }: Curr
                     <SelectValue placeholder={loadingLevels ? "Loading levels..." : "Select level"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {levels.map((level) => (
+                    {filteredLevels.map((level) => (
                       <SelectItem key={level.id} value={level.id.toString()}>
                         {level.name} - {level.shift_display || level.shift}
                       </SelectItem>
@@ -262,31 +289,84 @@ export function CurrentRoleStep({ formData, invalidFields, onInputChange }: Curr
                 {invalidFields.includes("class_teacher_grade") && <p className="text-sm text-red-600 mt-1">Class teacher grade is required</p>}
               </div>
               
-              <div>
-                <Label htmlFor="class_teacher_section">Class Teacher Section *</Label>
-                <Select 
-                  value={formData.class_teacher_section || ""} 
-                  onValueChange={(v) => {
-                    onInputChange("class_teacher_section", v)
-                    // Auto-assign classroom will be handled by useEffect
-                  }}
-                  disabled={!formData.class_teacher_grade || loadingClassrooms}
-                >
-                  <SelectTrigger className={`mt-2 border-2 focus:border-primary ${invalidFields.includes("class_teacher_section") ? "border-red-500" : ""}`}>
-                    <SelectValue placeholder={loadingClassrooms ? "Loading sections..." : "Select section"}>
-                      {formData.class_teacher_section || "Select section"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classrooms.map((classroom) => (
-                      <SelectItem key={classroom.id} value={classroom.section}>
-                        {classroom.section}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {invalidFields.includes("class_teacher_section") && <p className="text-sm text-red-600 mt-1">Class teacher section is required</p>}
-              </div>
+              {formData.shift === 'both' ? (
+                <div>
+                  <Label htmlFor="assigned_classrooms">Class Teacher Classrooms *</Label>
+                  <Select 
+                    value="" 
+                    onValueChange={(v) => {
+                      const classroomId = parseInt(v)
+                      const currentClassrooms = formData.assigned_classrooms || []
+                      if (!currentClassrooms.includes(classroomId)) {
+                        onInputChange("assigned_classrooms", [...currentClassrooms, classroomId])
+                      }
+                    }}
+                    disabled={!formData.class_teacher_grade || loadingClassrooms}
+                  >
+                    <SelectTrigger className={`mt-2 border-2 focus:border-primary ${invalidFields.includes("assigned_classrooms") ? "border-red-500" : ""}`}>
+                      <SelectValue placeholder={loadingClassrooms ? "Loading classrooms..." : "Add classroom"}>
+                        Add classroom
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classrooms.map((classroom) => (
+                        <SelectItem key={classroom.id} value={classroom.id.toString()}>
+                          {classroom.section} ({classroom.shift})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formData.assigned_classrooms && formData.assigned_classrooms.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {formData.assigned_classrooms.map((classroomId: number) => {
+                        const classroom = classrooms.find(c => c.id === classroomId)
+                        return classroom ? (
+                          <div key={classroomId} className="flex items-center justify-between bg-gray-100 p-2 rounded">
+                            <span className="text-sm">{classroom.section} ({classroom.shift})</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = formData.assigned_classrooms.filter((id: number) => id !== classroomId)
+                                onInputChange("assigned_classrooms", updated)
+                              }}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ) : null
+                      })}
+                    </div>
+                  )}
+                  {invalidFields.includes("assigned_classrooms") && <p className="text-sm text-red-600 mt-1">At least one classroom is required for both shifts</p>}
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor="class_teacher_section">Class Teacher Section *</Label>
+                  <Select 
+                    value={formData.class_teacher_section || ""} 
+                    onValueChange={(v) => {
+                      onInputChange("class_teacher_section", v)
+                      // Auto-assign classroom will be handled by useEffect
+                    }}
+                    disabled={!formData.class_teacher_grade || loadingClassrooms}
+                  >
+                    <SelectTrigger className={`mt-2 border-2 focus:border-primary ${invalidFields.includes("class_teacher_section") ? "border-red-500" : ""}`}>
+                      <SelectValue placeholder={loadingClassrooms ? "Loading sections..." : "Select section"}>
+                        {formData.class_teacher_section || "Select section"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classrooms.map((classroom) => (
+                        <SelectItem key={classroom.id} value={classroom.section}>
+                          {classroom.section}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {invalidFields.includes("class_teacher_section") && <p className="text-sm text-red-600 mt-1">Class teacher section is required</p>}
+                </div>
+              )}
             </>
           )}
           

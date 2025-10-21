@@ -60,9 +60,9 @@ export default function CreateTransferRequestPage() {
     request_type: 'student' as 'student' | 'teacher',
     transfer_type: 'campus' as 'campus' | 'shift', // New field for transfer type
     from_campus: '',
-    from_shift: 'M' as 'M' | 'A',
+    from_shift: 'M' as 'M' | 'A' | 'B',
     to_campus: '',
-    to_shift: 'M' as 'M' | 'A',
+    to_shift: 'M' as 'M' | 'A' | 'B',
     entity_id: '',
     reason: '',
     requested_date: '',
@@ -824,7 +824,7 @@ export default function CreateTransferRequestPage() {
                           <Label className="text-sm font-medium text-blue-600">Destination Shift</Label>
                           <Select
                             value={formData.to_shift}
-                            onValueChange={(value: 'M' | 'A') => {
+                            onValueChange={(value: 'M' | 'A' | 'B') => {
                               console.log('Select value changed to:', value);
                               setFormData(prev => ({ ...prev, to_shift: value }));
                             }}
@@ -835,6 +835,7 @@ export default function CreateTransferRequestPage() {
                             <SelectContent>
                               <SelectItem value="M">Morning</SelectItem>
                               <SelectItem value="A">Afternoon</SelectItem>
+                              <SelectItem value="B">Both</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

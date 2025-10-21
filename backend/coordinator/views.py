@@ -91,6 +91,18 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
             elif level_isnull.lower() == 'false':
                 queryset = queryset.filter(level__isnull=False)
         
+        # Handle shift filtering
+        shift_filter = self.request.query_params.get('shift')
+        if shift_filter:
+            if shift_filter in ['morning', 'afternoon']:
+                # Filter coordinators who work this specific shift or both
+                queryset = queryset.filter(
+                    Q(shift=shift_filter) | Q(shift='both')
+                )
+            elif shift_filter == 'both':
+                # Show only coordinators who work both shifts
+                queryset = queryset.filter(shift='both')
+        
         return queryset
 
     @decorators.action(detail=True, methods=["get"])

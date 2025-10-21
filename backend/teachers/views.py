@@ -43,6 +43,18 @@ class TeacherViewSet(viewsets.ModelViewSet):
                 # If coordinator object doesn't exist, return empty queryset
                 queryset = queryset.none()
         
+        # Handle shift filtering
+        shift_filter = self.request.query_params.get('shift')
+        if shift_filter:
+            if shift_filter in ['morning', 'afternoon']:
+                # Filter teachers who work this specific shift or both
+                queryset = queryset.filter(
+                    Q(shift=shift_filter) | Q(shift='both')
+                )
+            elif shift_filter == 'both':
+                # Show only teachers who work both shifts
+                queryset = queryset.filter(shift='both')
+        
         return queryset
     
     @decorators.action(detail=False, methods=['get'])

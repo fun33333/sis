@@ -25,6 +25,7 @@ interface CoordinatorUser {
   campus_name?: string
   is_active: boolean
   level?: string
+  shift?: string
   joining_date?: string
 }
 
@@ -34,6 +35,7 @@ export default function CoordinatorListPage() {
   }, [])
 
   const [search, setSearch] = useState("")
+  const [shiftFilter, setShiftFilter] = useState("all")
   const [coordinators, setCoordinators] = useState<CoordinatorUser[]>([])
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<string>("")
@@ -90,7 +92,8 @@ export default function CoordinatorListPage() {
         // Principal: Get coordinators from their campus only
         if (userRole === 'principal' && userCampus) {
           console.log('Loading coordinators for principal from campus:', userCampus)
-          const allCoordinators = await getAllCoordinators() as any
+          const shiftParam = shiftFilter === "all" ? undefined : shiftFilter
+          const allCoordinators = await getAllCoordinators(shiftParam) as any
           console.log('All coordinators fetched:', allCoordinators)
           
           // Handle API response structure
@@ -151,7 +154,8 @@ export default function CoordinatorListPage() {
           setCoordinators(mappedCoordinators)
         } else {
           // For other roles, also use getAllCoordinators for consistency
-          const allCoordinators = await getAllCoordinators() as any
+          const shiftParam = shiftFilter === "all" ? undefined : shiftFilter
+          const allCoordinators = await getAllCoordinators(shiftParam) as any
           console.log('All coordinators response:', allCoordinators)
           
           // Handle API response structure
@@ -168,6 +172,7 @@ export default function CoordinatorListPage() {
             campus_name: coord.campus?.campus_name || coord.campus || 'Unknown',
             is_active: coord.is_currently_active !== false,
             level: coord.level?.name || 'Unknown',
+            shift: coord.shift || 'Unknown',
             joining_date: coord.joining_date || 'Unknown'
           }))
           setCoordinators(mappedCoordinators)
@@ -180,20 +185,33 @@ export default function CoordinatorListPage() {
       setLoading(false)
     }
     load()
-  }, [userRole, userCampus])
+  }, [userRole, userCampus, shiftFilter])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return coordinators
-    return coordinators.filter(u =>
-      (u.first_name || "").toLowerCase().includes(q) ||
-      (u.last_name || "").toLowerCase().includes(q) ||
-      (u.username || "").toLowerCase().includes(q) ||
-      (u.email || "").toLowerCase().includes(q) ||
-      (u.level || "").toLowerCase().includes(q) ||
-      (u.joining_date || "").toLowerCase().includes(q)
-    )
-  }, [search, coordinators])
+    let filteredCoordinators = coordinators
+    
+    // Apply search filter
+    if (q) {
+      filteredCoordinators = filteredCoordinators.filter(u =>
+        (u.first_name || "").toLowerCase().includes(q) ||
+        (u.last_name || "").toLowerCase().includes(q) ||
+        (u.username || "").toLowerCase().includes(q) ||
+        (u.email || "").toLowerCase().includes(q) ||
+        (u.level || "").toLowerCase().includes(q) ||
+        (u.joining_date || "").toLowerCase().includes(q)
+      )
+    }
+    
+         // Apply shift filter
+         if (shiftFilter && shiftFilter !== "all") {
+           filteredCoordinators = filteredCoordinators.filter(u =>
+             (u.shift || "").toLowerCase() === shiftFilter.toLowerCase()
+           )
+         }
+    
+    return filteredCoordinators
+  }, [search, shiftFilter, coordinators])
 
   // No need to load campuses and levels since they're removed from edit form
 
@@ -378,19 +396,34 @@ export default function CoordinatorListPage() {
 
       <Card style={{ backgroundColor: 'white', borderColor: '#a3cef1' }}>
         <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder={
-                userRole === 'principal' && userCampus 
-                  ? `Search coordinators from ${userCampus}...`
-                  : "Search by name, email, level..."
-              }
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-              style={{ borderColor: '#a3cef1' }}
-            />
+          <div className="flex gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder={
+                  userRole === 'principal' && userCampus 
+                    ? `Search coordinators from ${userCampus}...`
+                    : "Search by name, email, level..."
+                }
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+                style={{ borderColor: '#a3cef1' }}
+              />
+            </div>
+            <div className="w-48">
+              <Select value={shiftFilter} onValueChange={setShiftFilter}>
+                <SelectTrigger style={{ borderColor: '#a3cef1' }}>
+                  <SelectValue placeholder="Filter by shift" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Shifts</SelectItem>
+                  <SelectItem value="morning">Morning</SelectItem>
+                  <SelectItem value="afternoon">Afternoon</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -417,6 +450,7 @@ export default function CoordinatorListPage() {
                   <TableHead className="text-white">Name</TableHead>
                   <TableHead className="text-white">Email</TableHead>
                   <TableHead className="text-white">Level</TableHead>
+                  <TableHead className="text-white">Shift</TableHead>
                   <TableHead className="text-white">Joining Date</TableHead>
                   <TableHead className="text-white">Status</TableHead>
                   <TableHead className="text-white">Actions</TableHead>
@@ -428,6 +462,11 @@ export default function CoordinatorListPage() {
                     <TableCell className="font-medium">{`${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username}</TableCell>
                     <TableCell>{u.email}</TableCell>
                     <TableCell>{u.level || '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" style={{ borderColor: '#6096ba', color: '#274c77' }}>
+                        {u.shift ? u.shift.charAt(0).toUpperCase() + u.shift.slice(1) : '—'}
+                      </Badge>
+                    </TableCell>
                     <TableCell>{u.joining_date || '—'}</TableCell>
                     <TableCell>
                       <Badge style={{ backgroundColor: u.is_active ? '#6096ba' : '#8b8c89', color: 'white' }}>

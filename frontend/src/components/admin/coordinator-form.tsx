@@ -48,6 +48,8 @@ export function CoordinatorForm({
     total_experience_years: 0,
     campus: null,
     level: null,
+    assigned_levels: [],
+    shift: 'morning',
     joining_date: '',
     is_currently_active: true,
     can_assign_class_teachers: true,
@@ -79,7 +81,7 @@ export function CoordinatorForm({
   useEffect(() => {
     loadCurrentUserCampus();
     if (editData?.campus) {
-      loadLevels(editData.campus);
+      loadLevels(editData.campus, editData.shift);
     }
   }, []);
 
@@ -186,10 +188,10 @@ export function CoordinatorForm({
     }
   };
 
-  // Load levels based on selected campus (only unassigned levels)
-  const loadLevels = async (campusId: number) => {
+  // Load levels based on selected campus and shift (only unassigned levels)
+  const loadLevels = async (campusId: number, shift?: string) => {
     try {
-      console.log('Loading levels for campus:', campusId);
+      console.log('Loading levels for campus:', campusId, 'shift:', shift);
       
       // Get all levels for the campus
       const token = localStorage.getItem('sis_access_token');
@@ -206,7 +208,7 @@ export function CoordinatorForm({
         console.log('Levels data:', data);
         const allLevels = data.results || data;
         
-        // Get levels that already have coordinators assigned
+        // Get levels that already have coordinators assigned for this shift
         const coordinatorsResponse = await fetch(`http://localhost:8000/api/coordinators/?campus=${campusId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -219,22 +221,48 @@ export function CoordinatorForm({
           const coordinatorsData = await coordinatorsResponse.json();
           const coordinators = coordinatorsData.results || coordinatorsData;
           assignedLevelIds = coordinators
-            .filter((coord: any) => coord.level && coord.is_currently_active)
+            .filter((coord: any) => {
+              if (!coord.level || !coord.is_currently_active) return false;
+              
+              // For shift filtering, check if coordinator can handle this shift
+              if (shift === 'both') {
+                // If coordinator has 'both' shift, they can handle any level
+                return coord.shift === 'both';
+              } else {
+                // If coordinator has specific shift, they can only handle that shift
+                return coord.shift === shift || coord.shift === 'both';
+              }
+            })
             .map((coord: any) => coord.level);
         } else {
           console.error('Coordinators API error:', coordinatorsResponse.status, coordinatorsResponse.statusText);
         }
         
-        // Filter out levels that already have coordinators
-        const unassignedLevels = allLevels.filter((level: any) => 
+        // Filter levels by shift and remove assigned ones
+        let filteredLevels = allLevels.filter((level: any) => {
+          // Filter by shift
+          if (shift && shift !== 'both') {
+            return level.shift === shift || level.shift === 'both';
+          }
+          return true;
+        });
+        
+        // Remove levels that already have coordinators assigned
+        const unassignedLevels = filteredLevels.filter((level: any) => 
           !assignedLevelIds.includes(level.id)
         );
         
-        console.log('All levels:', allLevels);
-        console.log('Assigned level IDs:', assignedLevelIds);
-        console.log('Unassigned levels:', unassignedLevels);
+        // Ensure we only show 3 levels: Pre-Primary, Primary, Secondary
+        const standardLevels = unassignedLevels.filter((level: any) => 
+          ['Pre-Primary', 'Primary', 'Secondary'].includes(level.name)
+        );
         
-        setLevels(unassignedLevels);
+        console.log('All levels:', allLevels);
+        console.log('Filtered by shift:', filteredLevels);
+        console.log('Assigned level IDs:', assignedLevelIds);
+        console.log('Standard levels (3 only):', standardLevels);
+        
+        setLevels(standardLevels);
       } else {
         console.error('Levels API error:', response.status, response.statusText);
         const errorText = await response.text();
@@ -325,7 +353,13 @@ export function CoordinatorForm({
 
     // Load levels when campus changes
     if (field === 'campus' && value) {
-      loadLevels(parseInt(value));
+      loadLevels(parseInt(value), formData.shift);
+      setFormData((prev: any) => ({ ...prev, level: null })); // Reset level selection
+    }
+    
+    // Reload levels when shift changes (if campus is already selected)
+    if (field === 'shift' && formData.campus) {
+      loadLevels(parseInt(formData.campus), value);
       setFormData((prev: any) => ({ ...prev, level: null })); // Reset level selection
     }
   }
@@ -347,11 +381,9 @@ export function CoordinatorForm({
         "year_of_passing",
         "total_experience_years",
       ],
-      3: [
-        "campus",
-        "level",
-        "joining_date",
-      ],
+      3: formData.shift === 'both'
+        ? ["campus", "assigned_levels", "shift", "joining_date"]
+        : ["campus", "level", "shift", "joining_date"],
     }
 
     const required = requiredFields[currentStep] || []
@@ -467,10 +499,11 @@ export function CoordinatorForm({
       const method = isEdit ? 'PUT' : 'POST';
       
       // Prepare form data for submission
-      const submitData = {
+      const submitData: any = {
         ...formData,
         campus: parseInt(formData.campus),
-        level: parseInt(formData.level),
+        level: formData.shift === 'both' ? null : parseInt(formData.level),
+        assigned_levels: formData.shift === 'both' ? (Array.isArray(formData.assigned_levels) ? formData.assigned_levels.map((id: any) => parseInt(id)) : []) : [],
         year_of_passing: parseInt(formData.year_of_passing),
         total_experience_years: parseInt(formData.total_experience_years),
       };
@@ -519,7 +552,26 @@ export function CoordinatorForm({
         setSubmitError('') // Clear any errors
         const coordinatorName = responseData.full_name || formData.full_name || "Coordinator"
         const employeeCode = responseData.employee_code || "Pending"
-        const levelName = levels.find(l => l.id === parseInt(formData.level))?.name || "N/A"
+        let levelName = "N/A"
+        if (formData.shift === 'both') {
+          const selectedIds: number[] = Array.isArray(formData.assigned_levels) ? formData.assigned_levels.map((x: any) => parseInt(x)) : []
+          const selectedLevels = levels.filter((l) => selectedIds.includes(l.id))
+          if (selectedLevels.length > 0) {
+            levelName = selectedLevels
+              .map((l) => {
+                const shiftLabel = (l.shift_display || (l.shift || '')).toString()
+                const code = l.code ? ` ${l.code}` : ''
+                return `${l.name} (${shiftLabel})${code ? ` •${code}` : ''}`
+              })
+              .join(', ')
+          }
+        } else {
+          const match = levels.find(l => l.id === parseInt(formData.level))
+          if (match) {
+            const shiftLabel = (match.shift_display || (match.shift || '')).toString()
+            levelName = `${match.name} (${shiftLabel})${match.code ? ` • ${match.code}` : ''}`
+          }
+        }
         
         setSubmitSuccess({
           name: coordinatorName,
@@ -800,6 +852,12 @@ export function CoordinatorForm({
                   invalidFields={invalidFields}
                   campuses={campuses}
                   levels={levels}
+                  onShiftChange={(shift) => {
+                    if (formData.campus) {
+                      loadLevels(parseInt(formData.campus), shift);
+                      setFormData((prev: any) => ({ ...prev, level: null }));
+                    }
+                  }}
                 />
               )}
             </div>

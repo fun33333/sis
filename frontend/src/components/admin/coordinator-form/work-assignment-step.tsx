@@ -18,9 +18,10 @@ interface WorkAssignmentStepProps {
   invalidFields: string[]
   campuses: any[]
   levels: any[]
+  onShiftChange?: (shift: string) => void
 }
 
-export function WorkAssignmentStep({ formData, onInputChange, invalidFields, campuses, levels }: WorkAssignmentStepProps) {
+export function WorkAssignmentStep({ formData, onInputChange, invalidFields, campuses, levels, onShiftChange }: WorkAssignmentStepProps) {
   const [showDatePicker, setShowDatePicker] = useState(false)
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -33,6 +34,13 @@ export function WorkAssignmentStep({ formData, onInputChange, invalidFields, cam
 
   const handleCheckboxChange = (field: string, checked: boolean) => {
     onInputChange(field, checked.toString());
+  };
+
+  const handleShiftChange = (value: string) => {
+    onInputChange('shift', value);
+    if (onShiftChange) {
+      onShiftChange(value);
+    }
   };
 
   return (
@@ -65,26 +73,89 @@ export function WorkAssignmentStep({ formData, onInputChange, invalidFields, cam
 
         <div className="space-y-2">
           <Label htmlFor="level">Level *</Label>
+          {formData.shift === 'both' ? (
+            <div className={`rounded-md border ${invalidFields.includes('assigned_levels') ? 'border-red-500' : 'border-gray-200'}`}>
+              <div className="max-h-52 overflow-auto p-2 space-y-2">
+                {levels.map((level) => {
+                  const isChecked = Array.isArray(formData.assigned_levels) && formData.assigned_levels.includes(level.id)
+                  const label = `${level.name} • ${(level.shift_display || (level.shift || '').toString()).toString()}${level.code ? ` • ${level.code}` : ''}`
+                  return (
+                    <div key={level.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`level-${level.id}`}
+                        checked={!!isChecked}
+                        onCheckedChange={(checked) => {
+                          const current: number[] = Array.isArray(formData.assigned_levels) ? formData.assigned_levels : []
+                          if (checked) {
+                            const updated = current.includes(level.id) ? current : [...current, level.id]
+                            onInputChange('assigned_levels', updated as any)
+                          } else {
+                            const updated = current.filter((id) => id !== level.id)
+                            onInputChange('assigned_levels', updated as any)
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`level-${level.id}`} className="text-sm">
+                        {label}
+                      </Label>
+                    </div>
+                  )
+                })}
+              </div>
+              {invalidFields.includes('assigned_levels') && (
+                <p className="text-sm text-red-500 flex items-center gap-1 px-2 pb-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Select at least one level for both shifts
+                </p>
+              )}
+            </div>
+          ) : (
+            <>
+              <Select 
+                value={formData.level?.toString() || ''} 
+                onValueChange={(value) => onInputChange('level', value)}
+                disabled={!formData.campus}
+              >
+                <SelectTrigger className={invalidFields.includes('level') ? 'border-red-500' : ''}>
+                  <SelectValue placeholder={formData.campus ? "Select level" : "Select campus first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {levels.map((level) => (
+                    <SelectItem key={level.id} value={level.id.toString()}>
+                      {`${level.name} • ${(level.shift_display || (level.shift || '').toString()).toString()}${level.code ? ` • ${level.code}` : ''}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {invalidFields.includes('level') && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  Level is required
+                </p>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="shift">Shift *</Label>
           <Select 
-            value={formData.level?.toString() || ''} 
-            onValueChange={(value) => onInputChange('level', value)}
-            disabled={!formData.campus}
+            value={formData.shift || ''} 
+            onValueChange={handleShiftChange}
           >
-            <SelectTrigger className={invalidFields.includes('level') ? 'border-red-500' : ''}>
-              <SelectValue placeholder={formData.campus ? "Select level" : "Select campus first"} />
+            <SelectTrigger className={invalidFields.includes('shift') ? 'border-red-500' : ''}>
+              <SelectValue placeholder="Select shift" />
             </SelectTrigger>
             <SelectContent>
-              {levels.map((level) => (
-                <SelectItem key={level.id} value={level.id.toString()}>
-                  {level.name}
-                </SelectItem>
-              ))}
+              <SelectItem value="morning">Morning</SelectItem>
+              <SelectItem value="afternoon">Afternoon</SelectItem>
+              <SelectItem value="both">Both</SelectItem>
             </SelectContent>
           </Select>
-          {invalidFields.includes('level') && (
+          {invalidFields.includes('shift') && (
             <p className="text-sm text-red-500 flex items-center gap-1">
               <AlertCircle className="h-4 w-4" />
-              Level is required
+              Shift is required
             </p>
           )}
         </div>

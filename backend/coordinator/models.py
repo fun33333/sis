@@ -34,12 +34,20 @@ class Coordinator(models.Model):
     
     # Work Assignment
     campus = models.ForeignKey(Campus, on_delete=models.SET_NULL, null=True, blank=True)
+    # For single-shift coordinators, we keep a single level assignment
     level = models.ForeignKey(
         'classes.Level', 
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='coordinator_set'
+    )
+    # For 'both' shift coordinators, allow assignment to multiple levels (e.g. L1-M and L1-A)
+    assigned_levels = models.ManyToManyField(
+        'classes.Level',
+        blank=True,
+        related_name='assigned_coordinators',
+        help_text='Levels managed by this coordinator when shift is both'
     )
     shift = models.CharField(
         max_length=20,
@@ -91,19 +99,23 @@ class Coordinator(models.Model):
         from teachers.models import Teacher
         from classes.models import ClassRoom
         
-        if not self.level:
+        # Determine which levels this coordinator manages
+        managed_levels = []
+        if self.shift == 'both' and self.assigned_levels.exists():
+            managed_levels = list(self.assigned_levels.all())
+        elif self.level:
+            managed_levels = [self.level]
+        else:
             return []
         
-        # Get classrooms based on coordinator's shift
+        # Get classrooms based on coordinator's shift and managed levels
         if self.shift == 'both':
-            # Coordinator manages both morning and afternoon
             classrooms = ClassRoom.objects.filter(
-                grade__level=self.level
+                grade__level__in=managed_levels
             ).select_related('class_teacher')
         else:
-            # Coordinator manages specific shift
             classrooms = ClassRoom.objects.filter(
-                grade__level=self.level,
+                grade__level__in=managed_levels,
                 shift=self.shift
             ).select_related('class_teacher')
         
@@ -123,19 +135,25 @@ class Coordinator(models.Model):
         """Get all classrooms under this coordinator's level based on shift"""
         from classes.models import ClassRoom
         
-        if not self.level:
+        # Determine which levels this coordinator manages
+        managed_levels = []
+        if self.shift == 'both' and self.assigned_levels.exists():
+            managed_levels = list(self.assigned_levels.all())
+        elif self.level:
+            managed_levels = [self.level]
+        else:
             return ClassRoom.objects.none()
         
         # Get classrooms based on coordinator's shift
         if self.shift == 'both':
             # Coordinator manages both morning and afternoon
             return ClassRoom.objects.filter(
-                grade__level=self.level
+                grade__level__in=managed_levels
             ).select_related('grade', 'class_teacher')
         else:
             # Coordinator manages specific shift
             return ClassRoom.objects.filter(
-                grade__level=self.level,
+                grade__level__in=managed_levels,
                 shift=self.shift
             ).select_related('grade', 'class_teacher')
 

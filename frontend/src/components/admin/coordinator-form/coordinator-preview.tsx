@@ -115,6 +115,12 @@ export function CoordinatorPreview({ formData, onEdit, onSubmit, onCancel, isEdi
                 <p className="text-sm">{levelName}</p>
               </div>
               <div>
+                <Label className="text-sm font-medium text-gray-500">Shift</Label>
+                <p className="text-sm">
+                  {formData.shift ? formData.shift.charAt(0).toUpperCase() + formData.shift.slice(1) : 'Not provided'}
+                </p>
+              </div>
+              <div>
                 <Label className="text-sm font-medium text-gray-500">Joining Date</Label>
                 <p className="text-sm">
                   {formData.joining_date ? format(new Date(formData.joining_date), 'PPP') : 'Not provided'}

@@ -274,6 +274,23 @@ export default function StudentListPage() {
               <option value="terminated">Terminated</option>
                  </select>
                </div>
+               
+          {/* Shift Filter */}
+               <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Shift
+            </label>
+                 <select
+              value={filters.shift}
+              onChange={(e) => handleFilterChange('shift', e.target.value)}
+              className="w-full px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2"
+              style={{ borderColor: '#a3cef1' }}
+            >
+              <option value="">All Shifts</option>
+              <option value="morning">Morning</option>
+              <option value="afternoon">Afternoon</option>
+                 </select>
+               </div>
              </div>
 
         <div className="flex justify-between items-center">

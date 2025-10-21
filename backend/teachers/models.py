@@ -109,6 +109,7 @@ class Teacher(models.Model):
         choices=[
             ('morning', 'Morning'),
             ('afternoon', 'Afternoon'),
+            ('both', 'Both'),
         ],
         default='morning',
         help_text="Teacher's working shift"
@@ -152,13 +153,22 @@ class Teacher(models.Model):
         null=True,
         help_text="Section for class teacher assignment"
     )
+    # Multiple classroom assignments for teachers working both shifts
+    assigned_classrooms = models.ManyToManyField(
+        'classes.ClassRoom', 
+        blank=True,
+        related_name='class_teachers',  # Changed related_name for ManyToMany
+        help_text="Classrooms assigned to this class teacher (can be multiple for both shifts)"
+    )
+    
+    # Keep legacy field for backward compatibility during migration
     assigned_classroom = models.OneToOneField(
         'classes.ClassRoom', 
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True,
-        related_name='class_teacher_teacher',  # FIXED: Changed related_name
-        help_text="Classroom assigned to this class teacher"
+        related_name='legacy_class_teacher',  # Changed related_name to avoid conflicts
+        help_text="LEGACY: Single classroom assignment (use assigned_classrooms instead)"
     )
     
     # Assignment tracking
@@ -195,11 +205,14 @@ class Teacher(models.Model):
             except Exception as e:
                 print(f"Error generating employee code: {str(e)}")
         
-        # FIX: Auto-set class teacher status when classroom is assigned
-        if self.assigned_classroom and not self.is_class_teacher:
+        # FIX: Auto-set class teacher status when classrooms are assigned
+        has_classrooms = (self.assigned_classroom or 
+                         (self.pk and self.assigned_classrooms.exists()))
+        
+        if has_classrooms and not self.is_class_teacher:
             self.is_class_teacher = True
             print(f"Setting {self.full_name} as class teacher")
-        elif not self.assigned_classroom and self.is_class_teacher:
+        elif not has_classrooms and self.is_class_teacher:
             self.is_class_teacher = False
             print(f"Removing class teacher status from {self.full_name}")
         
@@ -207,9 +220,13 @@ class Teacher(models.Model):
         is_new = self.pk is None
         super().save(*args, **kwargs)
         
-        # Auto-assign coordinators based on assigned_classroom
+        # Auto-assign coordinators based on assigned_classroom (legacy)
         if self.assigned_classroom and self.current_campus:
             self._assign_coordinators_from_classroom()
+        
+        # Auto-assign coordinators based on assigned_classrooms (new)
+        elif self.assigned_classrooms.exists() and self.current_campus:
+            self._assign_coordinators_from_classrooms()
         
         # Auto-assign coordinators based on current_classes_taught
         elif self.current_campus and self.current_classes_taught:
@@ -235,6 +252,33 @@ class Teacher(models.Model):
                         print(f"✅ Added coordinator {coordinator.full_name} for level {level.name}")
                 else:
                     print(f"❌ No coordinator for level {level.name}")
+        except Exception as e:
+            print(f"Error: {str(e)}")
+
+    def _assign_coordinators_from_classrooms(self):
+        """Assign coordinators from all assigned classrooms"""
+        try:
+            from coordinator.models import Coordinator
+            
+            # Clear existing coordinators
+            self.assigned_coordinators.clear()
+            
+            # Get coordinators for all assigned classrooms
+            for classroom in self.assigned_classrooms.all():
+                if classroom.grade and classroom.grade.level:
+                    level = classroom.grade.level
+                    coordinator = Coordinator.objects.filter(
+                        level=level,
+                        campus=self.current_campus,
+                        is_currently_active=True
+                    ).first()
+                    
+                    if coordinator and coordinator not in self.assigned_coordinators.all():
+                        self.assigned_coordinators.add(coordinator)
+                        print(f"✅ Added coordinator {coordinator.full_name} for level {level.name}")
+            
+            print(f"✅ Assigned {self.assigned_coordinators.count()} coordinators to {self.full_name}")
+            
         except Exception as e:
             print(f"Error: {str(e)}")
 
