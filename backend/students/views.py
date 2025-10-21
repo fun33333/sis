@@ -327,6 +327,74 @@ class StudentViewSet(viewsets.ModelViewSet):
         
         return Response(data)
     
+    @action(detail=True, methods=['get'], url_path='results')
+    def get_student_results(self, request, pk=None):
+        """Get all results for a specific student"""
+        student = self.get_object()
+        from result.models import Result
+        
+        results = Result.objects.filter(student=student).order_by('-created_at')
+        results_data = []
+        
+        for result in results:
+            result_data = {
+                'id': result.id,
+                'exam_type': result.exam_type,
+                'academic_year': result.academic_year,
+                'semester': result.semester,
+                'status': result.status,
+                'total_marks': result.total_marks,
+                'obtained_marks': result.obtained_marks,
+                'percentage': result.percentage,
+                'grade': result.grade,
+                'result_status': result.result_status,
+                'created_at': result.created_at,
+                'subject_marks': []
+            }
+            
+            # Add subject marks
+            for subject_mark in result.subject_marks.all():
+                result_data['subject_marks'].append({
+                    'subject_name': subject_mark.subject_name,
+                    'total_marks': subject_mark.total_marks,
+                    'obtained_marks': subject_mark.obtained_marks,
+                    'has_practical': subject_mark.has_practical,
+                    'practical_total': subject_mark.practical_total,
+                    'practical_obtained': subject_mark.practical_obtained,
+                    'is_pass': subject_mark.is_pass
+                })
+            
+            results_data.append(result_data)
+        
+        return Response(results_data)
+    
+    @action(detail=True, methods=['get'], url_path='attendance')
+    def get_student_attendance(self, request, pk=None):
+        """Get all attendance records for a specific student"""
+        student = self.get_object()
+        from attendance.models import StudentAttendance
+        
+        attendance_records = StudentAttendance.objects.filter(
+            student=student
+        ).select_related('attendance').order_by('-attendance__date')
+        
+        attendance_data = []
+        for record in attendance_records:
+            attendance_data.append({
+                'id': record.id,
+                'status': record.status,
+                'remarks': record.remarks,
+                'date': record.attendance.date,
+                'created_at': record.created_at,
+                'attendance': {
+                    'id': record.attendance.id,
+                    'date': record.attendance.date,
+                    'classroom': record.attendance.classroom.name if record.attendance.classroom else None
+                }
+            })
+        
+        return Response(attendance_data)
+    
     @action(detail=False, methods=['get'], url_path='mother_tongue_distribution')
     def mother_tongue_distribution(self, request):
         """Get mother tongue distribution"""

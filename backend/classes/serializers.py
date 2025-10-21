@@ -27,13 +27,14 @@ class LevelSerializer(serializers.ModelSerializer):
 class GradeSerializer(serializers.ModelSerializer):
     level_name = serializers.CharField(source='level.name', read_only=True)
     level_code = serializers.CharField(source='level.code', read_only=True)
+    level_shift = serializers.CharField(source='level.shift', read_only=True)
     campus_name = serializers.CharField(source='level.campus.campus_name', read_only=True)
     
     class Meta:
         model = Grade
         fields = [
             'id', 'name', 'code', 'level', 'level_name', 
-            'level_code', 'campus_name'
+            'level_code', 'level_shift', 'campus_name'
         ]
         read_only_fields = ['id', 'code']
 

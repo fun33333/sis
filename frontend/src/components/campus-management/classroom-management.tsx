@@ -37,6 +37,7 @@ import {
   getLevels,
   getAvailableTeachers,
   assignTeacherToClassroom,
+  unassignTeacherFromClassroom,
   getUserCampusId
 } from "@/lib/api"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
@@ -135,6 +136,12 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
   }
 
   async function handleSave() {
+    // Block edits if a teacher is assigned to this classroom
+    if (editingClassroom && (editingClassroom.class_teacher || editingClassroom.class_teacher_name)) {
+      alert('Please unassign the current class teacher before updating this classroom.')
+      return
+    }
+
     if (!formData.level || !formData.grade || !formData.section) {
       alert('Please select level, grade and section')
       return
@@ -181,9 +188,18 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
     }
   }
 
-  function handleAssignTeacher(classroom: any) {
+  async function handleAssignTeacher(classroom: any) {
     setSelectedClassroom(classroom)
     setSelectedTeacher(classroom.class_teacher?.toString() || '')
+    // Load filtered teachers from backend by shift
+    try {
+      const shift = (classroom.shift || '').toString()
+      const teachersData = await getAvailableTeachers(userCampusId || undefined, shift)
+      const teachersArray = (teachersData as any)?.results || (Array.isArray(teachersData) ? teachersData : [])
+      setAvailableTeachers(teachersArray)
+    } catch (e) {
+      console.error('Failed to load available teachers by shift', e)
+    }
     setIsTeacherDialogOpen(true)
   }
 
@@ -207,6 +223,12 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
       
       // Auto-refresh classroom list
       await fetchData()
+      // Reset available teachers to full list after refresh
+      try {
+        const teachersData = await getAvailableTeachers(userCampusId || undefined)
+        const teachersArray = (teachersData as any)?.results || (Array.isArray(teachersData) ? teachersData : [])
+        setAvailableTeachers(teachersArray)
+      } catch {}
       
     } catch (error: any) {
       // The handleApiError function now properly extracts the specific error message
@@ -396,6 +418,13 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {editingClassroom?.class_teacher && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                <p className="text-sm text-amber-800">
+                  A teacher is currently assigned to this classroom. Please unassign the teacher before making changes.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
             <Label htmlFor="level">Level *</Label>
             {levels.length === 0 ? (
@@ -604,6 +633,31 @@ export default function ClassroomManagement({ campusId }: ClassroomManagementPro
                   </SelectContent>
                 </Select>
               )}
+            {selectedClassroom?.class_teacher && (
+              <div className="flex justify-between items-center pt-2">
+                <div className="text-xs text-gray-600">
+                  Currently assigned: {selectedClassroom.class_teacher_name || 'Unknown'}
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    if (!confirm('Unassign current class teacher from this classroom?')) return
+                    setSaving(true)
+                    try {
+                      await unassignTeacherFromClassroom(selectedClassroom.id)
+                      setIsTeacherDialogOpen(false)
+                      await fetchData()
+                    } catch (e: any) {
+                      alert(e?.message || 'Failed to unassign teacher')
+                    } finally {
+                      setSaving(false)
+                    }
+                  }}
+                >
+                  Unassign
+                </Button>
+              </div>
+            )}
             </div>
 
             {selectedClassroom?.assigned_by_name && (

@@ -17,12 +17,15 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
   // For smooth text appearance after sidebar opens
   const [showText, setShowText] = useState(sidebarOpen);
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
   
   // Responsive behavior - close sidebar on tablet/mobile
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth <= 768;
+      const mobile = window.innerWidth <= 640; // sm breakpoint
+      const tablet = window.innerWidth <= 1024; // lg breakpoint
       setIsMobile(mobile);
+      setIsTablet(tablet);
       if (mobile) {
         setSidebarOpen(false);
       }
@@ -361,15 +364,46 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
     ];
 
   return (
-    <aside
-      className={`h-screen fixed left-0 top-0 flex flex-col justify-between rounded-r-3xl shadow-2xl backdrop-blur-lg border-r border-[#8b8c89]/30 z-20 transition-all duration-500 ${sidebarOpen ? "w-72 px-4 py-8" : "w-18 px-2 py-4"} ${isMobile ? 'md:w-72' : ''}`}
-      style={{
-        background: sidebarOpen ? "#e7ecef" : "#a3cef1",
-        boxShadow: sidebarOpen ? "0 8px 32px 0 #add0e7bc" : "0 2px 8px 0 #a3cef1e8",
-        borderRight: "3px solid #1c3f67ff",
-        transition: 'background 0.5s, box-shadow 0.5s, width 0.5s, padding 0.5s',
-      }}
-    >
+    <>
+      {/* Mobile Overlay */}
+      {isMobile && sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-10"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Mobile Logo Icon - Only show when sidebar is closed on mobile */}
+      {isMobile && !sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="fixed top-4 left-4 z-30 p-3 bg-white rounded-xl shadow-lg border border-gray-200 hover:scale-105 transition-transform duration-300"
+          aria-label="Open sidebar"
+          style={{ boxShadow: "0 4px 12px 0 #6096ba33" }}
+        >
+          <img src="/logo 1 pen.png" alt="Logo" className="w-8 h-8" />
+        </button>
+      )}
+
+      {/* Only render sidebar if not mobile or if mobile and sidebar is open */}
+      {(!isMobile || (isMobile && sidebarOpen)) && (
+        <aside
+          className={`h-screen fixed left-0 top-0 flex flex-col justify-between rounded-r-3xl shadow-2xl backdrop-blur-lg border-r border-[#8b8c89]/30 z-20 transition-all duration-500 ${
+            sidebarOpen 
+              ? isMobile 
+                ? "w-80 px-4 py-8" 
+                : isTablet 
+                  ? "w-64 px-4 py-8" 
+                  : "w-72 px-4 py-8"
+              : "w-18 px-2 py-4"
+          }`}
+          style={{
+            background: sidebarOpen ? "#e7ecef" : "#a3cef1",
+            boxShadow: sidebarOpen ? "0 8px 32px 0 #add0e7bc" : "0 2px 8px 0 #a3cef1e8",
+            borderRight: "3px solid #1c3f67ff",
+            transition: 'background 0.5s, box-shadow 0.5s, width 0.5s, padding 0.5s, transform 0.5s',
+          }}
+        >
       <div className="flex h-full flex-col">
         <div className="flex items-center gap-3 mb-10">
           <div
@@ -483,5 +517,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         </nav>
       </div>
     </aside>
+      )}
+    </>
   )
 }

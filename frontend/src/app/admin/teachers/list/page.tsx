@@ -311,21 +311,21 @@ export default function TeacherListPage() {
   }
 
   return (
-    <div className="p-3 w-full max-w-full overflow-hidden">
-      <div className="mb-3">
-        <h1 className="text-3xl font-bold mb-2" style={{ color: '#274c77' }}>
+    <div className="p-2 sm:p-3 w-full max-w-full overflow-hidden">
+      <div className="mb-3 sm:mb-4">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2" style={{ color: '#274c77' }}>
           Teachers List
         </h1>
-        <p className="text-gray-600">
+        <p className="text-sm sm:text-base text-gray-600">
           Showing {teachers.length} of {totalCount} teachers
         </p>
       </div>
 
        {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow p-3 mb-3 w-full" style={{ borderColor: '#a3cef1' }}>
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold mb-2 flex items-center space-x-2" style={{ color: '#274c77' }}>
-            <div className="h-6 w-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6096ba' }}>
+      <div className="bg-white rounded-lg shadow p-2 sm:p-3 mb-3 w-full" style={{ borderColor: '#a3cef1' }}>
+        <div className="mb-3 sm:mb-4">
+          <h3 className="text-base sm:text-lg font-semibold mb-2 flex items-center space-x-2" style={{ color: '#274c77' }}>
+            <div className="h-5 w-5 sm:h-6 sm:w-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6096ba' }}>
               <span className="text-white text-xs font-bold">🔍</span>
             </div>
             <span>Search & Filters</span>
@@ -433,36 +433,37 @@ export default function TeacherListPage() {
       {/* Teachers Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden w-full" style={{ borderColor: '#a3cef1' }}>
         <div className="overflow-x-auto w-full">
-          <table className="w-full divide-y divide-gray-200 table-fixed">
+          <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm md:text-base">
             <thead style={{ backgroundColor: '#274c77' }}>
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider w-1/4">
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4" />
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider min-w-[120px] sm:min-w-[150px]">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <User className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span>Teacher</span>
                   </div>
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider w-1/4">
-                  <div className="flex items-center space-x-2">
-                    <GraduationCap className="h-4 w-4" />
-                    <span>Subjects/Classes</span>
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider min-w-[100px] sm:min-w-[120px]">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Subjects/Classes</span>
+                    <span className="sm:hidden">Classes</span>
                   </div>
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider w-1/6">
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4" />
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider min-w-[80px] sm:min-w-[100px]">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span>Campus</span>
                   </div>
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider w-1/12">
-                  <div className="flex items-center space-x-2">
-                    <div className="h-4 w-4 rounded-full bg-green-500"></div>
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider min-w-[60px] sm:min-w-[80px]">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <div className="h-3 w-3 sm:h-4 sm:w-4 rounded-full bg-green-500"></div>
                     <span>Status</span>
                   </div>
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider w-1/6">
-                  <div className="flex items-center space-x-2">
-                    <MoreVertical className="h-4 w-4" />
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider min-w-[80px] sm:min-w-[100px]">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <MoreVertical className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span>Actions</span>
                   </div>
                 </th>
@@ -471,56 +472,56 @@ export default function TeacherListPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {teachers.map((teacher, index) => (
                 <tr key={teacher.id} className={`hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : ''}`} style={{ backgroundColor: index % 2 === 0 ? 'white' : '#e7ecef' }}>
-                  <td className="px-3 py-3 whitespace-nowrap">
-                    <div className="flex items-center space-x-3">
+                  <td className="px-2 sm:px-3 py-3 whitespace-nowrap">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
                       <div className="flex-shrink-0">
-                        <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6096ba' }}>
-                          <User className="h-5 w-5 text-white" />
+                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6096ba' }}>
+                          <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                         </div>
                       </div>
-                      <div>
-                        <div className="text-sm font-semibold text-gray-900 flex items-center space-x-2">
-                          <span>{teacher.full_name}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs sm:text-sm font-semibold text-gray-900 flex items-center space-x-1 sm:space-x-2">
+                          <span className="truncate">{teacher.full_name}</span>
                             {teacher.is_class_teacher && (
-                              <Award className="h-4 w-4 text-yellow-500" />
+                              <Award className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 flex-shrink-0" />
                             )}
                         </div>
-                        <div className="text-sm text-gray-500 flex items-center space-x-1">
+                        <div className="text-xs text-gray-500 flex items-center space-x-1">
                           <Mail className="h-3 w-3" />
-                          <span className="truncate max-w-[150px]">
+                          <span className="truncate max-w-[100px] sm:max-w-[150px]">
                             {teacher.email ? teacher.email.substring(0, teacher.email.length / 2) + '...' : 'N/A'}
                           </span>
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-3">
+                  <td className="px-2 sm:px-3 py-3">
                     <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <GraduationCap className="h-4 w-4" style={{ color: '#6096ba' }} />
-                        <span className="text-sm font-medium text-gray-900">Subjects:</span>
-                        <span className="text-sm text-gray-600 max-w-[120px] truncate">
+                      <div className="flex items-center space-x-1 sm:space-x-2">
+                        <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4" style={{ color: '#6096ba' }} />
+                        <span className="text-xs sm:text-sm font-medium text-gray-900">Subjects:</span>
+                        <span className="text-xs sm:text-sm text-gray-600 max-w-[80px] sm:max-w-[120px] truncate">
                           {teacher.current_subjects ? teacher.current_subjects.split(',').slice(0, 2).join(', ') : 'N/A'}
                         </span>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <User className="h-4 w-4" style={{ color: '#6096ba' }} />
-                        <span className="text-sm font-medium text-gray-900">Classes:</span>
-                        <span className="text-sm text-gray-600 max-w-[120px] truncate">
+                      <div className="flex items-center space-x-1 sm:space-x-2">
+                        <User className="h-3 w-3 sm:h-4 sm:w-4" style={{ color: '#6096ba' }} />
+                        <span className="text-xs sm:text-sm font-medium text-gray-900">Classes:</span>
+                        <span className="text-xs sm:text-sm text-gray-600 max-w-[80px] sm:max-w-[120px] truncate">
                           {teacher.current_classes_taught ? teacher.current_classes_taught.split(',').slice(0, 2).join(', ') : 'N/A'}
                         </span>
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-3 whitespace-nowrap">
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="h-4 w-4" style={{ color: '#6096ba' }} />
-                      <div>
-                        <div className="text-sm font-bold text-gray-900">
+                  <td className="px-2 sm:px-3 py-3 whitespace-nowrap">
+                    <div className="flex items-center space-x-1 sm:space-x-2">
+                      <MapPin className="h-3 w-3 sm:h-4 sm:w-4" style={{ color: '#6096ba' }} />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs sm:text-sm font-bold text-gray-900 truncate">
                           {teacher.campus_name || 'N/A'}
                         </div>
                         {teacher.coordinator_names && teacher.coordinator_names.length > 0 && (
-                          <div className="text-sm text-gray-600">
+                          <div className="text-xs text-gray-600 truncate">
                             Coord: {teacher.coordinator_names[0]}
                             {teacher.coordinator_names.length > 1 && '...'}
                           </div>
@@ -528,39 +529,37 @@ export default function TeacherListPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-3 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full ${
+                  <td className="px-2 sm:px-3 py-3 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2 sm:px-3 py-1 text-xs font-semibold rounded-full ${
                       teacher.is_currently_active 
                         ? 'bg-green-100 text-green-800 border border-green-200'
                         : 'bg-red-100 text-red-800 border border-red-200'
                     }`}>
-                      <div className={`h-2 w-2 rounded-full mr-2 ${
+                      <div className={`h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full mr-1 sm:mr-2 ${
                         teacher.is_currently_active ? 'bg-green-500' : 'bg-red-500'
                       }`}></div>
-                      {teacher.is_currently_active ? 'Active' : 'Inactive'}
+                      <span className="hidden sm:inline">{teacher.is_currently_active ? 'Active' : 'Inactive'}</span>
+                      <span className="sm:hidden">{teacher.is_currently_active ? 'A' : 'I'}</span>
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
+                  <td className="px-2 sm:px-3 py-3 whitespace-nowrap text-xs sm:text-sm font-medium">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
                       <button
                         onClick={() => router.push(`/admin/teachers/profile?id=${teacher.id}`)}
-                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md text-white transition-all duration-200 shadow-sm hover:shadow-md"
+                        className="inline-flex items-center px-1.5 sm:px-2 py-1 border border-transparent text-xs font-medium rounded-md text-white transition-all duration-200 shadow-sm hover:shadow-md"
                         style={{ backgroundColor: '#6096ba' }}
                       >
                         <Eye className="h-3 w-3 mr-1" />
-                        View
+                        <span className="hidden sm:inline">View</span>
                       </button>
-                      {/* Hide Edit button for principal role */}
-                      {userRole !== 'principal' && (
-                        <button
-                          onClick={() => handleEdit(teacher)}
-                          className="inline-flex items-center px-2 py-1 border text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                          style={{ borderColor: '#6096ba', color: '#274c77' }}
-                        >
-                          <Edit className="h-3 w-3 mr-1" />
-                          Edit
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleEdit(teacher)}
+                        className="inline-flex items-center px-1.5 sm:px-2 py-1 border text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                        style={{ borderColor: '#6096ba', color: '#274c77' }}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        <span className="hidden sm:inline">Edit</span>
+                      </button>
                     </div>
                   </td>
                 </tr>

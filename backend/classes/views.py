@@ -3,6 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from django.utils import timezone
 from .models import Level, Grade, ClassRoom
@@ -115,6 +117,63 @@ class LevelViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    @action(detail=True, methods=['post'])
+    def unassign_teacher(self, request, pk=None):
+        """Unassign the current class teacher from this classroom"""
+        classroom = self.get_object()
+        try:
+            old_teacher = classroom.class_teacher
+            if not old_teacher:
+                return Response({'message': 'No teacher assigned'}, status=status.HTTP_200_OK)
+
+            # Clear classroom assignment
+            classroom.class_teacher = None
+            classroom.assigned_by = request.user
+            classroom.assigned_at = timezone.now()
+            classroom.save()
+
+            # Update teacher flags
+            old_teacher.assigned_classroom = None
+            old_teacher.is_class_teacher = False
+            old_teacher.classroom_assigned_by = None
+            old_teacher.classroom_assigned_at = None
+            old_teacher.save()
+
+            serializer = self.get_serializer(classroom)
+            return Response({'message': 'Teacher unassigned successfully', 'classroom': serializer.data})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# Fallback function-based endpoint to ensure unassign works even if router/viewset caching interferes
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def unassign_classroom_teacher(request, pk: int):
+    """Unassign the current class teacher (function-based alternative)."""
+    try:
+        classroom = ClassRoom.objects.get(pk=pk)
+        old_teacher = classroom.class_teacher
+        if not old_teacher:
+            return Response({'message': 'No teacher assigned'})
+
+        classroom.class_teacher = None
+        classroom.assigned_by = request.user
+        classroom.assigned_at = timezone.now()
+        classroom.save()
+
+        old_teacher.assigned_classroom = None
+        old_teacher.is_class_teacher = False
+        old_teacher.classroom_assigned_by = None
+        old_teacher.classroom_assigned_at = None
+        old_teacher.save()
+
+        serializer = ClassRoomSerializer(classroom)
+        return Response({'message': 'Teacher unassigned successfully', 'classroom': serializer.data})
+    except ClassRoom.DoesNotExist:
+        return Response({'error': 'Classroom not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class GradeViewSet(viewsets.ModelViewSet):
     queryset = Grade.objects.all()
     serializer_class = GradeSerializer
@@ -132,6 +191,7 @@ class GradeViewSet(viewsets.ModelViewSet):
         # Get query parameters
         level_id = self.request.query_params.get('level_id')
         campus_id = self.request.query_params.get('campus_id')
+        shift = self.request.query_params.get('shift')
         
         # Principal: Only their campus + level filtering
         if hasattr(user, 'role') and user.role == 'principal':
@@ -145,6 +205,10 @@ class GradeViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(level_id=level_id)
             if campus_id:
                 queryset = queryset.filter(level__campus_id=campus_id)
+        
+        # Filter by shift if provided
+        if shift:
+            queryset = queryset.filter(level__shift=shift)
         
         return queryset
     
@@ -233,6 +297,7 @@ class ClassRoomViewSet(viewsets.ModelViewSet):
         
         # Filter by campus if provided (for principals)
         campus_id = request.query_params.get('campus_id')
+        shift_param = request.query_params.get('shift')
         user = request.user
         
         # Principal: Only teachers from their campus
@@ -252,7 +317,11 @@ class ClassRoomViewSet(viewsets.ModelViewSet):
         else:
             teachers = Teacher.objects.filter(is_class_teacher=False)
         
-        return Response(teachers.values('id', 'full_name', 'employee_code', 'current_campus__campus_name'))
+        # Optional shift filter - allow teachers who work this shift or both
+        if shift_param in ['morning', 'afternoon']:
+            teachers = teachers.filter(Q(shift=shift_param) | Q(shift='both'))
+
+        return Response(teachers.values('id', 'full_name', 'employee_code', 'shift', 'current_campus__campus_name'))
     
     @action(detail=False, methods=['get'])
     def unassigned_classrooms(self, request):

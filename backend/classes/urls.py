@@ -9,4 +9,6 @@ router.register(r'classrooms', views.ClassRoomViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    # Explicit route for unassigning teacher to avoid router caching issues
+    path('classrooms/<int:pk>/unassign_teacher/', views.unassign_classroom_teacher, name='classroom-unassign-teacher'),
 ]

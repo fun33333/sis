@@ -1047,11 +1047,22 @@ export async function assignTeacherToClassroom(classroomId: number, teacherId: n
   }
 }
 
-export async function getAvailableTeachers(campusId?: number) {
+export async function unassignTeacherFromClassroom(classroomId: number) {
   try {
-    const url = campusId 
-      ? `${API_ENDPOINTS.CLASSROOMS}available_teachers/?campus_id=${campusId}`
-      : `${API_ENDPOINTS.CLASSROOMS}available_teachers/`;
+    return await apiPost(`${API_ENDPOINTS.CLASSROOMS}${classroomId}/unassign_teacher/`, {});
+  } catch (error) {
+    console.error('Failed to unassign teacher from classroom:', error);
+    throw error;
+  }
+}
+
+export async function getAvailableTeachers(campusId?: number, shift?: string) {
+  try {
+    let url = `${API_ENDPOINTS.CLASSROOMS}available_teachers/`;
+    const params = new URLSearchParams();
+    if (campusId) params.append('campus_id', String(campusId));
+    if (shift) params.append('shift', shift);
+    if (Array.from(params).length > 0) url += `?${params.toString()}`;
     return await apiGet(url);
   } catch (error) {
     console.error('Failed to fetch available teachers:', error);

@@ -219,13 +219,13 @@ export function UserProfilePopup() {
       {/* Profile Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+        className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 transition-colors"
       >
-        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-xs sm:text-sm">
           {currentUser.first_name?.[0] || currentUser.username?.[0] || 'U'}
         </div>
-        <div className="hidden md:block text-left">
-          <p className="text-sm font-medium text-gray-900">
+        <div className="hidden sm:block text-left">
+          <p className="text-xs sm:text-sm font-medium text-gray-900">
             {currentUser.first_name && currentUser.last_name 
               ? `${currentUser.first_name} ${currentUser.last_name}`
               : currentUser.username
@@ -233,27 +233,27 @@ export function UserProfilePopup() {
           </p>
           <p className="text-xs text-gray-500">{currentUser.role}</p>
         </div>
-        <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {/* Popup */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden max-w-[calc(100vw-2rem)]">
           <Card className="border-0 shadow-none">
             <CardContent className="p-0">
               {/* Header */}
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
-                <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 sm:p-6 text-white">
+                <div className="flex items-center gap-3 sm:gap-4">
                   <div className="relative">
-                    <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold text-white border-2 border-white/30">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-full flex items-center justify-center text-lg sm:text-2xl font-bold text-white border-2 border-white/30">
                       {userProfile?.first_name?.[0] || currentUser.first_name?.[0] || currentUser.username?.[0] || 'U'}
                     </div>
-                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-white">
-                      <CheckCircle className="w-4 h-4 text-white" />
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-white">
+                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                     </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base sm:text-lg font-bold truncate">
                       {userProfile?.first_name && userProfile?.last_name 
                         ? `${userProfile.first_name} ${userProfile.last_name}`
                         : userProfile?.username || currentUser.username
@@ -270,49 +270,49 @@ export function UserProfilePopup() {
               </div>
 
               {/* Content */}
-              <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+              <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-80 sm:max-h-96 overflow-y-auto">
                 {loading ? (
-                  <div className="text-center py-4">
-                    <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-2"></div>
-                    <p className="text-sm text-gray-500">Loading profile...</p>
+                  <div className="text-center py-3 sm:py-4">
+                    <div className="w-5 h-5 sm:w-6 sm:h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-2"></div>
+                    <p className="text-xs sm:text-sm text-gray-500">Loading profile...</p>
                   </div>
                 ) : (
                   <>
                     {/* Basic Info */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <Mail className="w-4 h-4 text-gray-400" />
+                    <div className="space-y-2 sm:space-y-3">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <Mail className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-gray-500">Email</p>
-                          <p className="text-sm font-medium truncate">{userProfile?.email || currentUser.email}</p>
+                          <p className="text-xs sm:text-sm font-medium truncate">{userProfile?.email || currentUser.email}</p>
                         </div>
                       </div>
 
                       {userProfile?.phone_number && (
-                        <div className="flex items-center gap-3">
-                          <Phone className="w-4 h-4 text-gray-400" />
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-gray-500">Phone</p>
-                            <p className="text-sm font-medium">{userProfile.phone_number}</p>
+                            <p className="text-xs sm:text-sm font-medium">{userProfile.phone_number}</p>
                           </div>
                         </div>
                       )}
 
-                      <div className="flex items-center gap-3">
-                        <Building2 className="w-4 h-4 text-gray-400" />
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <Building2 className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-gray-500">Campus</p>
-                          <p className="text-sm font-medium truncate">
+                          <p className="text-xs sm:text-sm font-medium truncate">
                             {userProfile?.campus?.campus_name || 'Not Assigned'}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <Calendar className="w-4 h-4 text-gray-400" />
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-gray-500">Member Since</p>
-                          <p className="text-sm font-medium">
+                          <p className="text-xs sm:text-sm font-medium">
                             {userProfile?.created_at ? formatDate(userProfile.created_at) : 'Unknown'}
                           </p>
                         </div>
@@ -321,38 +321,38 @@ export function UserProfilePopup() {
 
                     {/* Teacher Specific Info */}
                     {userProfile?.role === 'teacher' && teacherData && (
-                      <div className="border-t pt-3 space-y-3">
-                        <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                          <GraduationCap className="w-4 h-4" />
+                      <div className="border-t pt-2 sm:pt-3 space-y-2 sm:space-y-3">
+                        <h4 className="text-xs sm:text-sm font-semibold text-gray-900 flex items-center gap-2">
+                          <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4" />
                           Teaching Info
                         </h4>
                         
                         {teacherData.current_subjects && (
-                          <div className="flex items-center gap-3">
-                            <GraduationCap className="w-4 h-4 text-gray-400" />
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="text-xs text-gray-500">Subjects</p>
-                              <p className="text-sm font-medium truncate">{teacherData.current_subjects}</p>
+                              <p className="text-xs sm:text-sm font-medium truncate">{teacherData.current_subjects}</p>
                             </div>
                           </div>
                         )}
 
                         {teacherData.current_classes_taught && (
-                          <div className="flex items-center gap-3">
-                            <User className="w-4 h-4 text-gray-400" />
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <User className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="text-xs text-gray-500">Classes</p>
-                              <p className="text-sm font-medium truncate">{teacherData.current_classes_taught}</p>
+                              <p className="text-xs sm:text-sm font-medium truncate">{teacherData.current_classes_taught}</p>
                             </div>
                           </div>
                         )}
 
                         {teacherData.total_experience_years && (
-                          <div className="flex items-center gap-3">
-                            <Clock className="w-4 h-4 text-gray-400" />
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="text-xs text-gray-500">Experience</p>
-                              <p className="text-sm font-medium">{teacherData.total_experience_years} years</p>
+                              <p className="text-xs sm:text-sm font-medium">{teacherData.total_experience_years} years</p>
                             </div>
                           </div>
                         )}
@@ -363,21 +363,22 @@ export function UserProfilePopup() {
               </div>
 
               {/* Actions */}
-              <div className="border-t bg-gray-50 p-4 space-y-2">
+              <div className="border-t bg-gray-50 p-3 sm:p-4 space-y-1 sm:space-y-2">
                 <Button 
                   variant="ghost" 
-                  className="w-full justify-start text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  className="w-full justify-start text-xs sm:text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 py-2 sm:py-2.5"
                   onClick={handleViewFullProfile}
                 >
-                  <User className="w-4 h-4 mr-2" />
-                  View Full Profile
+                  <User className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                  <span className="hidden sm:inline">View Full Profile</span>
+                  <span className="sm:hidden">Profile</span>
                 </Button>
                 <Button 
                   variant="ghost" 
-                  className="w-full justify-start text-sm text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="w-full justify-start text-xs sm:text-sm text-red-600 hover:text-red-700 hover:bg-red-50 py-2 sm:py-2.5"
                   onClick={handleLogout}
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
+                  <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Logout
                 </Button>
               </div>

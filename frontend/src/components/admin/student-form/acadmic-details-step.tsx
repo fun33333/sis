@@ -28,6 +28,17 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
     loadCampuses()
   }, [])
 
+  // Clear selected grade when shift changes
+  useEffect(() => {
+    if (formData.shift && formData.campus) {
+      loadGrades(formData.campus, formData.shift)
+      // Clear selected grade when shift changes
+      if (formData.currentGrade) {
+        onInputChange("currentGrade", "")
+      }
+    }
+  }, [formData.shift])
+
   const loadCampuses = async () => {
     try {
       setLoading(true)
@@ -49,9 +60,12 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
     }
   }
 
-  const loadGrades = async (campusId: string) => {
+  const loadGrades = async (campusId: string, shift?: string) => {
     try {
-      const endpoint = campusId ? `${API_ENDPOINTS.GRADES}?campus_id=${campusId}` : `${API_ENDPOINTS.GRADES}`
+      let endpoint = campusId ? `${API_ENDPOINTS.GRADES}?campus_id=${campusId}` : `${API_ENDPOINTS.GRADES}`
+      if (shift) {
+        endpoint += campusId ? `&shift=${shift}` : `?shift=${shift}`
+      }
       const data = await apiGet(endpoint)
       const list = Array.isArray(data) ? data : (Array.isArray((data as any)?.results) ? (data as any).results : [])
       setGrades(list)
@@ -71,6 +85,11 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
         delete newErrors[field]
         return newErrors
       })
+    }
+    
+    // Reload grades when shift changes
+    if (field === 'shift' && formData.campus) {
+      loadGrades(formData.campus, value)
     }
     
     // Real-time validation - only validate on blur, not on every keystroke
@@ -124,7 +143,7 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="campus">Select Campus *</Label>
-            <Select value={formData.campus || ""} onValueChange={(v) => { onInputChange("campus", v); loadGrades(v) }}>
+            <Select value={formData.campus || ""} onValueChange={(v) => { onInputChange("campus", v); loadGrades(v, formData.shift) }}>
               <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("campus") ? "border-red-500" : ""}`}>
                 <SelectValue placeholder={loading ? "Loading campuses..." : "Select campus"} />
               </SelectTrigger>
@@ -142,6 +161,22 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
           </div>
 
           <div>
+            <Label htmlFor="shift">Shift *</Label>
+            <Select value={formData.shift || ""} onValueChange={(v) => onInputChange("shift", v)}>
+              <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("shift") ? "border-red-500" : ""}`}>
+                <SelectValue placeholder="Select shift" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="morning">Morning</SelectItem>
+                <SelectItem value="afternoon">Afternoon</SelectItem>
+              </SelectContent>
+            </Select>
+            {getFieldError("shift") && (
+              <p className="text-sm text-red-600 mt-1">{getFieldError("shift")}</p>
+            )}
+          </div>
+
+          <div>
             <Label htmlFor="currentGrade">Current Grade/Class *</Label>
             <Select value={formData.currentGrade || ""} onValueChange={(v) => onInputChange("currentGrade", v)}>
               <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("currentGrade") ? "border-red-500" : ""}`}>
@@ -149,7 +184,9 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
               </SelectTrigger>
               <SelectContent>
                 {grades.map((g) => (
-                  <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
+                  <SelectItem key={g.id} value={g.name}>
+                    {g.name} • {g.level_shift ? g.level_shift.charAt(0).toUpperCase() + g.level_shift.slice(1) : 'N/A'}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -174,22 +211,6 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
             </Select>
             {getFieldError("section") && (
               <p className="text-sm text-red-600 mt-1">{getFieldError("section")}</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="shift">Shift *</Label>
-            <Select value={formData.shift || ""} onValueChange={(v) => onInputChange("shift", v)}>
-              <SelectTrigger className={`border-2 focus:border-primary ${invalidFields.includes("shift") ? "border-red-500" : ""}`}>
-                <SelectValue placeholder="Select shift" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="morning">Morning</SelectItem>
-                <SelectItem value="afternoon">Afternoon</SelectItem>
-              </SelectContent>
-            </Select>
-            {getFieldError("shift") && (
-              <p className="text-sm text-red-600 mt-1">{getFieldError("shift")}</p>
             )}
           </div>
 

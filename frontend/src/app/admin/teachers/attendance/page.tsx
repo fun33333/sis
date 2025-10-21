@@ -1052,93 +1052,96 @@ export default function TeacherAttendancePage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto mt-8 p-6 space-y-6">
+    <div className="max-w-7xl mx-auto mt-4 sm:mt-6 lg:mt-8 p-2 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
       {/* Approval Notification */}
       {showApprovalNotification && (
-        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 animate-pulse">
-          <CheckCircle className="h-6 w-6" />
-          <div>
-            <p className="font-semibold">✅ Attendance Approved!</p>
-            <p className="text-sm">Your attendance for {approvedDate} has been approved by the coordinator.</p>
+        <div className="fixed top-2 right-2 sm:top-4 sm:right-4 z-50 bg-green-500 text-white px-3 sm:px-6 py-3 sm:py-4 rounded-lg shadow-lg flex items-center space-x-2 sm:space-x-3 animate-pulse max-w-[calc(100vw-1rem)] sm:max-w-none">
+          <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-sm sm:text-base">✅ Attendance Approved!</p>
+            <p className="text-xs sm:text-sm truncate">Your attendance for {approvedDate} has been approved by the coordinator.</p>
           </div>
           <button 
             onClick={() => setShowApprovalNotification(false)}
-            className="text-white hover:text-gray-200 ml-2"
+            className="text-white hover:text-gray-200 ml-1 sm:ml-2 flex-shrink-0"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
         </div>
       )}
 
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-[#274c77] to-[#6096ba] rounded-2xl p-6 text-white shadow-xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Mark Attendance</h1>
-            <div className="flex items-center space-x-4 text-lg">
+      <div className="bg-gradient-to-r from-[#274c77] to-[#6096ba] rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-6 text-white shadow-xl">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+          <div className="flex-1">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3">Mark Attendance</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 text-sm sm:text-base lg:text-lg">
               <div className="flex items-center space-x-2">
-                <Users className="h-5 w-5" />
-                <span>{classInfo?.name} - {classInfo?.section}</span>
+                <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="truncate">{classInfo?.name} - {classInfo?.section}</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5" />
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => handleDateChange(e.target.value)}
                   max={new Date().toISOString().split('T')[0]}
-                  className="bg-white/20 border border-white/30 rounded-lg px-3 py-1 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50"
+                  className="bg-white/20 border border-white/30 rounded-lg px-2 sm:px-3 py-1 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 text-xs sm:text-sm"
                 />
                 {new Date(selectedDate).getDay() === 0 && (
-                  <span className="text-orange-300 font-medium text-sm">(Weekend)</span>
+                  <span className="text-orange-300 font-medium text-xs sm:text-sm">(Weekend)</span>
                 )}
               </div>
               <div className="flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5" />
-                <span className="text-sm">
+                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="text-xs sm:text-sm">
                   {Object.keys(attendance).length} / {students.length} students marked
                 </span>
               </div>
               <div className="flex items-center space-x-2">
-                <Clock className="h-5 w-5" />
-                <span>{new Date().toLocaleTimeString()}</span>
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="text-xs sm:text-sm">{new Date().toLocaleTimeString()}</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Backfill Permissions Icon */}
             <div className="relative">
               <Button
                 onClick={handleBackfillIconClick}
-                className="bg-white/20 hover:bg-white/30 text-white border border-white/30 flex items-center gap-2"
+                className="bg-white/20 hover:bg-white/30 text-white border border-white/30 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
                 size="sm"
               >
-                <Clock3 className="h-4 w-4" />
-                Backfill
+                <Clock3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Backfill</span>
               </Button>
               {hasNewPermissions && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                  <Bell className="h-2 w-2 text-white" />
+                <div className="absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full flex items-center justify-center">
+                  <Bell className="h-1 w-1 sm:h-2 sm:w-2 text-white" />
                 </div>
               )}
             </div>
             
             {isEditMode && (
-              <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
-                <Edit3 className="h-4 w-4 mr-1" />
-                Edit Mode
+              <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
+                <Edit3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                <span className="hidden sm:inline">Edit Mode</span>
+                <span className="sm:hidden">Edit</span>
               </Badge>
             )}
             {!isDateEditable() && (
-              <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                Read Only (Older than 7 days)
+              <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300 text-xs">
+                <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                <span className="hidden sm:inline">Read Only (Older than 7 days)</span>
+                <span className="sm:hidden">Read Only</span>
               </Badge>
             )}
             {new Date(selectedDate).getDay() === 0 && (
-              <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
-                <Calendar className="h-4 w-4 mr-1" />
-                Weekend (Sunday)
+              <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300 text-xs">
+                <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                <span className="hidden sm:inline">Weekend (Sunday)</span>
+                <span className="sm:hidden">Weekend</span>
               </Badge>
             )}
           </div>
@@ -1216,52 +1219,52 @@ export default function TeacherAttendancePage() {
       </Dialog>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
         <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm opacity-90">Present</p>
-                <p className="text-2xl font-bold">{presentCount}</p>
+                <p className="text-xs sm:text-sm opacity-90">Present</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold">{presentCount}</p>
               </div>
-              <CheckCircle className="h-8 w-8 opacity-80" />
+              <CheckCircle className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 opacity-80" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm opacity-90">Absent</p>
-                <p className="text-2xl font-bold">{absentCount}</p>
+                <p className="text-xs sm:text-sm opacity-90">Absent</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold">{absentCount}</p>
               </div>
-              <XCircle className="h-8 w-8 opacity-80" />
+              <XCircle className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 opacity-80" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm opacity-90">Leave</p>
-                <p className="text-2xl font-bold">{leaveCount}</p>
+                <p className="text-xs sm:text-sm opacity-90">Leave</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold">{leaveCount}</p>
               </div>
-              <Calendar className="h-8 w-8 opacity-80" />
+              <Calendar className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 opacity-80" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-r from-[#274c77] to-[#6096ba] text-white">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm opacity-90">Total</p>
-                <p className="text-2xl font-bold">{totalStudents}</p>
-                <p className="text-sm opacity-90">{attendancePercentage}%</p>
+                <p className="text-xs sm:text-sm opacity-90">Total</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold">{totalStudents}</p>
+                <p className="text-xs sm:text-sm opacity-90">{attendancePercentage}%</p>
               </div>
-              <Users className="h-8 w-8 opacity-80" />
+              <Users className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 opacity-80" />
             </div>
           </CardContent>
         </Card>
@@ -1269,80 +1272,86 @@ export default function TeacherAttendancePage() {
 
       {/* Quick Actions */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-[#274c77]">Quick Actions</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-[#274c77] text-base sm:text-lg">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
             <Button
               onClick={markAllPresent}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
               disabled={!isDateEditable()}
             >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Mark All Present
+              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Mark All Present</span>
+              <span className="sm:hidden">All Present</span>
             </Button>
             <Button
               onClick={markAllAbsent}
               variant="outline"
-              className="border-red-500 text-red-500 hover:bg-red-50"
+              className="border-red-500 text-red-500 hover:bg-red-50 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
               disabled={!isDateEditable()}
             >
-              <XCircle className="h-4 w-4 mr-2" />
-              Mark All Absent
+              <XCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Mark All Absent</span>
+              <span className="sm:hidden">All Absent</span>
             </Button>
             <Button
               onClick={clearAllAttendance}
               variant="outline"
-              className="border-orange-500 text-orange-500 hover:bg-orange-50"
+              className="border-orange-500 text-orange-500 hover:bg-orange-50 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
               disabled={!isDateEditable()}
             >
-              <Eraser className="h-4 w-4 mr-2" />
-              Clear All
+              <Eraser className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Clear All</span>
+              <span className="sm:hidden">Clear</span>
             </Button>
             {/* Smart Button Logic */}
             {attendanceLoaded && isEditMode ? (
               // Show Update & Submit button when in edit mode
               <Button
                 onClick={handleSubmit}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
                 disabled={saving || !isDateEditable()}
               >
                 {saving ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
                 ) : (
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 )}
-                Update & Submit
+                <span className="hidden sm:inline">Update & Submit</span>
+                <span className="sm:hidden">Update</span>
               </Button>
             ) : existingAttendanceId && !isEditMode ? (
               // Show Edit Attendance button when attendance exists but not in edit mode
               <Button
                 onClick={enableEditMode}
                 variant="outline"
-                className="border-green-500 text-green-500 hover:bg-green-50"
+                className="border-green-500 text-green-500 hover:bg-green-50 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
                 disabled={loading || !isDateEditable()}
               >
                 {loading ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
                 ) : (
-                  <Edit3 className="h-4 w-4 mr-2" />
+                  <Edit3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 )}
-                Edit Attendance
+                <span className="hidden sm:inline">Edit Attendance</span>
+                <span className="sm:hidden">Edit</span>
               </Button>
             ) : (
               // Show Save/Update button when no attendance exists or in edit mode
             <Button
               onClick={handleSubmit} 
-              className="bg-[#6096ba] hover:bg-[#274c77] text-white"
+              className="bg-[#6096ba] hover:bg-[#274c77] text-white text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
               disabled={saving || !isDateEditable()}
             >
               {saving ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
               ) : (
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               )}
-              {isEditMode ? 'Update Attendance' : 'Save Attendance'}
+              <span className="hidden sm:inline">{isEditMode ? 'Update Attendance' : 'Save Attendance'}</span>
+              <span className="sm:hidden">{isEditMode ? 'Update' : 'Save'}</span>
               </Button>
             )}
             
@@ -1350,10 +1359,11 @@ export default function TeacherAttendancePage() {
             <Button
               onClick={fetchAttendanceHistory}
               variant="outline"
-              className="border-purple-500 text-purple-500 hover:bg-purple-50"
+              className="border-purple-500 text-purple-500 hover:bg-purple-50 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
             >
-              <History className="h-4 w-4 mr-2" />
-              Attendance History
+              <History className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Attendance History</span>
+              <span className="sm:hidden">History</span>
             </Button>
           </div>
         </CardContent>
@@ -1362,28 +1372,30 @@ export default function TeacherAttendancePage() {
 
       {/* Students Table */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-          <CardTitle className="text-[#274c77]">Students List ({students.length} students)</CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+          <CardTitle className="text-[#274c77] text-base sm:text-lg">Students List ({students.length} students)</CardTitle>
             {existingAttendanceId && !isEditMode && (
-              <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
-                <Eye className="h-4 w-4 mr-1" />
-                Read-Only Mode - Click "Edit Attendance" to modify
+              <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
+                <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                <span className="hidden sm:inline">Read-Only Mode - Click "Edit Attendance" to modify</span>
+                <span className="sm:hidden">Read-Only</span>
               </Badge>
             )}
             {isEditMode && (
-              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
-                <Edit3 className="h-4 w-4 mr-1" />
-                Edit Mode - Make your changes
+              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300 text-xs">
+                <Edit3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                <span className="hidden sm:inline">Edit Mode - Make your changes</span>
+                <span className="sm:hidden">Edit Mode</span>
               </Badge>
             )}
           </div>
         </CardHeader>
         <CardContent>
           {students.length === 0 ? (
-            <div className="text-center py-8">
-              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 text-lg">No students found in this class</p>
+            <div className="text-center py-6 sm:py-8">
+              <Users className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
+              <p className="text-gray-600 text-base sm:text-lg">No students found in this class</p>
               <p className="text-gray-500 text-sm">Please contact administrator to add students to this classroom</p>
             </div>
           ) : (
@@ -1391,35 +1403,35 @@ export default function TeacherAttendancePage() {
               <Table>
 						<TableHeader>
                   <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Student ID</TableHead>
-                    <TableHead>Gender</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Student</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Student ID</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Gender</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Status</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
                   {students.map((student) => (
                     <TableRow key={student.id}>
                       <TableCell className="font-medium">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2 sm:space-x-3">
                           {student.photo ? (
                             <img 
                               src={student.photo} 
                               alt={student.name}
-                              className="h-8 w-8 rounded-full object-cover"
+                              className="h-6 w-6 sm:h-8 sm:w-8 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="h-8 w-8 rounded-full bg-[#6096ba] flex items-center justify-center text-white text-sm font-medium">
+                            <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-[#6096ba] flex items-center justify-center text-white text-xs sm:text-sm font-medium">
                             {student.name.charAt(0).toUpperCase()}
                           </div>
                           )}
-                          <span>{student.name}</span>
+                          <span className="text-xs sm:text-sm truncate">{student.name}</span>
 										</div>
 									</TableCell>
-                      <TableCell>{student.student_id || student.student_code || 'Not Assigned'}</TableCell>
-                      <TableCell>{student.gender}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">{student.student_id || student.student_code || 'Not Assigned'}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">{student.gender}</TableCell>
                       <TableCell>
-                        <div className="flex space-x-2">
+                        <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-1">
                         <Button
                             size="sm"
                           variant={attendance[student.id] === 'present' ? 'default' : 'outline'}
@@ -1427,12 +1439,13 @@ export default function TeacherAttendancePage() {
                             attendance[student.id] === 'present'
                               ? 'bg-green-600 hover:bg-green-700 text-white'
                                 : 'border-green-500 text-green-500 hover:bg-green-50'
-                          }`}
+                          } text-xs px-2 py-1`}
                             onClick={() => handleAttendanceChange(student.id, 'present')}
                             disabled={!isDateEditable()}
                         >
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            Present
+                            <span className="hidden sm:inline">Present</span>
+                            <span className="sm:hidden">P</span>
                         </Button>
                         <Button
                             size="sm"
@@ -1441,12 +1454,13 @@ export default function TeacherAttendancePage() {
                             attendance[student.id] === 'absent'
                               ? 'bg-red-600 hover:bg-red-700 text-white'
                                 : 'border-red-500 text-red-500 hover:bg-red-50'
-                          }`}
+                          } text-xs px-2 py-1`}
                             onClick={() => handleAttendanceChange(student.id, 'absent')}
                             disabled={!isDateEditable()}
                         >
                             <XCircle className="h-3 w-3 mr-1" />
-                            Absent
+                            <span className="hidden sm:inline">Absent</span>
+                            <span className="sm:hidden">A</span>
                         </Button>
                         <Button
                             size="sm"
@@ -1455,12 +1469,13 @@ export default function TeacherAttendancePage() {
                             attendance[student.id] === 'leave'
                                 ? 'bg-blue-600 hover:bg-blue-700 text-white' 
                                 : 'border-blue-500 text-blue-500 hover:bg-blue-50'
-                          }`}
+                          } text-xs px-2 py-1`}
                             onClick={() => handleAttendanceChange(student.id, 'leave')}
                             disabled={!isDateEditable()}
                         >
                             <Calendar className="h-3 w-3 mr-1" />
-                            Leave
+                            <span className="hidden sm:inline">Leave</span>
+                            <span className="sm:hidden">L</span>
                         </Button>
                         </div>
 									</TableCell>
@@ -1477,59 +1492,59 @@ export default function TeacherAttendancePage() {
       <Dialog open={showConfirmationModal} onOpenChange={setShowConfirmationModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-[#274c77] text-xl font-bold">
+            <DialogTitle className="text-[#274c77] text-lg sm:text-xl font-bold">
               Confirm Attendance
             </DialogTitle>
-            <DialogDescription className="text-gray-600">
+            <DialogDescription className="text-gray-600 text-sm">
               Are you sure you want to {isEditMode ? 'update' : 'mark'} attendance for {classInfo?.name} on {selectedDate}?
             </DialogDescription>
           </DialogHeader>
           
-          <div className="py-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="py-3 sm:py-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
               {/* Present Count */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 text-center">
+                <div className="flex items-center justify-center mb-1 sm:mb-2">
+                  <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
                 </div>
-                <div className="text-2xl font-bold text-green-700">{presentCount}</div>
-                <div className="text-sm text-green-600 font-medium">Present</div>
+                <div className="text-xl sm:text-2xl font-bold text-green-700">{presentCount}</div>
+                <div className="text-xs sm:text-sm text-green-600 font-medium">Present</div>
               </div>
 
               {/* Absent Count */}
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <XCircle className="h-6 w-6 text-red-600" />
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 text-center">
+                <div className="flex items-center justify-center mb-1 sm:mb-2">
+                  <XCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
                 </div>
-                <div className="text-2xl font-bold text-red-700">{absentCount}</div>
-                <div className="text-sm text-red-600 font-medium">Absent</div>
+                <div className="text-xl sm:text-2xl font-bold text-red-700">{absentCount}</div>
+                <div className="text-xs sm:text-sm text-red-600 font-medium">Absent</div>
               </div>
 
               {/* Leave Count */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <Calendar className="h-6 w-6 text-blue-600" />
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 text-center">
+                <div className="flex items-center justify-center mb-1 sm:mb-2">
+                  <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                 </div>
-                <div className="text-2xl font-bold text-blue-700">{leaveCount}</div>
-                <div className="text-sm text-blue-600 font-medium">Leave</div>
+                <div className="text-xl sm:text-2xl font-bold text-blue-700">{leaveCount}</div>
+                <div className="text-xs sm:text-sm text-blue-600 font-medium">Leave</div>
               </div>
 
               {/* Total Count */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <Users className="h-6 w-6 text-gray-600" />
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4 text-center">
+                <div className="flex items-center justify-center mb-1 sm:mb-2">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
                 </div>
-                <div className="text-2xl font-bold text-gray-700">{totalStudents}</div>
-                <div className="text-sm text-gray-600 font-medium">Total</div>
+                <div className="text-xl sm:text-2xl font-bold text-gray-700">{totalStudents}</div>
+                <div className="text-xs sm:text-sm text-gray-600 font-medium">Total</div>
               </div>
             </div>
 
             {/* Attendance Percentage */}
-            <div className="mt-4 bg-[#274c77] text-white rounded-lg p-3 text-center">
-              <div className="text-lg font-semibold">
+            <div className="mt-3 sm:mt-4 bg-[#274c77] text-white rounded-lg p-2 sm:p-3 text-center">
+              <div className="text-base sm:text-lg font-semibold">
                 Attendance: {attendancePercentage}%
               </div>
-              <div className="text-sm opacity-90">
+              <div className="text-xs sm:text-sm opacity-90">
                 {presentCount} out of {totalStudents} students
               </div>
             </div>
@@ -1540,23 +1555,26 @@ export default function TeacherAttendancePage() {
               variant="outline" 
               onClick={() => setShowConfirmationModal(false)}
               disabled={saving}
+              className="text-xs sm:text-sm"
             >
               Cancel
             </Button>
             <Button 
               onClick={confirmSubmit}
-              className="bg-[#6096ba] hover:bg-[#274c77] text-white"
+              className="bg-[#6096ba] hover:bg-[#274c77] text-white text-xs sm:text-sm"
               disabled={saving}
             >
               {saving ? (
                 <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  {isEditMode ? 'Updating...' : 'Saving...'}
+                  <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
+                  <span className="hidden sm:inline">{isEditMode ? 'Updating...' : 'Saving...'}</span>
+                  <span className="sm:hidden">{isEditMode ? 'Update' : 'Save'}</span>
                 </>
               ) : (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
-                  {isEditMode ? 'Update Attendance' : 'Save Attendance'}
+                  <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">{isEditMode ? 'Update Attendance' : 'Save Attendance'}</span>
+                  <span className="sm:hidden">{isEditMode ? 'Update' : 'Save'}</span>
                 </>
               )}
             </Button>
@@ -1568,54 +1586,59 @@ export default function TeacherAttendancePage() {
       <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[#274c77] flex items-center">
-              <History className="h-5 w-5 mr-2" />
-              {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} Attendance History
+            <DialogTitle className="text-[#274c77] flex items-center text-base sm:text-lg">
+              <History className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+              <span className="hidden sm:inline">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} Attendance History</span>
+              <span className="sm:hidden">Attendance History</span>
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               View your attendance records with their approval status
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {attendanceHistoryData && attendanceHistoryData.length > 0 ? (
               attendanceHistoryData.slice(0, 6).map((record: any, index: number) => (
-                <div key={index} className={`p-4 rounded-lg border ${
+                <div key={index} className={`p-3 sm:p-4 rounded-lg border ${
                   record.status === 'final' ? 'bg-green-50 border-green-200' : 
                   record.status === 'submitted' ? 'bg-blue-50 border-blue-200' :
                   record.status === 'under_review' ? 'bg-yellow-50 border-yellow-200' :
                   'bg-gray-50 border-gray-200'
                 }`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                    <div className="flex items-center space-x-3 sm:space-x-4">
+                      <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center ${
                         record.status === 'final' ? 'bg-green-100' : 
                         record.status === 'submitted' ? 'bg-blue-100' :
                         record.status === 'under_review' ? 'bg-yellow-100' :
                         'bg-gray-100'
                       }`}>
-                        <Calendar className={`h-5 w-5 ${
+                        <Calendar className={`h-4 w-4 sm:h-5 sm:w-5 ${
                           record.status === 'final' ? 'text-green-600' : 
                           record.status === 'submitted' ? 'text-blue-600' :
                           record.status === 'under_review' ? 'text-yellow-600' :
                           'text-gray-600'
                         }`} />
                       </div>
-                      <div>
-                        <p className={`font-medium ${
+                      <div className="min-w-0 flex-1">
+                        <p className={`font-medium text-sm sm:text-base ${
                           record.status === 'final' ? 'text-green-800' : 
                           record.status === 'submitted' ? 'text-blue-800' :
                           record.status === 'under_review' ? 'text-yellow-800' :
                           'text-gray-800'
                         }`}>
-                          {new Date(record.date).toLocaleDateString('en-US', { 
+                          <span className="hidden sm:inline">{new Date(record.date).toLocaleDateString('en-US', { 
                             weekday: 'long', 
-                year: 'numeric', 
+                            year: 'numeric', 
                             month: 'long', 
-                day: 'numeric' 
-                          })}
+                            day: 'numeric' 
+                          })}</span>
+                          <span className="sm:hidden">{new Date(record.date).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}</span>
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-gray-600">
                           {record.present_count || 0} present, {record.absent_count || 0} absent, {record.leave_count || 0} leave
                         </p>
                         {record.marked_by && (
@@ -1623,18 +1646,18 @@ export default function TeacherAttendancePage() {
                             Marked by: {record.marked_by}
                           </p>
                         )}
-            </div>
-          </div>
+                      </div>
+                    </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
                       <Badge 
                         variant="outline"
-                        className={
+                        className={`text-xs ${
                           record.status === 'final' ? 'bg-green-100 text-green-800 border-green-300' :
                           record.status === 'submitted' ? 'bg-blue-100 text-blue-800 border-blue-300' :
                           record.status === 'under_review' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
                           'bg-gray-100 text-gray-800 border-gray-300'
-                        }
+                        }`}
                       >
                         {record.status === 'final' ? '✅ Approved' : 
                          record.status === 'submitted' ? '📤 Submitted' : 
@@ -1644,7 +1667,7 @@ export default function TeacherAttendancePage() {
                       
                       {record.status === 'final' && record.finalized_at && (
                         <span className="text-xs text-green-600">
-                          Approved on {new Date(record.finalized_at).toLocaleDateString()}
+                          <span className="hidden sm:inline">Approved on </span>{new Date(record.finalized_at).toLocaleDateString()}
                         </span>
                       )}
                     </div>
@@ -1652,9 +1675,9 @@ export default function TeacherAttendancePage() {
                 </div>
               ))
             ) : (
-              <div className="text-center py-8">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No attendance history found</p>
+              <div className="text-center py-6 sm:py-8">
+                <Calendar className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                <p className="text-gray-500 text-base sm:text-lg">No attendance history found</p>
                 <p className="text-sm text-gray-400">Start marking attendance to see your history here</p>
               </div>
             )}
@@ -1664,7 +1687,7 @@ export default function TeacherAttendancePage() {
             <Button
               onClick={() => setShowHistoryModal(false)}
               variant="outline"
-              className="border-gray-300"
+              className="border-gray-300 text-xs sm:text-sm"
             >
               Close
             </Button>
