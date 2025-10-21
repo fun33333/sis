@@ -1937,3 +1937,69 @@ export async function previewIDChange(data: {
   }
 }
 
+// ==================== PASSWORD CHANGE OTP APIs ====================
+
+export async function sendPasswordChangeOTP(email: string) {
+  try {
+    const response = await fetch('/api/users/send-password-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new ApiError(errorData.error || 'Failed to send OTP', response.status, response.statusText);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
+  }
+}
+
+export async function verifyPasswordChangeOTP(email: string, otpCode: string) {
+  try {
+    const response = await fetch('/api/users/verify-password-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp_code: otpCode }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new ApiError(errorData.message || 'Failed to verify OTP', response.status, response.statusText);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
+  }
+}
+
+export async function changePasswordWithOTP(sessionToken: string, newPassword: string, confirmPassword: string) {
+  try {
+    const response = await fetch('/api/users/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        session_token: sessionToken,
+        new_password: newPassword,
+        confirm_password: confirmPassword
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new ApiError(errorData.error || 'Failed to change password', response.status, response.statusText);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
+  }
+}
+

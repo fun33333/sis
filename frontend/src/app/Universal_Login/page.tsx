@@ -14,6 +14,7 @@ import {
 import { loginWithEmailPassword, ApiError } from "@/lib/api";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { parseApiError, isAuthError } from "@/lib/error-handling";
+import { PasswordChangeModal } from "@/components/auth/PasswordChangeModal";
 
 
 type Teacher = {
@@ -35,6 +36,9 @@ export default function LoginPage() {
   const router = useRouter();
   // Store logged-in teacher info (for demo, can use context/global state)
   const [teacherInfo, setTeacherInfo] = useState<Teacher | null>(null);
+  // Password change modal state
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
     const timer = setTimeout(() => setAnimate(true), 100);
@@ -117,6 +121,14 @@ export default function LoginPage() {
       }
       
       const data = await loginWithEmailPassword(email, password);
+      
+      // Check if password change is required
+      if (data?.requires_password_change) {
+        setUserEmail(data.user_email);
+        setShowPasswordChangeModal(true);
+        return;
+      }
+      
       const userRole = String(data?.user?.role || "").toLowerCase();
       
       // Redirect based on role
@@ -165,6 +177,26 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      {/* Password Change Modal */}
+      {showPasswordChangeModal && (
+        <PasswordChangeModal
+          userEmail={userEmail}
+          onComplete={() => {
+            setShowPasswordChangeModal(false);
+            setUserEmail('');
+            // Redirect to login page after password change
+            window.location.href = '/Universal_Login';
+          }}
+          onError={(error) => {
+            setError({
+              title: "Password Change Error",
+              message: error,
+              type: "error"
+            });
+          }}
+        />
+      )}
+      
       <div
         className={`relative w-[800px] h-[500px] bg-transparent border-2 border-gray-200 rounded-xl shadow-md overflow-hidden`}
       >

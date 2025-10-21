@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
+from datetime import timedelta
+import secrets
 
 class User(AbstractUser):
     """
@@ -93,3 +95,49 @@ class User(AbstractUser):
         db_table = 'users_user'
         verbose_name = 'User'
         verbose_name_plural = 'Users'
+
+
+class PasswordChangeOTP(models.Model):
+    """Model to store OTP codes for password change verification"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_change_otps')
+    otp_code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    session_token = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=2)
+        if not self.otp_code:
+            self.otp_code = self.generate_otp()
+        if not self.session_token:
+            self.session_token = secrets.token_hex(32)
+        super().save(*args, **kwargs)
+    
+    def generate_otp(self):
+        """Generate a 6-digit random OTP"""
+        return str(secrets.randbelow(900000) + 100000)
+    
+    def is_expired(self):
+        """Check if OTP has expired (2 minutes)"""
+        return timezone.now() > self.expires_at
+    
+    def verify_otp(self, code):
+        """Verify OTP code and mark as used if valid"""
+        if self.is_used or self.is_expired():
+            return False
+        
+        if self.otp_code == code:
+            self.is_used = True
+            self.save()
+            return True
+        return False
+    
+    def __str__(self):
+        return f"OTP for {self.user.email} - {self.otp_code}"
+    
+    class Meta:
+        db_table = 'users_password_change_otp'
+        verbose_name = 'Password Change OTP'
+        verbose_name_plural = 'Password Change OTPs'

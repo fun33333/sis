@@ -11,7 +11,7 @@ from coordinator.models import Coordinator
 from principals.models import Principal
 from django.db.models import Q
 from datetime import datetime, timedelta
-import graphql_jwt
+# import graphql_jwt  # Commented out - not compatible with Django 5.0
 
 User = get_user_model()
 

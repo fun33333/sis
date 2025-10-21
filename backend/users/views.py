@@ -5,9 +5,13 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
-from .models import User
+from django.utils import timezone
+from .models import User, PasswordChangeOTP
 from .serializers import UserSerializer, UserRegistrationSerializer, UserLoginSerializer
 from .permissions import IsSuperAdmin, IsPrincipal, IsCoordinator, IsTeacher
+from .validators import validate_password_strength
+from services.email_notification_service import EmailNotificationService
+import secrets
 
 class UserRegistrationView(generics.CreateAPIView):
     """
@@ -54,6 +58,14 @@ class UserLoginView(generics.GenericAPIView):
                 pass
         
         if user and user.is_active:
+            # Check if user needs to change password
+            if not user.has_changed_default_password:
+                return Response({
+                    'requires_password_change': True,
+                    'user_email': user.email,
+                    'message': 'Password change required. Please verify your email to proceed.'
+                }, status=status.HTTP_200_OK)
+            
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             
@@ -67,7 +79,8 @@ class UserLoginView(generics.GenericAPIView):
             return Response({
                 'access': str(refresh.access_token),
                 'refresh': str(refresh),
-                'user': user_profile
+                'user': user_profile,
+                'requires_password_change': False
             }, status=status.HTTP_200_OK)
         
         return Response({
@@ -183,27 +196,27 @@ class UserListView(generics.ListAPIView):
         else:
             return User.objects.filter(id=user.id)
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def refresh_token_view(request):
-    """
-    Refresh JWT token
-    """
-    refresh_token = request.data.get('refresh')
-    
-    if not refresh_token:
-        return Response({'error': 'Refresh token required'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    try:
-        refresh = RefreshToken(refresh_token)
-        access_token = refresh.access_token
-        
-        return Response({
-            'access': str(access_token)
-        }, status=status.HTTP_200_OK)
-    
-    except Exception as e:
-        return Response({'error': 'Invalid refresh token'}, status=status.HTTP_401_UNAUTHORIZED)
+# @api_view(['POST'])
+# @permission_classes([AllowAny])
+# def refresh_token_view(request):
+#     """
+#     Refresh JWT token
+#     """
+#     refresh_token = request.data.get('refresh')
+#     
+#     if not refresh_token:
+#         return Response({'error': 'Refresh token required'}, status=status.HTTP_400_BAD_REQUEST)
+#     
+#     try:
+#         refresh = RefreshToken(refresh_token)
+#         access_token = refresh.access_token
+#         
+#         return Response({
+#             'access': str(access_token)
+#         }, status=status.HTTP_200_OK)
+#     
+#     except Exception as e:
+#         return Response({'error': 'Invalid refresh token'}, status=status.HTTP_401_UNAUTHORIZED)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -380,19 +393,213 @@ def current_user_profile(request):
     
     return Response(user_data)
 
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def logout_view(request):
+#     """
+#     Logout user (blacklist refresh token)
+#     """
+#     try:
+#         refresh_token = request.data.get('refresh')
+#         if refresh_token:
+#             token = RefreshToken(refresh_token)
+#             token.blacklist()
+#         
+#         return Response({'message': 'Successfully logged out'}, status=status.HTTP_200_OK)
+#     
+#     except Exception as e:
+#         return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Password Change OTP Endpoints
+
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def logout_view(request):
+@permission_classes([AllowAny])
+def check_password_change_required(request):
     """
-    Logout user (blacklist refresh token)
+    Check if user needs to change password
     """
     try:
-        refresh_token = request.data.get('refresh')
-        if refresh_token:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
         
-        return Response({'message': 'Successfully logged out'}, status=status.HTTP_200_OK)
-    
+        try:
+            user = User.objects.get(email=email)
+            requires_change = not user.has_changed_default_password
+            return Response({
+                'requires_change': requires_change,
+                'user_email': user.email
+            }, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            
     except Exception as e:
-        return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def send_password_change_otp(request):
+    """
+    Send OTP for password change verification
+    """
+    try:
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email)
+            
+            # Check if user needs password change
+            if user.has_changed_default_password:
+                return Response({
+                    'error': 'User has already changed password'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create new OTP (invalidate any existing ones)
+            PasswordChangeOTP.objects.filter(user=user, is_used=False).update(is_used=True)
+            otp_obj = PasswordChangeOTP.objects.create(user=user)
+            
+            # Send OTP email
+            success, message = EmailNotificationService.send_password_change_otp_email(
+                user, otp_obj.otp_code
+            )
+            
+            if success:
+                return Response({
+                    'message': 'OTP sent successfully',
+                    'expires_in': 120  # 2 minutes
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_password_change_otp(request):
+    """
+    Verify OTP code for password change
+    """
+    try:
+        email = request.data.get('email')
+        otp_code = request.data.get('otp_code')
+        
+        if not email or not otp_code:
+            return Response({
+                'error': 'Email and OTP code are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email)
+            
+            # Find valid OTP
+            otp_obj = PasswordChangeOTP.objects.filter(
+                user=user,
+                otp_code=otp_code,
+                is_used=False
+            ).first()
+            
+            if not otp_obj:
+                return Response({
+                    'valid': False,
+                    'message': 'Invalid OTP code'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if otp_obj.is_expired():
+                otp_obj.is_used = True
+                otp_obj.save()
+                return Response({
+                    'valid': False,
+                    'message': 'OTP has expired. Please request a new one.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Verify OTP
+            if otp_obj.verify_otp(otp_code):
+                return Response({
+                    'valid': True,
+                    'message': 'OTP verified successfully',
+                    'session_token': otp_obj.session_token
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'valid': False,
+                    'message': 'Invalid OTP code'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def change_password_with_otp(request):
+    """
+    Change password using OTP session token
+    """
+    try:
+        session_token = request.data.get('session_token')
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+        
+        if not all([session_token, new_password, confirm_password]):
+            return Response({
+                'error': 'Session token, new password, and confirm password are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if new_password != confirm_password:
+            return Response({
+                'error': 'Passwords do not match'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find OTP by session token
+        try:
+            otp_obj = PasswordChangeOTP.objects.get(
+                session_token=session_token,
+                is_used=True  # OTP should be used (verified)
+            )
+        except PasswordChangeOTP.DoesNotExist:
+            return Response({
+                'error': 'Invalid session token'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if session is still valid (not expired)
+        if otp_obj.is_expired():
+            return Response({
+                'error': 'Session expired. Please request a new OTP.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = otp_obj.user
+        
+        # Validate password strength
+        try:
+            validate_password_strength(new_password, user)
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Update password
+        user.set_password(new_password)
+        user.has_changed_default_password = True
+        user.save()
+        
+        # Invalidate all existing OTPs for this user
+        PasswordChangeOTP.objects.filter(user=user).update(is_used=True)
+        
+        return Response({
+            'message': 'Password changed successfully. Please login again.'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
