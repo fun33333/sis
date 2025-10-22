@@ -1,27 +1,45 @@
-# Node.js dependencies
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
 
-# Next.js build
-.next/
-out/
+# Django
+*.log
+staticfiles/
+# Keep media tracked if needed; ignore everything by default except placeholder
+media/*
+!media/.gitkeep
+
+# SQLite (uncomment to ignore if not tracked)
+# backend/db.sqlite3
+
+# Environments
+.env
+.venv/
+venv/
+ENV/
+
+# Frontend / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
 
 # Logs
 logs
-*.log
 *.pid
 *.seed
 *.pid.lock
 
-# dotenv environment variables file
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env
-
 # OS files
 .DS_Store
 Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Credentials
+backend/credentials.json
+backend/backend/settings.py

@@ -1,3 +1,21 @@
 Django>=5.0,<6.0
 djangorestframework
+djangorestframework-simplejwt
 psycopg2-binary
+Pillow
+gspread==5.12.4
+python-dateutil
+django-cors-headers
+redis
+django-redis
+django-filter
+requests==2.28.2
+google-auth==2.23.4
+google-auth-oauthlib==1.0.0
+google-auth-httplib2==0.1.1
+graphene-django
+# graphql-jwt  # Commented out - not compatible with Django 5.0
+# django-graphql-auth  # Commented out - not compatible with Django 5.0
+django-cleanup
+pandas==2.0.3
+python-decouple

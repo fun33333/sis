@@ -1,3 +1,4 @@
+# backend/backend/urls.py
 """
 URL configuration for backend project.
 
@@ -15,8 +16,30 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from graphene_django.views import GraphQLView
+from django.views.decorators.csrf import csrf_exempt
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path("api/", include("users.urls")),
+    path("api/", include("students.urls")),
+    path("api/", include("campus.urls")),
+    path("api/", include("teachers.urls")),
+    path("api/", include("coordinator.urls")),
+    path("api/", include("principals.urls")),
+    path("api/attendance/", include("attendance.urls")),
+    path("api/requests/", include("requests.urls")),
+    path("api/result/", include("result.urls")),
+    path('api/', include('classes.urls')),
+    path("api/transfers/", include("transfers.urls")),
+    # GraphQL endpoint
+    path("graphql/", csrf_exempt(GraphQLView.as_view(graphiql=True))),
+    # Removed services.urls - not needed for utility apps
 ]
+
+# Serve media files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
