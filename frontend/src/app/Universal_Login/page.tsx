@@ -273,14 +273,20 @@ export default function LoginPage() {
                   {loading ? "Logging in..." : detectedRole ? `Login as ${detectedRole}` : "Login"}
                 </button>
                 
-                {/* Error Display */}
+                {/* Error Display - Subtle inline style */}
                 {error && (
-                  <div className="mt-3">
-                    <ErrorDisplay 
-                      error={error} 
-                      variant="compact"
-                      onDismiss={() => setError(null)}
-                    />
+                  <div className="mt-2 flex items-center gap-2 text-red-600 text-sm">
+                    <div className="w-1 h-4 bg-red-500 rounded-full"></div>
+                    <span className="flex-1">{error.message}</span>
+                    <button
+                      onClick={() => setError(null)}
+                      className="text-red-400 hover:text-red-600 transition-colors"
+                      aria-label="Dismiss error"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                 )}
 

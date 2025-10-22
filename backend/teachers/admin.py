@@ -9,7 +9,7 @@ class TeacherAdmin(admin.ModelAdmin):
         "email",
         "contact_number",
         "is_class_teacher",
-        "assigned_classroom",
+        "assigned_classrooms_display",
         "current_campus",
         "get_coordinator_info",
         "shift",
@@ -74,6 +74,18 @@ class TeacherAdmin(admin.ModelAdmin):
         return "Not Assigned"
     get_coordinator_info.short_description = "Coordinators"
     get_coordinator_info.admin_order_field = "assigned_coordinators__full_name"
+
+    def assigned_classrooms_display(self, obj):
+        """Unified display: show M2M classrooms if present, else legacy single assignment."""
+        try:
+            if obj.assigned_classrooms.exists():
+                return ", ".join(str(c) for c in obj.assigned_classrooms.all())
+            if obj.assigned_classroom:
+                return str(obj.assigned_classroom)
+            return "-"
+        except Exception:
+            return "-"
+    assigned_classrooms_display.short_description = "Assigned Classroom(s)"
 
     def clean(self):
         cleaned_data = super().clean()

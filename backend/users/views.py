@@ -246,6 +246,21 @@ def current_user_profile(request):
         try:
             from teachers.models import Teacher
             teacher = Teacher.objects.get(employee_code=user.username)
+            # Build assigned_classrooms list (supports multi-class assignment)
+            assigned_list = []
+            try:
+                for cr in teacher.assigned_classrooms.all():
+                    assigned_list.append({
+                        'id': cr.id,
+                        'name': str(cr),
+                        'grade': cr.grade.name if cr.grade else None,
+                        'section': cr.section,
+                        'shift': cr.shift,
+                        'code': cr.code,
+                    })
+            except Exception:
+                assigned_list = []
+
             user_data.update({
                 'teacher_id': teacher.id,
                 'full_name': teacher.full_name,
@@ -264,13 +279,17 @@ def current_user_profile(request):
                 'joining_date': teacher.joining_date,
                 'is_class_teacher': teacher.is_class_teacher,
                 'is_currently_active': teacher.is_currently_active,
-                'assigned_classroom': {
+                # Prefer legacy single assignment if present; otherwise default to first in list for compatibility
+                'assigned_classroom': ({
                     'id': teacher.assigned_classroom.id,
                     'name': str(teacher.assigned_classroom),
                     'grade': teacher.assigned_classroom.grade.name if teacher.assigned_classroom.grade else None,
                     'section': teacher.assigned_classroom.section,
                     'shift': teacher.assigned_classroom.shift,
-                } if teacher.assigned_classroom else None,
+                } if teacher.assigned_classroom else (
+                    assigned_list[0] if assigned_list else None
+                )),
+                'assigned_classrooms': assigned_list,
                 'current_campus': {
                     'id': teacher.current_campus.id,
                     'campus_name': teacher.current_campus.campus_name,

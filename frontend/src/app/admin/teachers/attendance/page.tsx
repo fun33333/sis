@@ -50,16 +50,19 @@ interface AttendanceResult {
   attendance_percentage: number;
 }
 
+interface SimpleClassRoom {
+  id: number;
+  name: string;
+  code?: string;
+  grade?: any;
+  section?: string;
+  shift?: string;
+  campus?: any;
+}
+
 interface TeacherProfile {
-  assigned_classroom?: {
-    id: number;
-    name: string;
-    code: string;
-    grade?: { name: string };
-    section: string;
-    shift: string;
-    campus?: { campus_name: string };
-  };
+  assigned_classroom?: SimpleClassRoom;
+  assigned_classrooms?: SimpleClassRoom[];
 }
 
 export default function TeacherAttendancePage() {
@@ -88,6 +91,7 @@ export default function TeacherAttendancePage() {
   const [attendanceSubmitted, setAttendanceSubmitted] = useState(false);
   const [attendanceLoaded, setAttendanceLoaded] = useState(false);
   const [loadingStudents, setLoadingStudents] = useState(false);
+  const [classroomOptions, setClassroomOptions] = useState<SimpleClassRoom[]>([]);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -156,30 +160,43 @@ export default function TeacherAttendancePage() {
         return;
       }
       
-      if (!teacherProfile.assigned_classroom) {
+      const multi = Array.isArray(teacherProfile.assigned_classrooms) ? teacherProfile.assigned_classrooms : []
+      if (!teacherProfile.assigned_classroom && multi.length === 0) {
+        setError("No classroom assigned to you. Please contact administrator.");
+        return;
+      }
+
+      // Build classroom selection list
+      const options: SimpleClassRoom[] = multi.length > 0 ? multi : (teacherProfile.assigned_classroom ? [teacherProfile.assigned_classroom] : [])
+      setClassroomOptions(options)
+
+      // Choose classroom from URL ?classroom=ID or default to first
+      const urlParamId = searchParams.get('classroom')
+      const selected = (urlParamId ? options.find(c=> String(c.id)===String(urlParamId)) : options[0]) as any
+      if (!selected) {
         setError("No classroom assigned to you. Please contact administrator.");
         return;
       }
 
       // Set class info
-          setClassInfo({
-        id: teacherProfile.assigned_classroom.id,
-            name: teacherProfile.assigned_classroom.name || "Unknown Class",
-        code: teacherProfile.assigned_classroom.code || "",
-        grade: teacherProfile.assigned_classroom.grade?.name || "",
-            section: teacherProfile.assigned_classroom.section || "",
-        shift: teacherProfile.assigned_classroom.shift || "",
-        campus: teacherProfile.assigned_classroom.campus?.campus_name || ""
+      setClassInfo({
+        id: selected.id,
+        name: selected.name || "Unknown Class",
+        code: selected.code || "",
+        grade: (selected as any).grade?.name || "",
+        section: (selected as any).section || "",
+        shift: (selected as any).shift || "",
+        campus: (selected as any).campus?.campus_name || ""
       });
 
       // Fetch students for this classroom
-      const studentsData = await getClassStudents(teacherProfile.assigned_classroom.id) as Student[];
+      const studentsData = await getClassStudents(selected.id) as Student[];
       console.log('Fetched students:', studentsData);
       setStudents(studentsData);
       setLoadingStudents(false);
 
       // Load existing attendance for today if any
-      await loadExistingAttendance(teacherProfile.assigned_classroom.id, selectedDate);
+      await loadExistingAttendance(selected.id, selectedDate);
 
     } catch (err: unknown) {
       console.error('Error fetching teacher data:', err);
@@ -786,6 +803,20 @@ export default function TeacherAttendancePage() {
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-[#274c77] mb-2">Error</h2>
             <p className="text-gray-600 mb-4">{error}</p>
+            {classroomOptions.length > 1 && (
+              <div className="mx-auto max-w-xs mb-4">
+                <label className="block text-sm text-gray-600 mb-1">Switch Classroom</label>
+                <select
+                  className="w-full border rounded-md px-3 py-2"
+                  onChange={(e)=> router.push(`/admin/teachers/attendance?classroom=${e.target.value}`)}
+                  defaultValue={classroomOptions[0]?.id}
+                >
+                  {classroomOptions.map((c)=> (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <Button onClick={fetchTeacherData} className="bg-[#6096ba] hover:bg-[#274c77] text-white">
               <RefreshCw className="h-4 w-4 mr-2" />
               Try Again

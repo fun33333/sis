@@ -20,6 +20,7 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
   const [levels, setLevels] = useState<any[]>([])
   const [grades, setGrades] = useState<any[]>([])
   const [classrooms, setClassrooms] = useState<any[]>([])
+  const [assignedDetails, setAssignedDetails] = useState<any[]>([])
 
   useEffect(() => {
     getAllCampuses()
@@ -68,6 +69,25 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
         .catch(err => console.error('Error fetching classrooms:', err))
     }
   }, [formData.class_teacher_grade])
+
+  // Load details for assigned_classrooms when shift is both
+  useEffect(() => {
+    const loadAssigned = async () => {
+      try {
+        const ids = Array.isArray(formData.assigned_classrooms) ? formData.assigned_classrooms : []
+        if (ids.length === 0) { setAssignedDetails([]); return }
+        const results: any[] = []
+        for (const id of ids) {
+          try {
+            const detail = await fetch(`${API_ENDPOINTS.CLASSROOMS}${id}/`, { credentials: 'include' }).then(r => r.json())
+            results.push(detail)
+          } catch (_) {}
+        }
+        setAssignedDetails(results)
+      } catch (_) { setAssignedDetails([]) }
+    }
+    if (formData.shift === 'both') loadAssigned()
+  }, [formData.assigned_classrooms, formData.shift])
 
   const getCampusId = (value: string) => {
     if (!value) return null
@@ -164,6 +184,7 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
       class_teacher_grade: formData.class_teacher_grade || null,
       class_teacher_section: formData.class_teacher_section || null,
       assigned_classroom: assignedClassroom || null,
+      assigned_classrooms: Array.isArray(formData.assigned_classrooms) ? formData.assigned_classrooms.map((x: any) => Number(x)) : [],
     }
 
     // (debug removed)
@@ -332,13 +353,35 @@ export function TeacherPreview({ formData, onBack, onSubmit }: TeacherPreviewPro
                </div>
                <div><strong>Is class teacher:</strong> {typeof formData.is_class_teacher === "boolean" ? (formData.is_class_teacher ? "Yes" : "No") : "N/A"}</div>
                  {formData.is_class_teacher && (
-                   <>
-                     <div><strong>Class teacher level:</strong> {getLevelName(formData.class_teacher_level)}</div>
-                     <div><strong>Class teacher grade:</strong> {getGradeName(formData.class_teacher_grade)}</div>
-                     <div><strong>Class teacher section:</strong> {formData.class_teacher_section || "N/A"}</div>
-                     <div><strong>Assigned classroom:</strong> {getClassroomName(formData.assigned_classroom)}</div>
-                   </>
-                 )}
+                  <>
+                    {formData.shift === 'both' ? (
+                      <div className="space-y-2">
+                        <div><strong>Assigned classrooms (both shifts):</strong></div>
+                        <div className="space-y-1">
+                          {(Array.isArray(formData.assigned_classrooms) && formData.assigned_classrooms.length > 0
+                            ? formData.assigned_classrooms
+                            : []).map((cid: any, idx: number) => {
+                              const c = assignedDetails.find((x:any) => String(x?.id) === String(cid))
+                              const label = c 
+                                ? `${c?.grade_name || c?.grade} - ${c?.section} (${c?.shift})`
+                                : `Classroom #${cid}`
+                              return <div key={idx}>• {label}</div>
+                            })}
+                          {(!formData.assigned_classrooms || formData.assigned_classrooms.length === 0) && (
+                            <div>N/A</div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div><strong>Class teacher level:</strong> {getLevelName(formData.class_teacher_level)}</div>
+                        <div><strong>Class teacher grade:</strong> {getGradeName(formData.class_teacher_grade)}</div>
+                        <div><strong>Class teacher section:</strong> {formData.class_teacher_section || "N/A"}</div>
+                        <div><strong>Assigned classroom:</strong> {getClassroomName(formData.assigned_classroom)}</div>
+                      </>
+                    )}
+                  </>
+                )}
             </CardContent>
           </Card>
 

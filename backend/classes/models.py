@@ -168,14 +168,14 @@ class ClassRoom(models.Model):
         help_text="Shift for this classroom"
     )
     
-    # FIXED: Changed to OneToOneField to ensure one teacher per classroom
-    class_teacher = models.OneToOneField(
-        TEACHER_MODEL, 
-        null=True, 
-        blank=True, 
+    # Allow a teacher to be class teacher of multiple classrooms (e.g., both shifts)
+    class_teacher = models.ForeignKey(
+        TEACHER_MODEL,
+        null=True,
+        blank=True,
         on_delete=models.SET_NULL,
-        related_name='assigned_classroom_teacher',
-        help_text="Class teacher for this classroom (one teacher per classroom only)"
+        related_name='classroom_set',
+        help_text="Class teacher for this classroom"
     )
     capacity = models.PositiveIntegerField(default=30)
     code = models.CharField(max_length=30, unique=True, editable=False)

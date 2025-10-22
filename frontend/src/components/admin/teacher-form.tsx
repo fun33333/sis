@@ -278,7 +278,7 @@ export function TeacherForm() {
       } catch {}
 
       // Prepare data for API submission
-      const submitData = {
+      const submitData: any = {
         ...formData,
         // Convert campus to integer
         current_campus: formData.current_campus ? parseInt(formData.current_campus) : null,
@@ -290,6 +290,7 @@ export function TeacherForm() {
         // Class-teacher consistency
         is_class_teacher: Boolean(formData.is_class_teacher || (formData.class_teacher_level && formData.class_teacher_grade && formData.class_teacher_section)),
         assigned_classroom: resolvedAssignedClassroom,
+        assigned_classrooms: Array.isArray(formData.assigned_classrooms) ? formData.assigned_classrooms.map((x:any)=> Number(x)) : [],
       }
 
       console.log('Submitting teacher data:', submitData)
@@ -305,10 +306,14 @@ export function TeacherForm() {
 
       if (response.ok) {
         const result = await response.json()
-        // Success toast with teacher name, employee code, and classroom (if any)
+        // Success toast with teacher name, employee code, and classroom(s)
         const teacherName = result?.full_name || formData.full_name || "Teacher"
         const employeeCode = result?.employee_code || "Pending"
-        const classroomName = result?.classroom_name || (formData.class_teacher_section ? `Grade ${formData.class_teacher_grade} - ${formData.class_teacher_section}` : "N/A")
+        // Prefer multiple classroom summary when available
+        const assignedList = Array.isArray(result?.assigned_classrooms) ? result.assigned_classrooms : []
+        const classroomName = assignedList.length > 0
+          ? `${assignedList.length} classroom${assignedList.length > 1 ? 's' : ''}`
+          : (result?.classroom_name || (formData.class_teacher_section ? `Grade ${formData.class_teacher_grade} - ${formData.class_teacher_section}` : "N/A"))
         
         // Reset form to initial state
         setFormData({
@@ -368,7 +373,7 @@ export function TeacherForm() {
           classroom: formData.is_class_teacher ? classroomName : undefined
         })
         sonnerToast.success("Teacher Added Successfully!", {
-          description: `${teacherName} (${employeeCode})${formData.is_class_teacher ? ` • Classroom: ${classroomName}` : ''}`,
+          description: `${teacherName} (${employeeCode})${formData.is_class_teacher ? ` • Classroom(s): ${classroomName}` : ''}`,
         })
       } else {
         const errorData = await response.json();

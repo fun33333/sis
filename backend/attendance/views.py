@@ -276,14 +276,22 @@ def get_class_students(request, classroom_id):
     """
     classroom = get_object_or_404(ClassRoom, id=classroom_id)
     
-    # Check permissions - teacher can only see their own class
+    # Check permissions - teacher can only see their assigned classes (supports multiple)
     user = request.user
     if user.is_teacher():
         try:
             # Find teacher by employee code (username)
             from teachers.models import Teacher
             teacher = Teacher.objects.get(employee_code=user.username)
-            if teacher.assigned_classroom != classroom:
+            # allow if legacy single matches OR included in M2M assigned_classrooms OR classroom.class_teacher is this teacher
+            allowed = False
+            if teacher.assigned_classroom == classroom:
+                allowed = True
+            elif teacher.assigned_classrooms.filter(id=classroom.id).exists():
+                allowed = True
+            elif getattr(classroom, 'class_teacher_id', None) == teacher.id:
+                allowed = True
+            if not allowed:
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         except Teacher.DoesNotExist:
             return Response({'error': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -411,7 +419,15 @@ def edit_attendance(request, attendance_id):
                 # Find teacher by email since there's no direct relationship
                 from teachers.models import Teacher
                 teacher = Teacher.objects.get(email=user.email)
+                is_allowed = False
                 if teacher and teacher.assigned_classroom == attendance.classroom:
+                    is_allowed = True
+                elif teacher and teacher.assigned_classrooms.filter(id=attendance.classroom_id).exists():
+                    is_allowed = True
+                elif teacher and getattr(attendance.classroom, 'class_teacher_id', None) == teacher.id:
+                    is_allowed = True
+
+                if is_allowed:
                     if attendance.is_editable:
                         can_edit = True
                         edit_reason = "Teacher edit within 7 days"
@@ -531,13 +547,20 @@ def get_attendance_for_date(request, classroom_id, date):
         classroom = get_object_or_404(ClassRoom, id=classroom_id)
         user = request.user
         
-        # Check permissions
+        # Check permissions (support multi-class teachers)
         if user.is_teacher():
             try:
                 # Find teacher by email since there's no direct relationship
                 from teachers.models import Teacher
                 teacher = Teacher.objects.get(email=user.email)
-                if teacher.assigned_classroom != classroom:
+                allowed = False
+                if teacher.assigned_classroom == classroom:
+                    allowed = True
+                elif teacher.assigned_classrooms.filter(id=classroom.id).exists():
+                    allowed = True
+                elif getattr(classroom, 'class_teacher_id', None) == teacher.id:
+                    allowed = True
+                if not allowed:
                     return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
             except Teacher.DoesNotExist:
                 return Response({'error': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
