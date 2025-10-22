@@ -110,11 +110,36 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
         """Get all teachers assigned to this coordinator"""
         coordinator = self.get_object()
         
-        # Get teachers assigned to this coordinator
+        # Get teachers assigned to this coordinator via ManyToMany
         teachers = Teacher.objects.filter(
             assigned_coordinators=coordinator,
             is_currently_active=True
         ).select_related('current_campus').prefetch_related('assigned_coordinators')
+        
+        # If no teachers via ManyToMany, get through classroom assignments
+        if not teachers.exists():
+            managed_levels = []
+            if coordinator.shift == 'both' and coordinator.assigned_levels.exists():
+                managed_levels = list(coordinator.assigned_levels.all())
+            elif coordinator.level:
+                managed_levels = [coordinator.level]
+            
+            if managed_levels:
+                # Get classrooms under this coordinator's levels
+                classrooms = ClassRoom.objects.filter(
+                    grade__level__in=managed_levels
+                ).select_related('class_teacher')
+                
+                # Get teachers from those classrooms
+                teacher_ids = set()
+                for classroom in classrooms:
+                    if classroom.class_teacher:
+                        teacher_ids.add(classroom.class_teacher.id)
+                
+                teachers = Teacher.objects.filter(
+                    id__in=teacher_ids,
+                    is_currently_active=True
+                ).select_related('current_campus').prefetch_related('assigned_coordinators')
         
         # Serialize teacher data
         teachers_data = []
@@ -157,21 +182,69 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
             is_currently_active=True
         ).count()
         
-        # Get students count from coordinator's campus
+        # If no teachers assigned via ManyToMany, try to get teachers through level/classroom relationship
+        if teachers_count == 0:
+            # Get teachers through classroom assignments
+            managed_levels = []
+            if coordinator.shift == 'both' and coordinator.assigned_levels.exists():
+                managed_levels = list(coordinator.assigned_levels.all())
+            elif coordinator.level:
+                managed_levels = [coordinator.level]
+            
+            if managed_levels:
+                # Get classrooms under this coordinator's levels
+                classrooms = ClassRoom.objects.filter(
+                    grade__level__in=managed_levels
+                ).select_related('class_teacher')
+                
+                # Get teachers from those classrooms
+                teacher_ids = set()
+                for classroom in classrooms:
+                    if classroom.class_teacher:
+                        teacher_ids.add(classroom.class_teacher.id)
+                
+                teachers_count = len(teacher_ids)
+        
+        # Get students count from coordinator's managed classrooms
         students_count = 0
         if coordinator.campus:
-            students_count = Student.objects.filter(
-                campus=coordinator.campus,
-                is_deleted=False
-            ).count()
+            # Get students from classrooms under this coordinator's levels
+            managed_levels = []
+            if coordinator.shift == 'both' and coordinator.assigned_levels.exists():
+                managed_levels = list(coordinator.assigned_levels.all())
+            elif coordinator.level:
+                managed_levels = [coordinator.level]
+            
+            if managed_levels:
+                classrooms = ClassRoom.objects.filter(
+                    grade__level__in=managed_levels
+                ).values_list('id', flat=True)
+                
+                students_count = Student.objects.filter(
+                    classroom__in=classrooms,
+                    is_deleted=False
+                ).count()
+            else:
+                # Fallback to campus-wide count
+                students_count = Student.objects.filter(
+                    campus=coordinator.campus,
+                    is_deleted=False
+                ).count()
         
         # Get classes count for this coordinator's level and campus
         classes_count = 0
-        if coordinator.level and coordinator.campus:
-            classes_count = ClassRoom.objects.filter(
-                grade__level=coordinator.level,
-                grade__level__campus=coordinator.campus
-            ).count()
+        if coordinator.campus:
+            managed_levels = []
+            if coordinator.shift == 'both' and coordinator.assigned_levels.exists():
+                managed_levels = list(coordinator.assigned_levels.all())
+            elif coordinator.level:
+                managed_levels = [coordinator.level]
+            
+            if managed_levels:
+                classes_count = ClassRoom.objects.filter(
+                    grade__level__in=managed_levels,
+                    grade__level__campus=coordinator.campus
+                ).count()
         
         # Get pending requests (if any)
         pending_requests = 0  # This would need to be implemented based on your request system
@@ -181,6 +254,29 @@ class CoordinatorViewSet(viewsets.ModelViewSet):
             assigned_coordinators=coordinator,
             is_currently_active=True
         )
+        
+        # If no teachers via ManyToMany, get through classroom assignments
+        if not teachers.exists():
+            managed_levels = []
+            if coordinator.shift == 'both' and coordinator.assigned_levels.exists():
+                managed_levels = list(coordinator.assigned_levels.all())
+            elif coordinator.level:
+                managed_levels = [coordinator.level]
+            
+            if managed_levels:
+                classrooms = ClassRoom.objects.filter(
+                    grade__level__in=managed_levels
+                ).select_related('class_teacher')
+                
+                teacher_ids = set()
+                for classroom in classrooms:
+                    if classroom.class_teacher:
+                        teacher_ids.add(classroom.class_teacher.id)
+                
+                teachers = Teacher.objects.filter(
+                    id__in=teacher_ids,
+                    is_currently_active=True
+                )
         
         subject_distribution = {}
         for teacher in teachers:

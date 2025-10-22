@@ -342,31 +342,31 @@ export function CurrentRoleStep({ formData, invalidFields, onInputChange }: Curr
                   </div>
                 </div>
               ) : (
-                <div>
+              <div>
                   <Label htmlFor="class_teacher_level">Class Teacher Level * </Label>
-                  <Select 
-                    value={formData.class_teacher_level || ""} 
-                    onValueChange={(v) => {
-                      onInputChange("class_teacher_level", v)
-                      // Reset grade and section when level changes
-                      onInputChange("class_teacher_grade", "")
-                      onInputChange("class_teacher_section", "")
-                      onInputChange("assigned_classroom", "")
-                    }}
-                  >
-                    <SelectTrigger className={`mt-2 border-2 focus:border-primary ${invalidFields.includes("class_teacher_level") ? "border-red-500" : ""}`}>
-                      <SelectValue placeholder={loadingLevels ? "Loading levels..." : "Select level"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredLevels.map((level) => (
-                        <SelectItem key={level.id} value={level.id.toString()}>
-                          {level.name} - {level.shift_display || level.shift}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {invalidFields.includes("class_teacher_level") && <p className="text-sm text-red-600 mt-1">Class teacher level is required</p>}
-                </div>
+                <Select 
+                  value={formData.class_teacher_level || ""} 
+                  onValueChange={(v) => {
+                    onInputChange("class_teacher_level", v)
+                    // Reset grade and section when level changes
+                    onInputChange("class_teacher_grade", "")
+                    onInputChange("class_teacher_section", "")
+                    onInputChange("assigned_classroom", "")
+                  }}
+                >
+                  <SelectTrigger className={`mt-2 border-2 focus:border-primary ${invalidFields.includes("class_teacher_level") ? "border-red-500" : ""}`}>
+                    <SelectValue placeholder={loadingLevels ? "Loading levels..." : "Select level"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredLevels.map((level) => (
+                      <SelectItem key={level.id} value={level.id.toString()}>
+                        {level.name} - {level.shift_display || level.shift}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {invalidFields.includes("class_teacher_level") && <p className="text-sm text-red-600 mt-1">Class teacher level is required</p>}
+              </div>
               )}
               
               {formData.shift === 'both' ? (
@@ -424,31 +424,31 @@ export function CurrentRoleStep({ formData, invalidFields, onInputChange }: Curr
                   })}
                 </div>
               ) : (
-                <div>
-                  <Label htmlFor="class_teacher_grade">Class Teacher Grade *</Label>
-                  <Select 
-                    value={formData.class_teacher_grade || ""} 
-                    onValueChange={(v) => {
-                      onInputChange("class_teacher_grade", v)
-                      // Reset section when grade changes
-                      onInputChange("class_teacher_section", "")
-                      onInputChange("assigned_classroom", "")
-                    }}
-                    disabled={!formData.class_teacher_level || loadingGrades}
-                  >
-                    <SelectTrigger className={`mt-2 border-2 focus:border-primary ${invalidFields.includes("class_teacher_grade") ? "border-red-500" : ""}`}>
-                      <SelectValue placeholder={loadingGrades ? "Loading grades..." : "Select grade"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {grades.map((grade) => (
-                        <SelectItem key={grade.id} value={grade.id.toString()}>
-                          {grade.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {invalidFields.includes("class_teacher_grade") && <p className="text-sm text-red-600 mt-1">Class teacher grade is required</p>}
-                </div>
+              <div>
+                <Label htmlFor="class_teacher_grade">Class Teacher Grade *</Label>
+                <Select 
+                  value={formData.class_teacher_grade || ""} 
+                  onValueChange={(v) => {
+                    onInputChange("class_teacher_grade", v)
+                    // Reset section when grade changes
+                    onInputChange("class_teacher_section", "")
+                    onInputChange("assigned_classroom", "")
+                  }}
+                  disabled={!formData.class_teacher_level || loadingGrades}
+                >
+                  <SelectTrigger className={`mt-2 border-2 focus:border-primary ${invalidFields.includes("class_teacher_grade") ? "border-red-500" : ""}`}>
+                    <SelectValue placeholder={loadingGrades ? "Loading grades..." : "Select grade"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {grades.map((grade) => (
+                      <SelectItem key={grade.id} value={grade.id.toString()}>
+                        {grade.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {invalidFields.includes("class_teacher_grade") && <p className="text-sm text-red-600 mt-1">Class teacher grade is required</p>}
+              </div>
               )}
               
               {formData.shift === 'both' ? (

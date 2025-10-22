@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -64,7 +64,7 @@ const generateStudentProgress = () => {
   ]
 }
 
-export default function TeacherProfilePage() {
+function TeacherProfileContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const teacherId = searchParams.get('id')
@@ -558,5 +558,13 @@ function InfoRow({ label, value }: { label: string, value: string }) {
       <span className="text-sm font-medium text-gray-500">{label}</span>
       <span className="text-sm font-medium text-gray-900 text-right">{value}</span>
     </div>
+  )
+}
+
+export default function TeacherProfilePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <TeacherProfileContent />
+    </Suspense>
   )
 }

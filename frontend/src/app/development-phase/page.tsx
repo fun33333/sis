@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import {
   Sparkles
 } from 'lucide-react';
 
-export default function DevelopmentPhasePage() {
+function DevelopmentPhaseContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [progress, setProgress] = useState(0);
@@ -144,4 +144,12 @@ export default function DevelopmentPhasePage() {
       </Card>
     </div>
   );
+}
+
+export default function DevelopmentPhasePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <DevelopmentPhaseContent />
+    </Suspense>
+  )
 }

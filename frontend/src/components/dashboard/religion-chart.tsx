@@ -1,12 +1,10 @@
 "use client"
-import { TrendingUp } from "lucide-react"
-import { Label, Pie, PieChart, Sector, ResponsiveContainer, Cell } from "recharts"
+import { Pie, PieChart, Sector, ResponsiveContainer, Cell } from "recharts"
 import { PieSectorDataItem } from "recharts/types/polar/Pie"
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -84,7 +82,7 @@ export function ReligionChart({ data }: ReligionChartProps) {
                 innerRadius={60}
                 outerRadius={100}
                 strokeWidth={5}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                label={(props: any) => `${props.name}: ${((props.percent ?? 0) * 100).toFixed(0)}%`}
                 labelLine={true}
                 activeShape={({ outerRadius = 0, ...props }: PieSectorDataItem) => (
                   <Sector {...props} outerRadius={outerRadius + 10} />

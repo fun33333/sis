@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,7 +11,7 @@ import { apiGet } from "@/lib/api"
 
 import { useEffect } from "react";
 
-export default function UpdateStudentPage() {
+function UpdateStudentContent() {
   useEffect(() => {
     document.title = "Update Student | IAK SMS";
   }, []);
@@ -274,5 +274,13 @@ export default function UpdateStudentPage() {
         </div>
       </form>
     </div>
+  )
+}
+
+export default function UpdateStudentPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <UpdateStudentContent />
+    </Suspense>
   )
 }

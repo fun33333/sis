@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,7 +65,7 @@ interface TeacherProfile {
   assigned_classrooms?: SimpleClassRoom[];
 }
 
-export default function TeacherAttendancePage() {
+function TeacherAttendanceContent() {
   const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<Record<number, AttendanceStatus>>({});
@@ -1137,6 +1137,20 @@ export default function TeacherAttendancePage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {classroomOptions.length > 1 && (
+              <div className="flex items-center gap-2 bg-white/15 border border-white/25 rounded-lg px-2 py-1">
+                <span className="text-xs opacity-90">Class</span>
+                <select
+                  className="bg-transparent text-white text-xs sm:text-sm focus:outline-none"
+                  value={classInfo?.id || classroomOptions[0]?.id}
+                  onChange={(e)=> router.push(`/admin/teachers/attendance?classroom=${e.target.value}`)}
+                >
+                  {classroomOptions.map((c)=> (
+                    <option key={c.id} value={c.id} className="text-black">{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             {/* Backfill Permissions Icon */}
             <div className="relative">
               <Button
@@ -1728,4 +1742,12 @@ export default function TeacherAttendancePage() {
 
 		</div>
 	);
+}
+
+export default function TeacherAttendancePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <TeacherAttendanceContent />
+    </Suspense>
+  )
 }

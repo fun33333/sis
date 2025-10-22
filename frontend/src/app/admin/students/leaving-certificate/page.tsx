@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useMemo, useEffect, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator"
 // import { mockStudents } from "@/data/mockData"
 import { useToast } from "@/hooks/use-toast"
 
-export default function LeavingCertificatePage() {
+function LeavingCertificateContent() {
   const router = useRouter()
   const params = useSearchParams()
   const initialStudentId = params?.get("studentId") || ""
@@ -395,5 +395,13 @@ export default function LeavingCertificatePage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function LeavingCertificatePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <LeavingCertificateContent />
+    </Suspense>
   )
 }

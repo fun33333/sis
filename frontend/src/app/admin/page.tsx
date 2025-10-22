@@ -98,8 +98,9 @@ export default function MainDashboardPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
 
-  // Principal campus filtering
+  // Principal campus filtering and shift filter
   const [userCampus, setUserCampus] = useState<string>("");
+  const [principalShift, setPrincipalShift] = useState<string>("both");
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -149,6 +150,9 @@ export default function MainDashboardPage() {
           try {
             const userProfile = await getCurrentUserProfile() as any;
             
+            if (userProfile?.shift) {
+              setPrincipalShift(String(userProfile.shift));
+            }
             if (userProfile?.campus?.campus_name) {
               setUserCampus(userProfile.campus.campus_name);
             } else if (userProfile?.campus) {
@@ -198,6 +202,7 @@ export default function MainDashboardPage() {
   const [teachersCount, setTeachersCount] = useState<number>(0) // Total teachers count
   const [weeklyAttendanceData, setWeeklyAttendanceData] = useState<any[]>([]) // Weekly attendance data
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false) // Refresh state
+  const [shiftFilter, setShiftFilter] = useState<string>("all");
 
   useEffect(() => {
     // Dynamic title based on user role
@@ -226,7 +231,8 @@ export default function MainDashboardPage() {
       try {
         // Fetch teachers count and weekly attendance data
         try {
-          const teachersResponse: any = await apiGet('/api/teachers/')
+          const q = shiftFilter && shiftFilter !== 'all' ? `?shift=${encodeURIComponent(shiftFilter)}` : ''
+          const teachersResponse: any = await apiGet(`/api/teachers/${q}`)
           if (teachersResponse && Array.isArray(teachersResponse)) {
             setTeachersCount(teachersResponse.length)
           } else if (teachersResponse?.results && Array.isArray(teachersResponse.results)) {
@@ -536,7 +542,7 @@ export default function MainDashboardPage() {
       setShowLoader(false)
     }, 3000)
     return () => clearTimeout(loaderTimeout)
-  }, [userRole, userCampus])
+  }, [userRole, userCampus, shiftFilter])
 
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
@@ -800,7 +806,7 @@ export default function MainDashboardPage() {
       if (userRole === 'principal' && userCampus) {
         // Optimize: Only fetch essential data first
         const [apiStudents, caps] = await Promise.all([
-          getAllStudents(),
+          getAllStudents(false, shiftFilter === 'all' ? undefined : shiftFilter),
           getAllCampuses()
         ])
         
@@ -912,7 +918,7 @@ export default function MainDashboardPage() {
       } else {
         // Super Admin: Fetch all data
         const [apiStudents, caps, apiStats] = await Promise.all([
-          getAllStudents(),
+          getAllStudents(false, shiftFilter === 'all' ? undefined : shiftFilter),
           getAllCampuses(),
           getDashboardStats()
         ])
@@ -1060,7 +1066,7 @@ export default function MainDashboardPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </div>            
             </div>
           </CardHeader>
           <CardContent className="!bg-[#E7ECEF]">
@@ -1074,6 +1080,27 @@ export default function MainDashboardPage() {
               <MultiSelectFilter title="Gender" options={dynamicGenders} selectedValues={filters.genders} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, genders: val as ("Male" | "Female" | "Other")[] }))} placeholder="All genders" />
               <MultiSelectFilter title="Mother Tongue" options={dynamicMotherTongues} selectedValues={filters.motherTongues} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, motherTongues: val as string[] }))} placeholder="All mother tongues" />
               <MultiSelectFilter title="Religion" options={dynamicReligions} selectedValues={filters.religions} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, religions: val as string[] }))} placeholder="All religions" />
+              {/* Shift filter (principal only) */}
+              {userRole === 'principal' && (
+                <MultiSelectFilter
+                  title="Shift"
+                  options={["All", "Morning", "Afternoon", "Both"]}
+                  selectedValues={[
+                    shiftFilter === 'all' ? 'All' :
+                    shiftFilter === 'morning' ? 'Morning' :
+                    shiftFilter === 'afternoon' ? 'Afternoon' : 'Both'
+                  ]}
+                  onSelectionChange={(val) => {
+                    // For single selection, replace the entire array with the new selection
+                    const newSelection = val as (string | number)[]
+                    const choice = String(newSelection[newSelection.length - 1] || 'All')
+                    const normalized = choice.toLowerCase()
+                    setShiftFilter(normalized)
+                    console.log('Shift filter changed to:', normalized, 'from selection:', newSelection)
+                  }}
+                  placeholder="All shifts"
+                />
+              )}
             </div>
           </CardContent>
         </Card>

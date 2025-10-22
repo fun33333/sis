@@ -24,58 +24,131 @@ class StudentViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']  # Default ordering
     
     def get_queryset(self):
-        """Override to handle role-based filtering"""
+        """Override to handle role-based filtering for list views only"""
         queryset = Student.objects.select_related('campus', 'classroom').all()
         
-        # Role-based filtering
+        # Only apply role-based filtering for list views, not for individual object retrieval
+        if self.action == 'list':
+            # Role-based filtering
+            user = self.request.user
+            if hasattr(user, 'campus') and user.campus and user.is_principal():
+                # Principal: Only show students from their campus
+                queryset = queryset.filter(campus=user.campus)
+            elif user.is_teacher():
+                # Teacher: Show students from their assigned classrooms (supports both single and multiple assignments)
+                # Find teacher by employee code (username)
+                from teachers.models import Teacher
+                try:
+                    teacher_obj = Teacher.objects.get(employee_code=user.username)
+                    
+                    # Get all assigned classrooms (both legacy single assignment and new multiple assignments)
+                    assigned_classrooms = []
+                    
+                    # Add legacy single classroom assignment
+                    if teacher_obj.assigned_classroom:
+                        assigned_classrooms.append(teacher_obj.assigned_classroom)
+                    
+                    # Add multiple classroom assignments
+                    assigned_classrooms.extend(teacher_obj.assigned_classrooms.all())
+                    
+                    # Remove duplicates
+                    assigned_classrooms = list(set(assigned_classrooms))
+                    
+                    if assigned_classrooms:
+                        # Filter students by any of the assigned classrooms
+                        queryset = queryset.filter(classroom__in=assigned_classrooms)
+                    else:
+                        # If no classroom assigned, show no students
+                        queryset = queryset.none()
+                except Teacher.DoesNotExist:
+                    # If teacher object doesn't exist, show no students
+                    queryset = queryset.none()
+            elif user.is_coordinator():
+                # Coordinator: Show students from classrooms under their assigned level
+                from coordinator.models import Coordinator
+                try:
+                    coordinator_obj = Coordinator.objects.get(employee_code=user.username)
+                    
+                    # Get all classrooms under this coordinator's level
+                    from classes.models import ClassRoom
+                    coordinator_classrooms = ClassRoom.objects.filter(
+                        grade__level=coordinator_obj.level,
+                        grade__level__campus=coordinator_obj.campus
+                    ).values_list('id', flat=True)
+                    
+                    # Filter students from these classrooms
+                    queryset = queryset.filter(classroom__in=coordinator_classrooms)
+                except Coordinator.DoesNotExist:
+                    # If coordinator object doesn't exist, return empty queryset
+                    queryset = queryset.none()
+            
+            # Handle shift filtering
+            shift_filter = self.request.query_params.get('shift')
+            if shift_filter:
+                if shift_filter in ['morning', 'afternoon']:
+                    # Filter students by shift
+                    queryset = queryset.filter(shift=shift_filter)
+                elif shift_filter == 'both':
+                    # Show students from both shifts (no additional filtering needed)
+                    pass
+        
+        return queryset
+
+    def get_object(self):
+        """Override to handle individual student retrieval with proper permissions"""
+        # Get the object first
+        obj = super().get_object()
+        
+        # Apply role-based access control for individual objects
         user = self.request.user
-        if hasattr(user, 'campus') and user.campus and user.is_principal():
-            # Principal: Only show students from their campus
-            queryset = queryset.filter(campus=user.campus)
-        elif user.is_teacher():
-            # Teacher: Only show students from their assigned classroom
-            # Find teacher by employee code (username)
+        
+        if user.is_teacher():
+            # Teacher: Check if student is in their assigned classrooms
             from teachers.models import Teacher
             try:
                 teacher_obj = Teacher.objects.get(employee_code=user.username)
+                
+                # Get all assigned classrooms (both legacy single assignment and new multiple assignments)
+                assigned_classrooms = []
+                
+                # Add legacy single classroom assignment
                 if teacher_obj.assigned_classroom:
-                    queryset = queryset.filter(classroom=teacher_obj.assigned_classroom)
-                else:
-                    # If no classroom assigned, show no students
-                    queryset = queryset.none()
+                    assigned_classrooms.append(teacher_obj.assigned_classroom)
+                
+                # Add multiple classroom assignments
+                assigned_classrooms.extend(teacher_obj.assigned_classrooms.all())
+                
+                # Remove duplicates
+                assigned_classrooms = list(set(assigned_classrooms))
+                
+                if assigned_classrooms and obj.classroom not in assigned_classrooms:
+                    # Student is not in teacher's assigned classrooms
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied("You don't have permission to view this student.")
+                    
             except Teacher.DoesNotExist:
-                # If teacher object doesn't exist, show no students
-                queryset = queryset.none()
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Teacher profile not found.")
+                
+        elif user.is_principal() and hasattr(user, 'campus') and user.campus:
+            # Principal: Check if student is from their campus
+            if obj.campus != user.campus:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("You don't have permission to view this student.")
+                
         elif user.is_coordinator():
-            # Coordinator: Show students from classrooms under their assigned level
+            # Coordinator: Check if student is from their assigned level
             from coordinator.models import Coordinator
             try:
                 coordinator_obj = Coordinator.objects.get(employee_code=user.username)
-                
-                # Get all classrooms under this coordinator's level
-                from classes.models import ClassRoom
-                coordinator_classrooms = ClassRoom.objects.filter(
-                    grade__level=coordinator_obj.level,
-                    grade__campus=coordinator_obj.campus
-                ).values_list('id', flat=True)
-                
-                # Filter students from these classrooms
-                queryset = queryset.filter(classroom__in=coordinator_classrooms)
+                if obj.classroom and obj.classroom.grade.level != coordinator_obj.level:
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied("You don't have permission to view this student.")
             except Coordinator.DoesNotExist:
-                # If coordinator object doesn't exist, return empty queryset
-                queryset = queryset.none()
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Coordinator profile not found.")
         
-        # Handle shift filtering
-        shift_filter = self.request.query_params.get('shift')
-        if shift_filter:
-            if shift_filter in ['morning', 'afternoon']:
-                # Filter students by shift
-                queryset = queryset.filter(shift=shift_filter)
-            elif shift_filter == 'both':
-                # Show students from both shifts (no additional filtering needed)
-                pass
-        
-        return queryset
+        return obj
 
     @action(detail=False, methods=["get"])
     def total(self, request):

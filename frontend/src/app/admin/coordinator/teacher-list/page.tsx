@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Users, Search, Eye, Edit, User, Mail, Phone, GraduationCap, MapPin, Calendar, Award } from "lucide-react"
-import { getAllTeachers } from "@/lib/api"
+import { getAllTeachers, getCoordinatorTeachers, getCurrentUserProfile } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
@@ -39,34 +39,47 @@ function CoordinatorTeacherListContent() {
           return;
         }
         
-         // Get user from localStorage
-         const user = localStorage.getItem("sis_user");
-         if (user) {
-           const userData = JSON.parse(user);
-           
-           // Backend automatically filters teachers based on logged-in coordinator
-           // No need to find coordinator separately
-           const teachersData = await getAllTeachers();
-           
-           // Map teacher data to the expected format
-           const mappedTeachers = teachersData.map((teacher: any) => ({
-             id: teacher.id,
-             name: teacher.full_name || 'Unknown',
-             subject: teacher.current_subjects || 'Not Assigned',
-             classes: teacher.current_classes_taught || 'Not Assigned',
-             email: teacher.email || 'Not provided',
-             phone: teacher.contact_number || 'Not provided',
-             joining_date: teacher.joining_date || 'Not provided',
-             experience: teacher.total_experience_years ? `${teacher.total_experience_years} years` : 'Not provided',
-             employee_code: teacher.employee_code,
-             shift: teacher.shift,
-             is_class_teacher: teacher.is_class_teacher
-           }))
-          
-          setTeachers(mappedTeachers)
-        } else {
-          setError("User not logged in")
+        // Get current user profile to get coordinator ID
+        const userProfile = await getCurrentUserProfile() as any;
+        console.log('User profile:', userProfile);
+        const coordinatorId = userProfile?.coordinator_id;
+        console.log('Coordinator ID:', coordinatorId);
+        
+        if (!coordinatorId) {
+          console.error('Coordinator ID not found in user profile:', userProfile);
+          setError(`Coordinator ID not found in user profile. User role: ${userProfile?.role || 'unknown'}, Available fields: ${Object.keys(userProfile || {}).join(', ')}`);
+          return;
         }
+        
+        // Use coordinator-specific API to get assigned teachers
+        console.log('Calling getCoordinatorTeachers with ID:', coordinatorId);
+        const response = await getCoordinatorTeachers(coordinatorId) as any;
+        console.log('Coordinator teachers response:', response);
+        
+        if (!response || !response.teachers) {
+          console.error('Invalid response from getCoordinatorTeachers:', response);
+          setError('Invalid response from coordinator teachers API');
+          return;
+        }
+        
+        const teachersData = response.teachers || [];
+        
+        // Map teacher data to the expected format
+        const mappedTeachers = teachersData.map((teacher: any) => ({
+          id: teacher.id,
+          name: teacher.full_name || 'Unknown',
+          subject: teacher.current_subjects || 'Not Assigned',
+          classes: teacher.current_classes_taught || 'Not Assigned',
+          email: teacher.email || 'Not provided',
+          phone: teacher.contact_number || 'Not provided',
+          joining_date: teacher.joining_date || 'Not provided',
+          experience: teacher.total_experience_years ? `${teacher.total_experience_years} years` : 'Not provided',
+          employee_code: teacher.employee_code,
+          shift: teacher.shift,
+          is_class_teacher: teacher.is_class_teacher
+        }))
+        
+        setTeachers(mappedTeachers)
       } catch (err: any) {
         console.error("Error fetching teachers:", err)
         setError(err.message || "Failed to load teachers")

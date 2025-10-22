@@ -1,18 +1,17 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { apiGet, getAllStudents } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import { MapPin, Phone, Mail, Users, Building, Calendar, BookOpen, Wifi, Zap, Library, GraduationCap, UserCheck, Clock, BarChart3, PieChart, TrendingUp, Activity, Target, Award } from "lucide-react"
+import { MapPin, Phone, Mail, Users, Building, Calendar, BookOpen, Wifi, GraduationCap, UserCheck, BarChart3, Activity, Target } from "lucide-react"
 import { StudentRadialChart } from "@/components/charts/radial-chart"
 
-export default function AdminCampusProfilePage() {
+function CampusProfileContent() {
   const params = useSearchParams()
   const id = params?.get("id") || params?.get("pk") || ""
 
@@ -987,5 +986,13 @@ export default function AdminCampusProfilePage() {
             </div>
           </div>
     </div>
+  )
+}
+
+export default function AdminCampusProfilePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <CampusProfileContent />
+    </Suspense>
   )
 }

@@ -5,9 +5,12 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 from datetime import date, timedelta, datetime
 
-from .models import Attendance, StudentAttendance
+User = get_user_model()
+
+from .models import Attendance, StudentAttendance, Weekend
 from .serializers import (
     AttendanceSerializer, 
     StudentAttendanceSerializer, 
@@ -39,9 +42,9 @@ def mark_attendance(request):
         
         # Get teacher from request user
         try:
-            # Find teacher by email since there's no direct relationship
+            # Find teacher by employee code (username) since there's no direct relationship
             from teachers.models import Teacher
-            teacher = Teacher.objects.get(email=request.user.email)
+            teacher = Teacher.objects.get(employee_code=request.user.username)
         except Teacher.DoesNotExist:
             teacher = None
         
@@ -362,10 +365,10 @@ def get_teacher_classes(request):
     try:
         user = request.user
         
-        # Find teacher by email since there's no direct relationship
+        # Find teacher by employee code (username) since there's no direct relationship
         from teachers.models import Teacher
         try:
-            teacher = Teacher.objects.get(email=user.email)
+            teacher = Teacher.objects.get(employee_code=user.username)
         except Teacher.DoesNotExist:
             return Response({'error': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
         
@@ -416,9 +419,9 @@ def edit_attendance(request, attendance_id):
         # Check teacher permissions (7-day limit)
         elif user.is_teacher():
             try:
-                # Find teacher by email since there's no direct relationship
+                # Find teacher by employee code (username) since there's no direct relationship
                 from teachers.models import Teacher
-                teacher = Teacher.objects.get(email=user.email)
+                teacher = Teacher.objects.get(employee_code=user.username)
                 is_allowed = False
                 if teacher and teacher.assigned_classroom == attendance.classroom:
                     is_allowed = True
@@ -441,9 +444,9 @@ def edit_attendance(request, attendance_id):
         # Check coordinator permissions (unlimited time for their level)
         elif user.is_coordinator():
             try:
-                # Find coordinator by email since there's no direct relationship
+                # Find coordinator by username (employee_code) since there's no direct relationship
                 from coordinator.models import Coordinator
-                coordinator = Coordinator.objects.get(email=user.email)
+                coordinator = Coordinator.objects.get(employee_code=user.username)
                 if (coordinator and coordinator.is_currently_active and 
                     coordinator.level == attendance.classroom.grade.level):
                     can_edit = True
@@ -530,9 +533,6 @@ def edit_attendance(request, attendance_id):
             'message': 'Attendance updated successfully',
             'attendance': serializer.data
         })
-        
-    except Attendance.DoesNotExist:
-        return Response({'error': 'Attendance record not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -544,15 +544,22 @@ def get_attendance_for_date(request, classroom_id, date):
     Get attendance for a specific date
     """
     try:
+        print(f"🔍 DEBUG: get_attendance_for_date called")
+        print(f"   - classroom_id: {classroom_id}")
+        print(f"   - date: {date}")
+        print(f"   - user: {request.user.username} ({request.user.role})")
+        
         classroom = get_object_or_404(ClassRoom, id=classroom_id)
         user = request.user
+        
+        print(f"   - classroom: {classroom} (Grade: {classroom.grade}, Level: {classroom.grade.level})")
         
         # Check permissions (support multi-class teachers)
         if user.is_teacher():
             try:
-                # Find teacher by email since there's no direct relationship
+                # Find teacher by employee code (username) since there's no direct relationship
                 from teachers.models import Teacher
-                teacher = Teacher.objects.get(email=user.email)
+                teacher = Teacher.objects.get(employee_code=user.username)
                 allowed = False
                 if teacher.assigned_classroom == classroom:
                     allowed = True
@@ -564,14 +571,60 @@ def get_attendance_for_date(request, classroom_id, date):
                     return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
             except Teacher.DoesNotExist:
                 return Response({'error': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        elif user.is_coordinator():
+            print(f"🔍 DEBUG: User is coordinator, checking permissions")
+            # Coordinator can access attendance for classrooms in their managed levels
+            try:
+                from coordinator.models import Coordinator
+                coordinator = Coordinator.objects.get(employee_code=user.username)
+                print(f"   - coordinator: {coordinator.full_name}")
+                print(f"   - coordinator shift: {coordinator.shift}")
+                print(f"   - coordinator level: {coordinator.level}")
+                print(f"   - coordinator assigned_levels: {list(coordinator.assigned_levels.all())}")
+                
+                # Check if classroom is in coordinator's managed levels
+                allowed = False
+                if coordinator.shift == 'both' and coordinator.assigned_levels.exists():
+                    print(f"   - checking 'both' shift with assigned_levels")
+                    # Check if classroom's level is in coordinator's assigned levels
+                    if classroom.grade.level in coordinator.assigned_levels.all():
+                        allowed = True
+                        print(f"   - ✅ Classroom level {classroom.grade.level} found in assigned_levels")
+                    else:
+                        print(f"   - ❌ Classroom level {classroom.grade.level} NOT found in assigned_levels")
+                elif coordinator.level and classroom.grade.level == coordinator.level:
+                    allowed = True
+                    print(f"   - ✅ Classroom level {classroom.grade.level} matches coordinator level")
+                else:
+                    print(f"   - ❌ No matching level found")
+                
+                print(f"   - allowed: {allowed}")
+                if not allowed:
+                    return Response({'error': 'Access denied - Classroom not in your managed levels'}, status=status.HTTP_403_FORBIDDEN)
+            except Coordinator.DoesNotExist:
+                print(f"   - ❌ Coordinator profile not found")
+                return Response({'error': 'Coordinator profile not found'}, status=status.HTTP_404_NOT_FOUND)
         
         # Get attendance for the date
         try:
+            print(f"🔍 DEBUG: Looking for attendance data")
+            print(f"   - classroom: {classroom}")
+            print(f"   - date: {date}")
+            print(f"   - is_deleted: False")
+            
             attendance = Attendance.objects.get(
                 classroom=classroom,
                 date=date,
                 is_deleted=False
             )
+            
+            print(f"🔍 DEBUG: Attendance found!")
+            print(f"   - attendance.id: {attendance.id}")
+            print(f"   - attendance.status: {attendance.status}")
+            print(f"   - attendance.total_students: {attendance.total_students}")
+            print(f"   - attendance.present_count: {attendance.present_count}")
+            print(f"   - attendance.absent_count: {attendance.absent_count}")
+            print(f"   - attendance.leave_count: {attendance.leave_count}")
             
             # Get student attendance records
             student_attendances = attendance.student_attendances.all()
@@ -610,6 +663,9 @@ def get_attendance_for_date(request, classroom_id, date):
             return Response(attendance_data)
             
         except Attendance.DoesNotExist:
+            print(f"🔍 DEBUG: No attendance found for this date")
+            print(f"   - classroom: {classroom}")
+            print(f"   - date: {date}")
             return Response({
                 'message': 'No attendance found for this date',
                 'date': date,
@@ -632,22 +688,26 @@ def get_coordinator_classes(request):
         if not user.is_coordinator():
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         
-        # Find coordinator by email since there's no direct relationship
+        # Find coordinator by username (employee_code) since there's no direct relationship
         from coordinator.models import Coordinator
         try:
-            coordinator = Coordinator.objects.get(email=user.email)
+            coordinator = Coordinator.objects.get(employee_code=user.username)
             if not coordinator or not coordinator.is_currently_active:
                 return Response({'error': 'Coordinator profile not found or inactive'}, status=status.HTTP_404_NOT_FOUND)
         except Coordinator.DoesNotExist:
             return Response({'error': 'Coordinator profile not found'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Check if coordinator has a level assigned
-        if not coordinator.level:
+        # Get all classes in coordinator's level(s)
+        managed_levels = []
+        if coordinator.shift == 'both' and coordinator.assigned_levels.exists():
+            managed_levels = list(coordinator.assigned_levels.all())
+        elif coordinator.level:
+            managed_levels = [coordinator.level]
+        else:
             return Response({'error': 'No level assigned to coordinator'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Get all classes in coordinator's level
         classrooms = ClassRoom.objects.filter(
-            grade__level=coordinator.level
+            grade__level__in=managed_levels
         ).select_related('grade', 'class_teacher', 'grade__level__campus')
         
         
@@ -687,9 +747,9 @@ def get_level_attendance_summary(request, level_id):
         # Check permissions
         if user.is_coordinator():
             try:
-                # Find coordinator by email since there's no direct relationship
+                # Find coordinator by username (employee_code) since there's no direct relationship
                 from coordinator.models import Coordinator
-                coordinator = Coordinator.objects.get(email=user.email)
+                coordinator = Coordinator.objects.get(employee_code=user.username)
                 if not coordinator or coordinator.level.id != level_id:
                     return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
             except Coordinator.DoesNotExist:
@@ -856,7 +916,7 @@ def review_attendance(request, attendance_id):
         
         # Verify coordinator has access
         from coordinator.models import Coordinator
-        coordinator = Coordinator.objects.get(email=request.user.email)
+        coordinator = Coordinator.objects.get(employee_code=request.user.username)
         if coordinator.level != attendance.classroom.grade.level:
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         
@@ -1168,11 +1228,11 @@ def get_realtime_attendance_metrics(request):
         
         # Get classrooms based on role
         if user.is_teacher():
-            teacher = Teacher.objects.get(email=user.email)
+            teacher = Teacher.objects.get(employee_code=user.username)
             classrooms = [teacher.assigned_classroom] if teacher.assigned_classroom else []
         elif user.is_coordinator():
             from coordinator.models import Coordinator
-            coordinator = Coordinator.objects.get(email=user.email)
+            coordinator = Coordinator.objects.get(employee_code=user.username)
             classrooms = ClassRoom.objects.filter(grade__level=coordinator.level)
         elif user.is_principal():
             from principals.models import Principal

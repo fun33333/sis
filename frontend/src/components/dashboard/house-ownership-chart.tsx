@@ -61,7 +61,7 @@ export function HouseOwnershipChart({ data }: HouseOwnershipChartProps) {
                 cy="45%" 
                 outerRadius={100} 
                 dataKey="value"
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                label={(props: any) => `${props.name}: ${((props.percent ?? 0) * 100).toFixed(0)}%`}
                 labelLine={true}
               >
                 {dataWithTotal.map((entry: any, index: number) => {

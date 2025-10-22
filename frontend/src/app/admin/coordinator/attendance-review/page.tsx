@@ -50,6 +50,8 @@ export default function AttendanceReviewPage() {
   const [editingAttendance, setEditingAttendance] = useState(false);
   const [editedAttendance, setEditedAttendance] = useState<any[]>([]);
   const [savingAttendance, setSavingAttendance] = useState(false);
+  const [classroomAttendanceSummary, setClassroomAttendanceSummary] = useState<any[]>([]);
+  const [loadingSummary, setLoadingSummary] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -76,6 +78,83 @@ export default function AttendanceReviewPage() {
   const getUniqueGrades = () => {
     const grades = [...new Set(classrooms.map(c => c.grade))];
     return grades.sort();
+  };
+
+  // Fetch attendance summary for all classrooms
+  const fetchAttendanceSummaryForClassrooms = async (classroomsData: ClassroomData[], date: string) => {
+    try {
+      console.log('🔍 DEBUG: fetchAttendanceSummaryForClassrooms called');
+      console.log('   - classroomsData:', classroomsData);
+      console.log('   - date:', date);
+      
+      setLoadingSummary(true);
+      const summary = [];
+      
+      for (const classroom of classroomsData) {
+        try {
+          console.log(`🔍 DEBUG: Fetching attendance for classroom ${classroom.id} (${classroom.name})`);
+          const data = await getAttendanceForDate(classroom.id, date);
+          console.log(`   - API response for ${classroom.name}:`, data);
+          
+          if (data && (data as any).id) {
+            summary.push({
+              classroom_id: classroom.id,
+              classroom_name: classroom.name,
+              teacher_name: classroom.class_teacher?.name || 'Not Assigned',
+              total_students: (data as any).total_students || 0,
+              present_count: (data as any).present_count || 0,
+              absent_count: (data as any).absent_count || 0,
+              leave_count: (data as any).leave_count || 0,
+              status: (data as any).status || 'not_marked',
+              marked_by: (data as any).marked_by || 'Not Marked',
+              attendance_percentage: (data as any).attendance_percentage || 0
+            });
+          } else {
+            console.log(`   - No attendance data found for ${classroom.name}, using default values`);
+            summary.push({
+              classroom_id: classroom.id,
+              classroom_name: classroom.name,
+              teacher_name: classroom.class_teacher?.name || 'Not Assigned',
+              total_students: classroom.student_count,
+              present_count: 0,
+              absent_count: 0,
+              leave_count: 0,
+              status: 'not_marked',
+              marked_by: 'Not Marked',
+              attendance_percentage: 0
+            });
+          }
+        } catch (error) {
+          console.error(`Error fetching attendance for classroom ${classroom.id}:`, error);
+          summary.push({
+            classroom_id: classroom.id,
+            classroom_name: classroom.name,
+            teacher_name: classroom.class_teacher?.name || 'Not Assigned',
+            total_students: classroom.student_count,
+            present_count: 0,
+            absent_count: 0,
+            leave_count: 0,
+            status: 'not_marked',
+            marked_by: 'Not Marked',
+            attendance_percentage: 0
+          });
+        }
+      }
+      
+      console.log('🔍 DEBUG: Final attendance summary:', summary);
+      setClassroomAttendanceSummary(summary);
+    } catch (error) {
+      console.error('Error fetching attendance summary:', error);
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
+  // Wrapper function to fetch attendance summary using current classrooms state
+  const fetchAttendanceSummary = async (date: string) => {
+    if (classrooms.length > 0) {
+      await fetchAttendanceSummaryForClassrooms(classrooms, date);
+    }
   };
 
   // Fetch attendance data for a classroom and specific date
@@ -227,19 +306,23 @@ export default function AttendanceReviewPage() {
       const classesData = await getCoordinatorClasses();
       
       // Handle different response formats
+      let classroomsData: ClassroomData[] = [];
       if (Array.isArray(classesData)) {
-        setClassrooms(classesData as ClassroomData[]);
+        classroomsData = classesData as ClassroomData[];
       } else if (classesData && typeof classesData === 'object') {
         // Check if it's a paginated response
         if ((classesData as any).results && Array.isArray((classesData as any).results)) {
-          setClassrooms((classesData as any).results as ClassroomData[]);
+          classroomsData = (classesData as any).results as ClassroomData[];
         } else if ((classesData as any).data && Array.isArray((classesData as any).data)) {
-          setClassrooms((classesData as any).data as ClassroomData[]);
-        } else {
-          setClassrooms([]);
+          classroomsData = (classesData as any).data as ClassroomData[];
         }
-      } else {
-        setClassrooms([]);
+      }
+      
+      setClassrooms(classroomsData);
+      
+      // Fetch attendance summary for today
+      if (classroomsData.length > 0) {
+        await fetchAttendanceSummaryForClassrooms(classroomsData, selectedDate);
       }
       
     } catch (err: unknown) {
@@ -310,6 +393,98 @@ export default function AttendanceReviewPage() {
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* Attendance Summary */}
+      <div className="bg-white rounded-2xl shadow-xl border-2 border-[#a3cef1] p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-[#274c77] flex items-center">
+            <Calendar className="h-6 w-6 mr-2" />
+            Today's Attendance Summary ({new Date(selectedDate).toLocaleDateString()})
+          </h2>
+          <div className="flex items-center space-x-2">
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                fetchAttendanceSummary(e.target.value);
+              }}
+              className="w-40"
+            />
+            <Button 
+              onClick={() => fetchAttendanceSummary(selectedDate)}
+              className="bg-[#6096ba] hover:bg-[#274c77] text-white"
+              disabled={loadingSummary}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loadingSummary ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+        </div>
+
+        {loadingSummary ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6096ba]"></div>
+            <span className="ml-2 text-gray-600">Loading attendance summary...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {classroomAttendanceSummary.map((summary) => (
+              <div key={summary.classroom_id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-900 text-sm">{summary.classroom_name}</h3>
+                  <Badge 
+                    variant="outline"
+                    className={
+                      summary.status === 'final' ? 'bg-green-100 text-green-800 border-green-300' :
+                      summary.status === 'submitted' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                      summary.status === 'under_review' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                      summary.status === 'draft' ? 'bg-gray-100 text-gray-800 border-gray-300' :
+                      'bg-red-100 text-red-800 border-red-300'
+                    }
+                  >
+                    {summary.status === 'not_marked' ? 'Not Marked' : 
+                     summary.status?.charAt(0).toUpperCase() + summary.status?.slice(1)}
+                  </Badge>
+                </div>
+                <div className="text-xs text-gray-600 mb-2">
+                  <div>Teacher: {summary.teacher_name}</div>
+                  <div>Marked by: {summary.marked_by}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Present: {summary.present_count}</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <span>Absent: {summary.absent_count}</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span>Leave: {summary.leave_count}</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                    <span>Total: {summary.total_students}</span>
+                  </div>
+                </div>
+                {summary.total_students > 0 && (
+                  <div className="mt-2">
+                    <div className="text-xs text-gray-600 mb-1">Attendance: {summary.attendance_percentage}%</div>
+                    <div className="w-full bg-gray-200 rounded-full h-1">
+                      <div 
+                        className="bg-[#6096ba] h-1 rounded-full" 
+                        style={{ width: `${summary.attendance_percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Classrooms List */}
