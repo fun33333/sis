@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Calendar, Clock, Users, CheckCircle, XCircle, AlertCircle, Save, RefreshCw, Edit3, History, Eraser, Send, Clock3, Bell, Eye, ChevronDown, EyeOff, X } from "lucide-react";
 import { Skeleton, TableSkeleton } from "@/components/ui/skeleton";
 import { getCurrentUserRole } from "@/lib/permissions";
-import { getCurrentUserProfile, getClassStudents, markBulkAttendance, getAttendanceHistory, getAttendanceForDate, editAttendance, submitAttendance, getBackfillPermissions, finalizeAttendance, reviewAttendance } from "@/lib/api";
+import { getCurrentUserProfile, getClassStudents, markBulkAttendance, getAttendanceHistory, getAttendanceForDate, editAttendance, submitAttendance, getBackfillPermissions, finalizeAttendance, reviewAttendance, coordinatorApproveAttendance } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 // import AttendanceStateControls from "@/components/attendance/attendance-state-controls";
 // import BackfillPermission from "@/components/attendance/backfill-permission";
@@ -579,43 +579,43 @@ function TeacherAttendanceContent() {
       }
       
       console.log('Current status:', attendanceRecord.status);
+      console.log('User role:', userRole);
       
-      // If status is 'draft', first submit it
-      if (attendanceRecord.status === 'draft') {
-        console.log('Submitting attendance first...');
-        await submitAttendance(attendanceId);
-        console.log('Attendance submitted successfully');
-        
-        // Wait a moment then finalize
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await finalizeAttendance(attendanceId);
-        console.log('Attendance finalized successfully');
-        
-        alert('Attendance submitted and approved successfully!');
-      } 
-      // If status is 'submitted', move to under_review then finalize
-      else if (attendanceRecord.status === 'submitted') {
-        console.log('Reviewing attendance...');
-        await reviewAttendance(attendanceId);
-        console.log('Attendance reviewed successfully');
-        
-        // Wait a moment then finalize
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await finalizeAttendance(attendanceId);
-        console.log('Attendance finalized successfully');
-        
-        alert('Attendance reviewed and approved successfully!');
-      }
-      // If status is 'under_review', just finalize
-      else if (attendanceRecord.status === 'under_review') {
-        await finalizeAttendance(attendanceId);
-        console.log('Attendance finalized successfully');
-        
-        alert('Attendance approved successfully!');
-      }
-      // If already final, show message
-      else if (attendanceRecord.status === 'final') {
-        alert('Attendance is already approved!');
+      // Different approval flow based on user role
+      if (userRole === 'coordinator') {
+        // Coordinator approval flow - use new direct approval API
+        if (attendanceRecord.status === 'draft' || attendanceRecord.status === 'submitted') {
+          console.log('Coordinator: Directly approving attendance...');
+          await coordinatorApproveAttendance(attendanceId);
+          console.log('Attendance approved successfully');
+          
+          alert('Attendance approved successfully!');
+        }
+        else if (attendanceRecord.status === 'under_review') {
+          console.log('Coordinator: Finalizing under review attendance...');
+          await finalizeAttendance(attendanceId);
+          console.log('Attendance finalized successfully');
+          
+          alert('Attendance approved successfully!');
+        }
+        else if (attendanceRecord.status === 'final') {
+          alert('Attendance is already approved!');
+          return;
+        }
+      } else if (userRole === 'teacher') {
+        // Teacher approval flow (can only submit, not finalize)
+        if (attendanceRecord.status === 'draft') {
+          console.log('Teacher: Submitting attendance...');
+          await submitAttendance(attendanceId);
+          console.log('Attendance submitted successfully');
+          
+          alert('Attendance submitted for coordinator review!');
+        } else {
+          alert('Only draft attendance can be submitted by teachers.');
+          return;
+        }
+      } else {
+        alert('Access denied. Only teachers and coordinators can approve attendance.');
         return;
       }
       

@@ -1679,6 +1679,15 @@ export async function finalizeAttendance(attendanceId: number) {
   }
 }
 
+export async function coordinatorApproveAttendance(attendanceId: number) {
+  try {
+    return await apiPost(`/api/attendance/coordinator-approve/${attendanceId}/`, {});
+  } catch (error) {
+    console.error('Failed to approve attendance:', error);
+    throw error;
+  }
+}
+
 export async function reopenAttendance(attendanceId: number, reason: string) {
   try {
     return await apiPost(`/api/attendance/reopen/${attendanceId}/`, { reason });
