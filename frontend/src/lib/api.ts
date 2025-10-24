@@ -19,6 +19,9 @@ export const API_ENDPOINTS = {
   STUDENTS_ENROLLMENT_TREND: "/api/students/enrollment_trend/",
   STUDENTS_MOTHER_TONGUE_DISTRIBUTION: "/api/students/mother_tongue_distribution/",
   STUDENTS_RELIGION_DISTRIBUTION: "/api/students/religion_distribution/",
+  STUDENTS_AGE_DISTRIBUTION: "/api/students/age_distribution/",
+  STUDENTS_ZAKAT_STATUS: "/api/students/zakat_status/",
+  STUDENTS_HOUSE_OWNERSHIP: "/api/students/house_ownership/",
   TEACHERS: "/api/teachers/",
   CAMPUS: "/api/campus/",
   CAMPUS_ACTIVE: "/api/campus/active/",
@@ -425,13 +428,16 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 // Fetch chart data from backend (aggregated for all students)
 export async function getDashboardChartData() {
   try {
-    const [gradeDistribution, genderDistribution, enrollmentTrend, motherTongueDistribution, religionDistribution, campusStats] = await Promise.all([
+    const [gradeDistribution, genderDistribution, enrollmentTrend, motherTongueDistribution, religionDistribution, campusStats, ageDistribution, zakatStatus, houseOwnership] = await Promise.all([
       apiGet<Array<{ grade: string; count: number }>>(API_ENDPOINTS.STUDENTS_GRADE_DISTRIBUTION),
       apiGet<{ male: number; female: number; other: number }>(API_ENDPOINTS.STUDENTS_GENDER_STATS),
       apiGet<Array<{ year: number; count: number }>>(API_ENDPOINTS.STUDENTS_ENROLLMENT_TREND),
       apiGet<Array<{ name: string; value: number }>>(API_ENDPOINTS.STUDENTS_MOTHER_TONGUE_DISTRIBUTION),
       apiGet<Array<{ name: string; value: number }>>(API_ENDPOINTS.STUDENTS_RELIGION_DISTRIBUTION),
-      apiGet<Array<{ campus: string; count: number }>>(API_ENDPOINTS.STUDENTS_CAMPUS_STATS)
+      apiGet<Array<{ campus: string; count: number }>>(API_ENDPOINTS.STUDENTS_CAMPUS_STATS),
+      apiGet<Array<{ age: number; count: number }>>(API_ENDPOINTS.STUDENTS_AGE_DISTRIBUTION),
+      apiGet<Array<{ status: string; count: number }>>(API_ENDPOINTS.STUDENTS_ZAKAT_STATUS),
+      apiGet<Array<{ status: string; count: number }>>(API_ENDPOINTS.STUDENTS_HOUSE_OWNERSHIP)
     ]);
 
     // Format gender distribution
@@ -447,13 +453,46 @@ export async function getDashboardChartData() {
       value: item.count
     }));
 
+    // Transform grade distribution to match frontend expectations
+    const transformedGradeDistribution = gradeDistribution.map(item => ({
+      name: item.grade,
+      value: item.count
+    }));
+
+    // Transform enrollment trend to match frontend expectations
+    const transformedEnrollmentTrend = enrollmentTrend.map(item => ({
+      year: item.year,
+      enrollment: item.count || 0
+    }));
+
+    // Transform age distribution to match frontend expectations
+    const transformedAgeDistribution = ageDistribution.map(item => ({
+      age: item.age,
+      count: item.count
+    }));
+
+    // Transform zakat status to match frontend expectations
+    const transformedZakatStatus = zakatStatus.map(item => ({
+      status: item.status,
+      count: item.count
+    }));
+
+    // Transform house ownership to match frontend expectations
+    const transformedHouseOwnership = houseOwnership.map(item => ({
+      status: item.status,
+      count: item.count
+    }));
+
     return {
-      gradeDistribution,
+      gradeDistribution: transformedGradeDistribution,
       genderDistribution: genderData,
-      enrollmentTrend,
+      enrollmentTrend: transformedEnrollmentTrend,
       motherTongueDistribution,
       religionDistribution,
-      campusPerformance
+      campusPerformance,
+      ageDistribution: transformedAgeDistribution,
+      zakatStatus: transformedZakatStatus,
+      houseOwnership: transformedHouseOwnership
     };
   } catch (error) {
     console.error('Failed to fetch dashboard chart data:', error);
@@ -465,7 +504,10 @@ export async function getDashboardChartData() {
       enrollmentTrend: [],
       motherTongueDistribution: [],
       religionDistribution: [],
-      campusPerformance: []
+      campusPerformance: [],
+      ageDistribution: [],
+      zakatStatus: [],
+      houseOwnership: []
     };
   }
 }
