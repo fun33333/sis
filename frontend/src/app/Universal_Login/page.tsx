@@ -3,18 +3,20 @@
 import { useState, useEffect } from "react";
 // For navigation after login (if needed)
 import { useRouter } from "next/navigation";
-import { FaLock, FaEnvelope } from "react-icons/fa";
+import { FaLock, FaEnvelope, FaEye, FaEyeSlash } from "react-icons/fa";
 import { 
   GraduationCap, 
   Users, 
   Crown, 
   Shield,
-  User
+  User,
+  
 } from "lucide-react";
+import Image from "next/image";
 import { loginWithEmailPassword, ApiError } from "@/lib/api";
-import { ErrorDisplay } from "@/components/ui/error-display";
 import { parseApiError, isAuthError } from "@/lib/error-handling";
 import { PasswordChangeModal } from "@/components/auth/PasswordChangeModal";
+import { ForgotPasswordModal } from "@/components/auth/ForgotPasswordModal";
 
 
 type Teacher = {
@@ -26,11 +28,11 @@ type Teacher = {
 };
 
 export default function LoginPage() {
-  const [showForgot, setShowForgot] = useState(false);
   const [detectedRole, setDetectedRole] = useState<string>("");
   const [animate, setAnimate] = useState(false);
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -39,9 +41,24 @@ export default function LoginPage() {
   // Password change modal state
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
   const [userEmail, setUserEmail] = useState('');
+  // Forgot password modal state
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setAnimate(true), 100);
+    
+    // Check if user is already logged in and logout them
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('sis_access_token');
+      if (token) {
+        // User is logged in, logout them completely
+        localStorage.clear();
+        // Also clear cookies
+        document.cookie = 'sis_access_token=; path=/; max-age=0';
+        document.cookie = 'sis_refresh_token=; path=/; max-age=0';
+      }
+    }
+    
     return () => clearTimeout(timer);
   }, []);
 
@@ -64,8 +81,14 @@ export default function LoginPage() {
     // Teacher: C01-M-25-T-0000
     // Coordinator: C01-M-25-C-0000  
     // Principal: C01-M-25-P-0000
-    // Superadmin: C01-M-25-S-0000
+    // Superadmin: S-25-0001 (NEW FORMAT - campus independent)
     
+    // Check for super admin format first (S-25-0001)
+    if (code.startsWith('S-') && code.split('-').length === 3) {
+      return 'Super Admin';
+    }
+    
+    // Check for campus-based format (C01-M-25-X-0000)
     const parts = code.split('-');
     if (parts.length >= 4) {
       const roleCode = parts[3].charAt(0).toUpperCase();
@@ -73,7 +96,7 @@ export default function LoginPage() {
         case 'T': return 'Teacher';
         case 'C': return 'Coordinator';
         case 'P': return 'Principal';
-        case 'S': return 'Super Admin';
+        case 'S': return 'Super Admin'; // Legacy format
         default: return '';
       }
     }
@@ -102,7 +125,7 @@ export default function LoginPage() {
       if (!employeeCodeOk) {
         setError({
           title: "Invalid Employee Code",
-          message: "Please enter a valid employee code (e.g., C01-M-25-T-0068)",
+          message: "Please enter a valid employee code (e.g., C01-M-25-T-0068 or S-25-0001 for Super Admin)",
           type: "error"
         });
         setLoading(false);
@@ -176,7 +199,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       {/* Password Change Modal */}
       {showPasswordChangeModal && (
         <PasswordChangeModal
@@ -197,176 +220,225 @@ export default function LoginPage() {
         />
       )}
       
-      <div
-        className={`relative w-[800px] h-[500px] bg-transparent border-2 border-gray-200 rounded-xl shadow-md overflow-hidden`}
-      >
-        {/* Background Animations */}
-        <span className="absolute top-[-4px] right-0 w-[850px] h-[600px] bg-gradient-to-br from-[#6096ba] to-[#a3cef1] transform rotate-[10deg] skew-y-[40deg] origin-bottom-right transition-all duration-700 ease-in-out"></span>
-        <span className="absolute top-full left-[250px] w-[850px] h-[700px] bg-[#6096ba] transform rotate-0 skew-y-0 origin-bottom-left transition-all duration-700 ease-in-out delay-1000"></span>
+      {/* Main Container - Responsive */}
+      <div className="w-full max-w-6xl mx-auto">
+        <div className="bg-white rounded-xl shadow-md overflow-hidden min-h-[600px] flex flex-col lg:flex-row border-2 border-gray-200">
+          
+          {/* Left Side - Login Form */}
+          <div className="w-full lg:w-1/2 p-6 sm:p-8 lg:p-12 flex flex-col justify-center relative">
+            {/* Logo Section */}
+            <div className="flex items-center justify-center mb-8">
+              <div className="flex items-center space-x-3">
+                <div className="relative w-12 h-12 sm:w-16 sm:h-16">
+                  <Image
+                    src="/Logo 2 pen.png"
+                    alt="School Logo"
+                    fill
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+                <div className="text-left">
+                  <h1 className="text-xl sm:text-2xl font-bold text-[#274c77]">School Portal</h1>
+                  <p className="text-sm text-[#6096ba]">Management System</p>
+                </div>
+              </div>
+            </div>
 
-        {/* Login Form (Left Side) */}
-        <div
-          className={`absolute top-0 left-0 w-1/2 h-full flex flex-col justify-center px-16 py-0 transition-all duration-1000 ${
-            animate ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0"
-          }`}
-        >
-          <h2 className="text-3xl text-black text-center mb-8 transition-all duration-700">
-            {showForgot ? "Reset Password" : "Login"}
-          </h2>
+            {/* Form Header */}
+            <div className="text-center mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-black mb-2">
+                Login
+              </h2>
+              <p className="text-[#6096ba] text-sm sm:text-base">
+                Sign in to access your dashboard
+              </p>
+            </div>
 
-          <form onSubmit={handleLogin}>
-            {!showForgot ? (
-              <>
-                {/* Role Detection Display */}
-                {detectedRole && (
-                  <div className="w-full mb-6">
-                    <div className="w-full h-12 rounded-xl px-5 text-base text-[#274c77] font-semibold shadow border-2 border-[#6096ba] bg-[#a3cef1] flex items-center justify-center gap-2">
-                      {getRoleIcon(detectedRole)}
-                      <span>{detectedRole}</span>
+            <form onSubmit={handleLogin} className="space-y-6">
+                <>
+                  {/* Role Detection Display */}
+                  {detectedRole && (
+                    <div className="w-full">
+                      <div className="w-full h-12 sm:h-14 rounded-xl px-4 sm:px-6 text-sm sm:text-base text-[#274c77] font-semibold shadow-sm border-2 border-[#6096ba] bg-[#a3cef1] flex items-center justify-center gap-3 transition-all duration-300">
+                        {getRoleIcon(detectedRole)}
+                        <span>{detectedRole}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Employee Code Input */}
+                  <div className="space-y-2">
+                    <label htmlFor="login-email" className="block text-sm font-semibold text-[#274c77]">
+                      Employee Code
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        id="login-email"
+                        required
+                        value={id}
+                        onChange={handleIdChange}
+                        className="w-full h-12 sm:h-14 border-2 border-[#a3cef1] rounded-xl pl-12 pr-4 text-[#274c77] text-base font-medium focus:outline-none focus:ring-2 focus:ring-[#6096ba] shadow-sm transition-all duration-200 placeholder:text-[#6096ba]"
+                        placeholder="C01-M-25-T-0000"
+                      />
+                      <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#6096ba] text-lg" />
                     </div>
                   </div>
-                )}
 
-                {/* ID/Employee Code Input */}
-                <div className="w-full mb-2">
-                  <label htmlFor="login-email" className="block mb-1 text-[#274c77] font-semibold">
-                    Employee Code
-                  </label>
-                </div>
-                <div className="relative w-full h-14 mb-6">
-                  <input
-                    type="text"
-                    id="login-email"
-                    required
-                    value={id}
-                    onChange={handleIdChange}
-                    className="w-full h-full border-2 border-[#a3cef1] rounded-xl pl-14 pr-12 text-[#274c77] text-lg font-medium focus:outline-none focus:ring-2 focus:ring-[#6096ba] shadow transition-all duration-200 placeholder:font-normal placeholder:text-[#6096ba]"
-                    placeholder="C01-M-25-T-0000"
-                  />
-                  <span className="absolute left-5 top-1/2 transform -translate-y-1/2 text-[#6096ba] text-xl">
-                    <FaEnvelope />
-                  </span>
-                </div>
+                  {/* Password Input */}
+                  <div className="space-y-2">
+                    <label htmlFor="login-password" className="block text-sm font-semibold text-[#274c77]">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        id="login-password"
+                        required
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        className="w-full h-12 sm:h-14 border-2 border-[#a3cef1] rounded-xl pl-12 pr-12 text-[#274c77] text-base font-medium focus:outline-none focus:ring-2 focus:ring-[#6096ba] shadow-sm transition-all duration-200 placeholder:text-[#6096ba]"
+                        placeholder="Enter your password"
+                      />
+                      <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#6096ba] text-lg" />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#6096ba] hover:text-[#274c77] transition-colors"
+                      >
+                        {showPassword ? <FaEyeSlash className="text-lg" /> : <FaEye className="text-lg" />}
+                      </button>
+                    </div>
+                  </div>
 
-                {/* Password Input */}
-                <div className="relative w-full h-14 mb-6">
-                  <input
-                    type="password"
-                    id="login-password"
-                    required
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="w-full h-full border-2 border-[#a3cef1] rounded-xl pl-14 pr-12 text-[#274c77] text-lg font-medium focus:outline-none focus:ring-2 focus:ring-[#6096ba] shadow transition-all duration-200 placeholder:font-normal placeholder:text-[#6096ba]"
-                    placeholder="Password (12345)"
-                  />
-                  <span className="absolute left-5 top-1/2 transform -translate-y-1/2 text-[#6096ba] text-xl">
-                    <FaLock />
-                  </span>
-                </div>
+                  {/* Login Button */}
+                  <button
+                    type="submit"
+                    className="w-full h-12 sm:h-14 bg-[#a3cef1] hover:bg-[#87b9e3] text-black font-semibold rounded-xl shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <div className="flex items-center justify-center">
+                        <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Logging in...
+                      </div>
+                    ) : (
+                      detectedRole ? `Login as ${detectedRole}` : "Login"
+                    )}
+                  </button>
+                  
+                  {/* Error Display */}
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                      <div className="w-5 h-5 bg-red-500 rounded-full flex-shrink-0 mt-0.5"></div>
+                      <div className="flex-1">
+                        <p className="text-red-800 font-medium text-sm">{error.message}</p>
+                      </div>
+                      <button
+                        onClick={() => setError(null)}
+                        className="text-red-400 hover:text-red-600 transition-colors"
+                        aria-label="Dismiss error"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
 
-                {/* Login Button */}
-                <button
-                  type="submit"
-                  className="w-full h-11 bg-[#a3cef1] border-none rounded-full shadow-sm cursor-pointer text-base text-black font-semibold mt-3 hover:bg-[#87b9e3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={loading}
-                >
-                  {loading ? "Logging in..." : detectedRole ? `Login as ${detectedRole}` : "Login"}
-                </button>
-                
-                {/* Error Display - Subtle inline style */}
-                {error && (
-                  <div className="mt-2 flex items-center gap-2 text-red-600 text-sm">
-                    <div className="w-1 h-4 bg-red-500 rounded-full"></div>
-                    <span className="flex-1">{error.message}</span>
+                  {/* Forgot Password Link */}
+                  <div className="text-center">
                     <button
-                      onClick={() => setError(null)}
-                      className="text-red-400 hover:text-red-600 transition-colors"
-                      aria-label="Dismiss error"
+                      type="button"
+                      className="text-[#6096ba] hover:text-[#274c77] font-medium text-sm transition-colors"
+                      onClick={() => setShowForgotPasswordModal(true)}
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      Forgot your password?
                     </button>
                   </div>
-                )}
+                </>
+            </form>
+          </div>
 
-                {/* Forgot Password Link */}
-                <div className="text-sm text-center my-5">
-                  <p className="text-black m-1">
-                    <a
-                      href="#"
-                      className="text-[#6096ba] font-semibold no-underline hover:underline"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setShowForgot(true);
-                      }}
-                    >
-                      Forgot Password?
-                    </a>
-                  </p>
+          {/* Right Side - Welcome Section */}
+          <div className="w-full lg:w-1/2 bg-gradient-to-br from-[#6096ba] to-[#a3cef1] relative overflow-hidden">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full transform translate-x-48 -translate-y-48"></div>
+              <div className="absolute bottom-0 left-0 w-80 h-80 bg-white rounded-full transform -translate-x-40 translate-y-40"></div>
+              <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-white rounded-full transform -translate-x-32 -translate-y-32"></div>
+            </div>
+
+            {/* Content */}
+            <div className="relative z-10 h-full flex flex-col justify-center items-center text-center p-8 lg:p-12">
+              <div className="max-w-md">
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl text-white font-bold mb-6 leading-tight">
+                  WELCOME BACK
+                </h2>
+                <p className="text-white text-lg sm:text-xl leading-relaxed mb-8">
+                  Access your school management portal to manage classes, students, and academic records all in one place.
+                </p>
+                
+                {/* Features List */}
+                <div className="space-y-4 text-left">
+                  <div className="flex items-center text-white">
+                    <div className="w-2 h-2 bg-white rounded-full mr-3"></div>
+                    <span>Student Management</span>
+                  </div>
+                  <div className="flex items-center text-white">
+                    <div className="w-2 h-2 bg-white rounded-full mr-3"></div>
+                    <span>Attendance Tracking</span>
+                  </div>
+                  <div className="flex items-center text-white">
+                    <div className="w-2 h-2 bg-white rounded-full mr-3"></div>
+                    <span>Academic Records</span>
+                  </div>
+                  <div className="flex items-center text-white">
+                    <div className="w-2 h-2 bg-white rounded-full mr-3"></div>
+                    <span>Real-time Updates</span>
+                  </div>
                 </div>
-              </>
-            ) : (
-              <>
-                {/* Forgot Password Email Input */}
-                <div className="relative w-full h-12 my-6">
-                  <input
-                    type="email"
-                    id="forgot-email"
-                    required
-                    className="w-full h-full bg-transparent border-2 border-gray-300 rounded-full pl-5 pr-12 text-black text-base focus:outline-none focus:border-gray-400"
-                  />
-                  <label className="absolute top-1/2 left-5 transform -translate-y-1/2 text-black text-base pointer-events-none transition-all">
-                    Enter your Email
-                  </label>
-                  <span className="absolute right-5 top-1/2 transform -translate-y-1/2">
-                    <FaEnvelope className="text-lg text-black" />
-                  </span>
-                </div>
-
-                {/* Send Reset Link Button */}
-                <button
-                  type="submit"
-                  className="w-full h-11 bg-[#a3cef1] border-none rounded-full shadow-sm cursor-pointer text-base text-black font-semibold mt-3 hover:bg-[#87b9e3] transition-colors"
-                >
-                  Send Reset Link
-                </button>
-
-                {/* Back to Login Link */}
-                <div className="text-sm text-center my-5">
-                  <p className="text-black m-1">
-                    <a
-                      href="#"
-                      className="text-[#6096ba] font-semibold no-underline hover:underline"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setShowForgot(false);
-                      }}
-                    >
-                      Back to Login
-                    </a>
-                  </p>
-                </div>
-              </>
-            )}
-          </form>
-        </div>
-
-        <div
-          className={`absolute top-0 right-0 w-1/2 h-full flex flex-col justify-center items-end pr-12 pl-24 text-right z-10 transition-all duration-1000 ${
-            animate ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
-          }`}
-        >
-          <h2 className="text-3xl text-white uppercase font-extrabold mb-4 max-w-[370px] break-words">
-            WELCOME BACK
-          </h2>
-          <p className="text-sm text-white leading-relaxed font-medium mt-2 max-w-[370px] break-words">
-            Access your school portal <br />
-            <span>to manage classes,</span> <br />
-            in one place.
-          </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Password Change Modal */}
+      {showPasswordChangeModal && (
+        <PasswordChangeModal
+          userEmail={userEmail}
+          onComplete={() => {
+            setShowPasswordChangeModal(false);
+            setUserEmail('');
+            // Redirect to login page after password change
+            window.location.href = '/Universal_Login';
+          }}
+          onError={(error) => {
+            setError({
+              title: "Password Change Error",
+              message: error,
+              type: "error"
+            });
+          }}
+        />
+      )}
+
+      {/* Forgot Password Modal */}
+      {showForgotPasswordModal && (
+        <ForgotPasswordModal
+          onClose={() => setShowForgotPasswordModal(false)}
+          onSuccess={() => {
+            setShowForgotPasswordModal(false);
+            setError({
+              title: "Password Reset Successful",
+              message: "Your password has been reset successfully. Please login with your new password.",
+              type: "success"
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

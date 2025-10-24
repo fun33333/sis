@@ -30,8 +30,12 @@ class IDGenerator:
     
     @staticmethod
     def get_campus_code_from_id(campus_id):
-        """Convert campus ID to C01, C02 format"""
-        return f"C{campus_id:02d}"
+        """Convert campus ID to campus code format"""
+        try:
+            campus = Campus.objects.get(id=campus_id)
+            return campus.campus_code
+        except Campus.DoesNotExist:
+            return f"C{campus_id:02d}"  # Fallback to old format
     
     @staticmethod
     def generate_employee_code(campus_id, shift, year, role, entity_id):
@@ -123,8 +127,57 @@ class IDGenerator:
         except Exception as e:
             raise ValueError(f"Failed to generate employee code: {str(e)}")
 
-# utils/id_generator.py me ye methods add karo
-@staticmethod
-def generate_unique_student_code(classroom, year):
-    """Generate unique student code for classroom"""
-    pass
+    @staticmethod
+    def generate_superadmin_code():
+        """Generate super admin employee code without campus dependency"""
+        try:
+            # Get next super admin number
+            next_number = IDGenerator.get_next_superadmin_number()
+            
+            # Generate code: S-25-0001 (Super Admin - Year - Number)
+            year_short = str(2025)[-2:]  # Current year
+            employee_code = f"S-{year_short}-{next_number:04d}"
+            
+            return employee_code
+            
+        except Exception as e:
+            raise ValueError(f"Failed to generate super admin code: {str(e)}")
+    
+    @staticmethod
+    def get_next_superadmin_number():
+        """Get next available super admin number"""
+        try:
+            from users.models import User
+            
+            # Get all existing super admin codes
+            super_admins = User.objects.filter(
+                role='superadmin',
+                username__startswith='S-'
+            ).values_list('username', flat=True)
+            
+            # Extract numbers from existing codes
+            numbers = []
+            for code in super_admins:
+                if code and '-' in code:
+                    try:
+                        # Extract last part (number) from code like S-25-0001
+                        number_part = code.split('-')[-1]
+                        if number_part.isdigit():
+                            numbers.append(int(number_part))
+                    except (ValueError, IndexError):
+                        continue
+            
+            # Return next available number
+            if not numbers:
+                return 1
+            
+            return max(numbers) + 1
+            
+        except Exception as e:
+            print(f"Error getting next super admin number: {str(e)}")
+            return 1
+
+    @staticmethod
+    def generate_unique_student_code(classroom, year):
+        """Generate unique student code for classroom"""
+        pass

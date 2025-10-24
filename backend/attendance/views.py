@@ -875,7 +875,7 @@ def submit_attendance(request, attendance_id):
             return Response({'error': 'Can only submit draft attendance'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Verify user is teacher of this class
-        teacher = Teacher.objects.get(email=request.user.email)
+        teacher = Teacher.objects.get(employee_code=request.user.username)
         if teacher.assigned_classroom != attendance.classroom:
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         
@@ -950,11 +950,11 @@ def finalize_attendance(request, attendance_id):
     try:
         attendance = get_object_or_404(Attendance, id=attendance_id, is_deleted=False)
         
-        if attendance.status != 'under_review':
-            return Response({'error': 'Can only finalize under_review attendance'}, status=status.HTTP_400_BAD_REQUEST)
+        if attendance.status not in ['draft', 'submitted', 'under_review']:
+            return Response({'error': 'Can only finalize draft, submitted, or under_review attendance'}, status=status.HTTP_400_BAD_REQUEST)
         
         from coordinator.models import Coordinator
-        coordinator = Coordinator.objects.get(email=request.user.email)
+        coordinator = Coordinator.objects.get(employee_code=request.user.username)
         if coordinator.level != attendance.classroom.grade.level:
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         
@@ -984,6 +984,48 @@ def finalize_attendance(request, attendance_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def coordinator_approve_attendance(request, attendance_id):
+    """Coordinator directly approves attendance (bypasses review step)"""
+    try:
+        attendance = get_object_or_404(Attendance, id=attendance_id, is_deleted=False)
+        
+        # Only allow draft or submitted status
+        if attendance.status not in ['draft', 'submitted']:
+            return Response({'error': 'Can only approve draft or submitted attendance'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verify coordinator has access
+        from coordinator.models import Coordinator
+        coordinator = Coordinator.objects.get(employee_code=request.user.username)
+        if coordinator.level != attendance.classroom.grade.level:
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        
+        with transaction.atomic():
+            # Move directly to final status
+            attendance.status = 'final'
+            attendance.is_final = True
+            attendance.finalized_at = timezone.now()
+            attendance.finalized_by = request.user
+            attendance.add_edit_history(request.user, 'coordinator_approve', 'Directly approved by coordinator')
+            attendance.save()
+            
+            from .models import AuditLog
+            AuditLog.objects.create(
+                feature='attendance',
+                action='coordinator_approve',
+                entity_type='Attendance',
+                entity_id=attendance.id,
+                user=request.user,
+                ip_address=request.META.get('REMOTE_ADDR'),
+                changes={'status': 'final'}
+            )
+        
+        return Response({'message': 'Attendance approved successfully by coordinator'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def reopen_attendance(request, attendance_id):
     """Coordinator reopens finalized attendance with reason"""
     try:
@@ -997,7 +1039,7 @@ def reopen_attendance(request, attendance_id):
             return Response({'error': 'Can only reopen final attendance'}, status=status.HTTP_400_BAD_REQUEST)
         
         from coordinator.models import Coordinator
-        coordinator = Coordinator.objects.get(email=request.user.email)
+        coordinator = Coordinator.objects.get(employee_code=request.user.username)
         if coordinator.level != attendance.classroom.grade.level:
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         
@@ -1047,7 +1089,7 @@ def grant_backfill_permission(request):
         deadline = datetime.strptime(deadline_str, '%Y-%m-%dT%H:%M:%S')
         
         from coordinator.models import Coordinator
-        coordinator = Coordinator.objects.get(email=request.user.email)
+        coordinator = Coordinator.objects.get(employee_code=request.user.username)
         if coordinator.level != classroom.grade.level:
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         
@@ -1115,7 +1157,7 @@ def create_holiday(request):
             return Response({'error': 'Date and reason required'}, status=status.HTTP_400_BAD_REQUEST)
         
         from coordinator.models import Coordinator
-        coordinator = Coordinator.objects.get(email=request.user.email)
+        coordinator = Coordinator.objects.get(employee_code=request.user.username)
         date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
         
         from .models import Holiday, AuditLog

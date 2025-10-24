@@ -19,6 +19,9 @@ export const API_ENDPOINTS = {
   STUDENTS_ENROLLMENT_TREND: "/api/students/enrollment_trend/",
   STUDENTS_MOTHER_TONGUE_DISTRIBUTION: "/api/students/mother_tongue_distribution/",
   STUDENTS_RELIGION_DISTRIBUTION: "/api/students/religion_distribution/",
+  STUDENTS_AGE_DISTRIBUTION: "/api/students/age_distribution/",
+  STUDENTS_ZAKAT_STATUS: "/api/students/zakat_status/",
+  STUDENTS_HOUSE_OWNERSHIP: "/api/students/house_ownership/",
   TEACHERS: "/api/teachers/",
   CAMPUS: "/api/campus/",
   CAMPUS_ACTIVE: "/api/campus/active/",
@@ -108,14 +111,26 @@ function getRefreshToken(): string | null {
 
 export function setAuthTokens(access: string, refresh?: string) {
   if (typeof window === 'undefined') return;
+  
+  // Store in localStorage
   window.localStorage.setItem(ACCESS_TOKEN_KEY, access);
   if (refresh) window.localStorage.setItem(REFRESH_TOKEN_KEY, refresh);
+  
+  // Also store in cookies for middleware access
+  document.cookie = `sis_access_token=${access}; path=/; max-age=${15 * 60}`; // 15 minutes
+  if (refresh) {
+    document.cookie = `sis_refresh_token=${refresh}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
+  }
 }
 
 export function clearAuthTokens() {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  
+  // Also clear cookies
+  document.cookie = 'sis_access_token=; path=/; max-age=0';
+  document.cookie = 'sis_refresh_token=; path=/; max-age=0';
 }
 
 // Centralized authorized fetch with auto-refresh and retry
@@ -169,6 +184,16 @@ export async function authorizedFetch(path: string, init: RequestInit = {}, alre
     }
   }
 
+  // If refresh failed or no refresh token, clear everything and redirect
+  console.log('❌ Token refresh failed, clearing session...');
+  if (typeof window !== 'undefined') {
+    window.localStorage.clear();
+    // Also clear cookies
+    document.cookie = 'sis_access_token=; path=/; max-age=0';
+    document.cookie = 'sis_refresh_token=; path=/; max-age=0';
+    window.location.href = '/Universal_Login';
+  }
+
   return res; // Caller will handle error body
 }
 
@@ -197,10 +222,13 @@ export async function loginWithEmailPassword(emailOrCode: string, password: stri
 }
 
 export function logoutClientOnly() {
-  clearAuthTokens();
   if (typeof window !== 'undefined') {
-    window.localStorage.removeItem('sis_user');
-    window.localStorage.removeItem('userProfile'); // Clear userProfile too
+    // Clear all localStorage completely for security
+    window.localStorage.clear();
+    
+    // Also clear all cookies
+    document.cookie = 'sis_access_token=; path=/; max-age=0';
+    document.cookie = 'sis_refresh_token=; path=/; max-age=0';
   }
 }
 
@@ -400,13 +428,16 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 // Fetch chart data from backend (aggregated for all students)
 export async function getDashboardChartData() {
   try {
-    const [gradeDistribution, genderDistribution, enrollmentTrend, motherTongueDistribution, religionDistribution, campusStats] = await Promise.all([
+    const [gradeDistribution, genderDistribution, enrollmentTrend, motherTongueDistribution, religionDistribution, campusStats, ageDistribution, zakatStatus, houseOwnership] = await Promise.all([
       apiGet<Array<{ grade: string; count: number }>>(API_ENDPOINTS.STUDENTS_GRADE_DISTRIBUTION),
       apiGet<{ male: number; female: number; other: number }>(API_ENDPOINTS.STUDENTS_GENDER_STATS),
       apiGet<Array<{ year: number; count: number }>>(API_ENDPOINTS.STUDENTS_ENROLLMENT_TREND),
       apiGet<Array<{ name: string; value: number }>>(API_ENDPOINTS.STUDENTS_MOTHER_TONGUE_DISTRIBUTION),
       apiGet<Array<{ name: string; value: number }>>(API_ENDPOINTS.STUDENTS_RELIGION_DISTRIBUTION),
-      apiGet<Array<{ campus: string; count: number }>>(API_ENDPOINTS.STUDENTS_CAMPUS_STATS)
+      apiGet<Array<{ campus: string; count: number }>>(API_ENDPOINTS.STUDENTS_CAMPUS_STATS),
+      apiGet<Array<{ age: number; count: number }>>(API_ENDPOINTS.STUDENTS_AGE_DISTRIBUTION),
+      apiGet<Array<{ status: string; count: number }>>(API_ENDPOINTS.STUDENTS_ZAKAT_STATUS),
+      apiGet<Array<{ status: string; count: number }>>(API_ENDPOINTS.STUDENTS_HOUSE_OWNERSHIP)
     ]);
 
     // Format gender distribution
@@ -422,13 +453,46 @@ export async function getDashboardChartData() {
       value: item.count
     }));
 
+    // Transform grade distribution to match frontend expectations
+    const transformedGradeDistribution = gradeDistribution.map(item => ({
+      name: item.grade,
+      value: item.count
+    }));
+
+    // Transform enrollment trend to match frontend expectations
+    const transformedEnrollmentTrend = enrollmentTrend.map(item => ({
+      year: item.year,
+      enrollment: item.count || 0
+    }));
+
+    // Transform age distribution to match frontend expectations
+    const transformedAgeDistribution = ageDistribution.map(item => ({
+      age: item.age,
+      count: item.count
+    }));
+
+    // Transform zakat status to match frontend expectations
+    const transformedZakatStatus = zakatStatus.map(item => ({
+      status: item.status,
+      count: item.count
+    }));
+
+    // Transform house ownership to match frontend expectations
+    const transformedHouseOwnership = houseOwnership.map(item => ({
+      status: item.status,
+      count: item.count
+    }));
+
     return {
-      gradeDistribution,
+      gradeDistribution: transformedGradeDistribution,
       genderDistribution: genderData,
-      enrollmentTrend,
+      enrollmentTrend: transformedEnrollmentTrend,
       motherTongueDistribution,
       religionDistribution,
-      campusPerformance
+      campusPerformance,
+      ageDistribution: transformedAgeDistribution,
+      zakatStatus: transformedZakatStatus,
+      houseOwnership: transformedHouseOwnership
     };
   } catch (error) {
     console.error('Failed to fetch dashboard chart data:', error);
@@ -440,7 +504,10 @@ export async function getDashboardChartData() {
       enrollmentTrend: [],
       motherTongueDistribution: [],
       religionDistribution: [],
-      campusPerformance: []
+      campusPerformance: [],
+      ageDistribution: [],
+      zakatStatus: [],
+      houseOwnership: []
     };
   }
 }
@@ -1679,6 +1746,15 @@ export async function finalizeAttendance(attendanceId: number) {
   }
 }
 
+export async function coordinatorApproveAttendance(attendanceId: number) {
+  try {
+    return await apiPost(`/api/attendance/coordinator-approve/${attendanceId}/`, {});
+  } catch (error) {
+    console.error('Failed to approve attendance:', error);
+    throw error;
+  }
+}
+
 export async function reopenAttendance(attendanceId: number, reason: string) {
   try {
     return await apiPost(`/api/attendance/reopen/${attendanceId}/`, { reason });
@@ -1994,6 +2070,75 @@ export async function changePasswordWithOTP(sessionToken: string, newPassword: s
     if (!response.ok) {
       const errorData = await response.json();
       throw new ApiError(errorData.error || 'Failed to change password', response.status, response.statusText);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
+  }
+}
+
+// ==================== FORGOT PASSWORD OTP APIs ====================
+
+export async function sendForgotPasswordOTP(employeeCode: string) {
+  try {
+    const response = await fetch('/api/users/send-forgot-password-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employee_code: employeeCode }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new ApiError(errorData.error || 'Failed to send OTP', response.status, response.statusText);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
+  }
+}
+
+export async function verifyForgotPasswordOTP(employeeCode: string, otpCode: string) {
+  try {
+    const response = await fetch('/api/users/verify-forgot-password-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        employee_code: employeeCode,
+        otp_code: otpCode
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new ApiError(errorData.message || 'Failed to verify OTP', response.status, response.statusText);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
+  }
+}
+
+export async function resetPasswordWithOTP(sessionToken: string, newPassword: string, confirmPassword: string) {
+  try {
+    const response = await fetch('/api/users/reset-password-with-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        session_token: sessionToken,
+        new_password: newPassword,
+        confirm_password: confirmPassword
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new ApiError(errorData.error || 'Failed to reset password', response.status, response.statusText);
     }
     
     return await response.json();

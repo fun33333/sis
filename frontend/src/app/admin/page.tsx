@@ -458,6 +458,7 @@ export default function MainDashboardPage() {
         
         // Store chart data separately (will be used instead of calculating from 100 students)
         if (chartData) {
+          console.log('📊 Raw API Chart Data:', chartData)
           setChartData(chartData)
         }
         const campusArray = Array.isArray(caps) ? caps : (Array.isArray((caps as any)?.results) ? (caps as any).results : [])
@@ -558,8 +559,8 @@ export default function MainDashboardPage() {
   }, [filters, students])
 
   const metrics = useMemo(() => {
-    // Always use filtered students for accurate metrics
-    const totalStudents = filteredStudents.length
+    // Use totalStudentsCount from API stats instead of filtered students length
+    const totalStudents = totalStudentsCount
     
     // Calculate real attendance from weekly data (average of present students)
     const averageAttendance = weeklyAttendanceData.length > 0 
@@ -577,7 +578,7 @@ export default function MainDashboardPage() {
       averageScore: 0, // Removed
       retentionRate: 0 // Removed
     }
-  }, [filteredStudents, teachersCount, weeklyAttendanceData])
+  }, [totalStudentsCount, teachersCount, weeklyAttendanceData])
 
   // Campus performance data - use filtered students
   const campusPerformanceData = useMemo(() => {
@@ -597,7 +598,29 @@ export default function MainDashboardPage() {
   }, [filteredStudents])
 
   const chartData = useMemo(() => {
-    // Always calculate from filtered students to ensure filters work properly
+    // Use API chart data if available, otherwise calculate from filtered students
+    if (apiChartData) {
+      // Transform API data to match frontend expectations
+      const transformedData = {
+        gradeDistribution: apiChartData.gradeDistribution?.map((item: any) => ({
+          name: item.grade || item.name,
+          value: item.count || item.value
+        })) || [],
+        genderDistribution: apiChartData.genderDistribution || [],
+        campusPerformance: apiChartData.campusPerformance || [],
+        enrollmentTrend: apiChartData.enrollmentTrend || [],
+        motherTongueDistribution: apiChartData.motherTongueDistribution || [],
+        religionDistribution: apiChartData.religionDistribution || [],
+        ageDistribution: apiChartData.ageDistribution || [],
+        zakatStatus: apiChartData.zakatStatus || [],
+        houseOwnership: apiChartData.houseOwnership || [],
+      }
+      
+      console.log('📊 Transformed API Chart Data:', transformedData)
+      return transformedData
+    }
+    
+    // Fallback: calculate from filtered students
     const gradeDistribution = getGradeDistribution(filteredStudents as unknown as any[])
     const genderDistribution = getGenderDistribution(filteredStudents as unknown as any[])
     const enrollmentTrend = getEnrollmentTrend(filteredStudents as unknown as any[])
@@ -618,7 +641,7 @@ export default function MainDashboardPage() {
       zakatStatus,
       houseOwnership,
     }
-  }, [filteredStudents, campusPerformanceData])
+  }, [apiChartData, filteredStudents, campusPerformanceData])
 
   // Dynamic filter options based on real data
   const dynamicAcademicYears = useMemo(() => {
@@ -1163,13 +1186,13 @@ export default function MainDashboardPage() {
         {/* Row 4: Weekly Attendance & Age Distribution */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8">
           <WeeklyAttendanceChart data={weeklyAttendanceData} />
-          <AgeDistributionChart data={chartData.ageDistribution} />
+          <AgeDistributionChart data={chartData.ageDistribution.map((item: any) => ({ name: `${item.age} years`, value: item.count }))} />
         </div>
 
         {/* Row 5: Zakat Status & House Ownership */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8">
-          <ZakatStatusChart data={chartData.zakatStatus} />
-          <HouseOwnershipChart data={chartData.houseOwnership} />
+          <ZakatStatusChart data={chartData.zakatStatus.map((item: any) => ({ name: item.status, value: item.count }))} />
+          <HouseOwnershipChart data={chartData.houseOwnership.map((item: any) => ({ name: item.status, value: item.count }))} />
         </div>
 
         {/* Row 6: Grade Distribution - Full Width */}

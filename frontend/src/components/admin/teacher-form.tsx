@@ -291,6 +291,12 @@ export function TeacherForm() {
         is_class_teacher: Boolean(formData.is_class_teacher || (formData.class_teacher_level && formData.class_teacher_grade && formData.class_teacher_section)),
         assigned_classroom: resolvedAssignedClassroom,
         assigned_classrooms: Array.isArray(formData.assigned_classrooms) ? formData.assigned_classrooms.map((x:any)=> Number(x)) : [],
+        
+        // Fix date fields - send null instead of empty strings for optional dates
+        dob: formData.dob && typeof formData.dob === 'string' && formData.dob.trim() !== '' ? formData.dob : null,
+        joining_date: formData.joining_date && typeof formData.joining_date === 'string' && formData.joining_date.trim() !== '' ? formData.joining_date : null,
+        experience_from_date: formData.experience_from_date && typeof formData.experience_from_date === 'string' && formData.experience_from_date.trim() !== '' ? formData.experience_from_date : null,
+        experience_to_date: formData.experience_to_date && typeof formData.experience_to_date === 'string' && formData.experience_to_date.trim() !== '' ? formData.experience_to_date : null,
       }
 
       console.log('Submitting teacher data:', submitData)

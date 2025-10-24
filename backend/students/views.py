@@ -24,15 +24,21 @@ class StudentViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']  # Default ordering
     
     def get_queryset(self):
-        """Override to handle role-based filtering for list views only"""
+        """Override to handle role-based filtering for list views and stats actions"""
         queryset = Student.objects.select_related('campus', 'classroom').all()
         
-        # Only apply role-based filtering for list views, not for individual object retrieval
-        if self.action == 'list':
-            # Role-based filtering
+        # Apply role-based filtering for list views and stats actions
+        if self.action in ['list', 'gender_stats', 'campus_stats', 'grade_distribution', 
+                          'enrollment_trend', 'mother_tongue_distribution', 
+                          'religion_distribution', 'total']:
             user = self.request.user
+            
+            # Superadmin gets ALL students for both list and stats
+            if user.is_superadmin():
+                return queryset
+                
+            # Principal: Only show students from their campus
             if hasattr(user, 'campus') and user.campus and user.is_principal():
-                # Principal: Only show students from their campus
                 queryset = queryset.filter(campus=user.campus)
             elif user.is_teacher():
                 # Teacher: Show students from their assigned classrooms (supports both single and multiple assignments)
@@ -253,7 +259,7 @@ class StudentViewSet(viewsets.ModelViewSet):
         
         # Format response for Recharts (year as string for X-axis)
         data = [
-            {"year": str(item['enrollment_year'] or 2025), "students": item['count']}
+            {"year": str(item['enrollment_year'] or 2025), "count": item['count']}
             for item in trend_data
         ]
         
@@ -381,24 +387,6 @@ class StudentViewSet(viewsets.ModelViewSet):
         
         return Response(data)
     
-    @action(detail=False, methods=['get'], url_path='enrollment_trend')
-    def enrollment_trend(self, request):
-        """Get enrollment trend by year"""
-        queryset = self.get_queryset()
-        
-        trend_data = queryset.values('enrollment_year').annotate(
-            count=Count('id')
-        ).order_by('enrollment_year')
-        
-        data = []
-        for item in trend_data:
-            year = item['enrollment_year'] or 0
-            data.append({
-                'year': year,
-                'count': item['count']
-            })
-        
-        return Response(data)
     
     @action(detail=True, methods=['get'], url_path='results')
     def get_student_results(self, request, pk=None):
@@ -502,6 +490,78 @@ class StudentViewSet(viewsets.ModelViewSet):
             data.append({
                 'name': religion,
                 'value': item['count']
+            })
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='age_distribution')
+    def age_distribution(self, request):
+        """Get age distribution"""
+        queryset = self.get_queryset()
+        
+        # Calculate age from date of birth using a simpler approach
+        from django.db.models import Case, When, Value, IntegerField
+        from django.db.models.functions import Extract
+        
+        age_data = queryset.annotate(
+            age=Case(
+                When(dob__isnull=True, then=Value(0)),
+                default=Extract('dob', 'year'),
+                output_field=IntegerField()
+            )
+        ).values('age').annotate(
+            count=Count('id')
+        ).order_by('age')
+        
+        data = []
+        current_year = 2025  # Current academic year
+        for item in age_data:
+            birth_year = item['age'] or 0
+            if birth_year > 0:  # Only include valid birth years
+                age = current_year - birth_year
+                if age > 0 and age < 25:  # Reasonable age range for students
+                    data.append({
+                        'age': age,
+                        'count': item['count']
+                    })
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='zakat_status')
+    def zakat_status(self, request):
+        """Get zakat status distribution"""
+        queryset = self.get_queryset()
+        
+        zakat_data = queryset.values('zakat_status').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        data = []
+        for item in zakat_data:
+            status = item['zakat_status'] or 'Unknown'
+            data.append({
+                'status': status,
+                'count': item['count']
+            })
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='house_ownership')
+    def house_ownership(self, request):
+        """Get house ownership distribution"""
+        queryset = self.get_queryset()
+        
+        house_data = queryset.values('house_owned').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        data = []
+        for item in house_data:
+            owned = item['house_owned']
+            status = 'Owned' if owned else 'Rented'
+            data.append({
+                'status': status,
+                'count': item['count']
             })
         
         return Response(data)

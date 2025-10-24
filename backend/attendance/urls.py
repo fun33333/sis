@@ -34,6 +34,7 @@ urlpatterns = [
     path('submit/<int:attendance_id>/', views.submit_attendance, name='submit_attendance'),
     path('review/<int:attendance_id>/', views.review_attendance, name='review_attendance'),
     path('finalize/<int:attendance_id>/', views.finalize_attendance, name='finalize_attendance'),
+    path('coordinator-approve/<int:attendance_id>/', views.coordinator_approve_attendance, name='coordinator_approve_attendance'),
     path('reopen/<int:attendance_id>/', views.reopen_attendance, name='reopen_attendance'),
     
     # Backfill permissions

@@ -11,7 +11,10 @@ from .views import (
     check_password_change_required,
     send_password_change_otp,
     verify_password_change_otp,
-    change_password_with_otp
+    change_password_with_otp,
+    send_forgot_password_otp,
+    verify_forgot_password_otp,
+    reset_password_with_otp
 )
 
 urlpatterns = [
@@ -31,4 +34,9 @@ urlpatterns = [
     path('send-password-change-otp/', send_password_change_otp, name='send_password_change_otp'),
     path('verify-password-change-otp/', verify_password_change_otp, name='verify_password_change_otp'),
     path('change-password-with-otp/', change_password_with_otp, name='change_password_with_otp'),
+    
+    # Forgot password OTP endpoints
+    path('send-forgot-password-otp/', send_forgot_password_otp, name='send_forgot_password_otp'),
+    path('verify-forgot-password-otp/', verify_forgot_password_otp, name='verify_forgot_password_otp'),
+    path('reset-password-with-otp/', reset_password_with_otp, name='reset_password_with_otp'),
 ]

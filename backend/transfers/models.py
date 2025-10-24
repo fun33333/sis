@@ -111,7 +111,7 @@ class IDHistory(models.Model):
     transfer_request = models.ForeignKey(TransferRequest, on_delete=models.CASCADE, related_name='id_changes')
     
     # Metadata
-    changed_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     change_reason = models.TextField()
     changed_at = models.DateTimeField(auto_now_add=True)
     

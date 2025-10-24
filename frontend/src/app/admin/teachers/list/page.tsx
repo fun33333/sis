@@ -258,6 +258,20 @@ export default function TeacherListPage() {
         }
       });
       
+      // Fix date fields - send null instead of empty strings for optional dates
+      if (editFormData.dob === '' || editFormData.dob === null || editFormData.dob === undefined) {
+        updateData.dob = null;
+      }
+      if (editFormData.joining_date === '' || editFormData.joining_date === null || editFormData.joining_date === undefined) {
+        updateData.joining_date = null;
+      }
+      if (editFormData.experience_from_date === '' || editFormData.experience_from_date === null || editFormData.experience_from_date === undefined) {
+        updateData.experience_from_date = null;
+      }
+      if (editFormData.experience_to_date === '' || editFormData.experience_to_date === null || editFormData.experience_to_date === undefined) {
+        updateData.experience_to_date = null;
+      }
+      
       // Convert specific fields
       if (updateData.year_of_passing) {
         updateData.year_of_passing = parseInt(updateData.year_of_passing);

@@ -1,201 +1,179 @@
-import os
-import sys
-import django
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.db import transaction
+from classes.models import Grade, Level, ClassRoom
 from campus.models import Campus
-from classes.models import Level, Grade, ClassRoom
 
 class Command(BaseCommand):
-    help = 'Setup Campus 6 structure with shift-based levels, grades, and classrooms'
+    help = 'Setup levels, grades and classrooms for Campus 6 with Roman numerals and shifts'
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--campus-id',
-            type=int,
-            default=6,
-            help='Campus ID to setup (default: 6)'
+            '--campus-code',
+            type=str,
+            default='C06',
+            help='Campus code to setup (default: C06)'
         )
         parser.add_argument(
             '--dry-run',
             action='store_true',
-            help='Run without actually creating records (for testing)'
+            help='Show what would be done without making changes',
         )
 
     def handle(self, *args, **options):
-        campus_id = options['campus_id']
+        campus_code = options['campus_code']
         dry_run = options['dry_run']
-
-        self.stdout.write(f'Starting Campus {campus_id} structure setup...')
-
+        
+        self.stdout.write(
+            self.style.SUCCESS(f'Starting setup for Campus {campus_code}...')
+        )
+        
+        if dry_run:
+            self.stdout.write(
+                self.style.WARNING('DRY RUN MODE - No changes will be made')
+            )
+        
         # Get campus
         try:
-            campus = Campus.objects.get(id=campus_id)
-            self.stdout.write(f'Setting up structure for: {campus.campus_name}')
+            campus = Campus.objects.get(campus_code=campus_code)
+            self.stdout.write(f'Found campus: {campus.campus_name} ({campus.campus_code})')
         except Campus.DoesNotExist:
-            raise CommandError(f'Campus with ID {campus_id} not found')
-
-        if dry_run:
-            self.stdout.write(self.style.WARNING('DRY RUN MODE - No records will be created'))
-
-        # Setup structure
-        self.setup_campus_structure(campus, dry_run)
-
-    def setup_campus_structure(self, campus, dry_run):
-        """Setup complete structure for campus"""
-        
-        created_levels = 0
-        created_grades = 0
-        created_classrooms = 0
-
-        with transaction.atomic():
-            # 1. Create Levels (Shift-based)
-            levels = self.create_levels(campus, dry_run)
-            created_levels = len(levels)
-
-            # 2. Create Grades for each level
-            for level in levels:
-                grades = self.create_grades_for_level(level, dry_run)
-                created_grades += len(grades)
-
-                # 3. Create ClassRooms for each grade
-                for grade in grades:
-                    classrooms = self.create_classrooms_for_grade(grade, dry_run)
-                    created_classrooms += len(classrooms)
-
-        # Summary
-        self.stdout.write(
-            self.style.SUCCESS(
-                f'\n📊 Campus 6 Structure Setup Complete!\n'
-                f'✅ Levels Created: {created_levels}\n'
-                f'✅ Grades Created: {created_grades}\n'
-                f'✅ ClassRooms Created: {created_classrooms}\n'
+            self.stdout.write(
+                self.style.ERROR(f'Campus not found with code: {campus_code}')
             )
-        )
-
-    def create_levels(self, campus, dry_run):
-        """Create shift-based levels for campus"""
+            return
         
-        levels_data = [
-            ('Pre-Primary', 'morning'),
-            ('Pre-Primary', 'afternoon'),
-            ('Primary', 'morning'),
-            ('Primary', 'afternoon'),
-            ('Secondary', 'morning'),
-            ('Secondary', 'afternoon'),
-        ]
-
-        created_levels = []
-        
-        for level_name, shift in levels_data:
-            if dry_run:
-                self.stdout.write(f'[DRY RUN] Would create level: {level_name}-{shift.title()}')
-                # Create a mock level object for dry run
-                class MockLevel:
-                    def __init__(self, name, shift):
-                        self.name = name
-                        self.shift = shift
-                        self.campus = campus
-                created_levels.append(MockLevel(level_name, shift))
-                continue
-
-            level, created = Level.objects.get_or_create(
-                campus=campus,
-                name=level_name,
-                shift=shift,
-                defaults={
-                    'coordinator_assigned_at': None
-                }
-            )
-            
-            if created:
-                self.stdout.write(
-                    self.style.SUCCESS(f'✅ Created level: {level.name}-{level.shift.title()}')
-                )
-            else:
-                self.stdout.write(f'⏭️  Level already exists: {level.name}-{level.shift.title()}')
-            
-            created_levels.append(level)
-
-        return created_levels
-
-    def create_grades_for_level(self, level, dry_run):
-        """Create grades for a specific level"""
-        
-        # Define grades for each level type
-        grade_mapping = {
+        # Define levels and their grades with Roman numerals
+        level_grades = {
             'Pre-Primary': ['Nursery', 'KG-I', 'KG-II'],
-            'Primary': ['Grade-1', 'Grade-2', 'Grade-3', 'Grade-4', 'Grade-5'],
-            'Secondary': ['Grade-6', 'Grade-7', 'Grade-8', 'Grade-9', 'Grade-10'],
+            'Primary': ['Grade I', 'Grade II', 'Grade III', 'Grade IV', 'Grade V'],
+            'Secondary': ['Grade VI', 'Grade VII', 'Grade VIII', 'Grade IX', 'Grade X']
         }
-
-        grade_names = grade_mapping.get(level.name, [])
-        created_grades = []
-
-        for grade_name in grade_names:
-            if dry_run:
-                self.stdout.write(f'[DRY RUN] Would create grade: {grade_name} for {level.name}-{level.shift.title()}')
-                # Create a mock grade object for dry run
-                class MockGrade:
-                    def __init__(self, name, level):
-                        self.name = name
-                        self.level = level
-                created_grades.append(MockGrade(grade_name, level))
-                continue
-
-            grade, created = Grade.objects.get_or_create(
-                level=level,
-                name=grade_name
-            )
-            
-            if created:
-                self.stdout.write(
-                    self.style.SUCCESS(f'  ✅ Created grade: {grade.name}')
-                )
-            else:
-                self.stdout.write(f'  ⏭️  Grade already exists: {grade.name}')
-            
-            created_grades.append(grade)
-
-        return created_grades
-
-    def create_classrooms_for_grade(self, grade, dry_run):
-        """Create classrooms (4 sections A,B,C,D) for a grade"""
         
-        sections = ['A', 'B', 'C', 'D']
-        created_classrooms = []
-
-        for section in sections:
-            if dry_run:
-                self.stdout.write(f'[DRY RUN] Would create classroom: {grade.name}-{section} ({grade.level.shift})')
-                # Create a mock classroom object for dry run
-                class MockClassroom:
-                    def __init__(self, grade, section):
-                        self.grade = grade
-                        self.section = section
-                        self.shift = grade.level.shift
-                created_classrooms.append(MockClassroom(grade, section))
-                continue
-
-            classroom, created = ClassRoom.objects.get_or_create(
-                grade=grade,
-                section=section,
-                shift=grade.level.shift,
-                defaults={
-                    'capacity': 30,
-                    'class_teacher': None,
-                    'assigned_by': None,
-                    'assigned_at': None
-                }
-            )
-            
-            if created:
-                self.stdout.write(
-                    self.style.SUCCESS(f'    ✅ Created classroom: {classroom.grade.name}-{classroom.section}')
-                )
-            else:
-                self.stdout.write(f'    ⏭️  Classroom already exists: {classroom.grade.name}-{classroom.section}')
-            
-            created_classrooms.append(classroom)
-
-        return created_classrooms
+        # Grade name to code mapping
+        grade_code_mapping = {
+            'Nursery': 'N',
+            'KG-I': 'KG1', 
+            'KG-II': 'KG2',
+            'Grade I': 'G1',
+            'Grade II': 'G2', 
+            'Grade III': 'G3',
+            'Grade IV': 'G4',
+            'Grade V': 'G5',
+            'Grade VI': 'G6',
+            'Grade VII': 'G7',
+            'Grade VIII': 'G8',
+            'Grade IX': 'G9',
+            'Grade X': 'G10'
+        }
+        
+        # Define shifts
+        shifts = ['morning', 'afternoon']
+        
+        # Define sections
+        sections = ['A', 'B', 'C', 'D', 'E']
+        
+        total_levels_created = 0
+        total_grades_created = 0
+        total_classrooms_created = 0
+        
+        with transaction.atomic():
+            for shift in shifts:
+                self.stdout.write(f"\n🏫 Processing {shift.title()} Shift:")
+                
+                for level_name, grade_names in level_grades.items():
+                    # Create or get level for this shift
+                    level, level_created = Level.objects.get_or_create(
+                        name=level_name,
+                        campus=campus,
+                        shift=shift,
+                        defaults={'shift': shift}
+                    )
+                    
+                    # Update level code if needed
+                    if level and not level.code:
+                        level_mapping = {
+                            'Pre-Primary': 'L1',
+                            'Primary': 'L2', 
+                            'Secondary': 'L3'
+                        }
+                        level_num = level_mapping.get(level_name, 'L1')
+                        shift_code = shift[0].upper()  # M for morning, A for afternoon
+                        level.code = f"{campus_code}-{level_num}-{shift_code}"
+                        level.save()
+                    
+                    if level_created:
+                        total_levels_created += 1
+                        action = 'Would create' if dry_run else 'Created'
+                        self.stdout.write(f"  ✅ {action} level: {level_name}-{shift.title()}")
+                    else:
+                        self.stdout.write(f"  📋 Level already exists: {level_name}-{shift.title()}")
+                    
+                    # Create grades for this level
+                    for grade_name in grade_names:
+                        # Check if grade already exists with this code
+                        grade_code = grade_code_mapping.get(grade_name, grade_name[:3].upper())
+                        expected_code = f"{level.code}-{grade_code}"
+                        
+                        # Try to find existing grade with this code
+                        existing_grade = Grade.objects.filter(code=expected_code).first()
+                        
+                        if existing_grade:
+                            grade = existing_grade
+                            grade_created = False
+                            self.stdout.write(f"    📋 Using existing grade: {grade_name} (Code: {grade.code})")
+                        else:
+                            # Create grade manually to avoid automatic code generation
+                            grade = Grade(
+                                name=grade_name,
+                                level=level,
+                                code=expected_code  # Set code directly
+                            )
+                            grade.save()
+                            grade_created = True
+                        
+                        if grade_created:
+                            total_grades_created += 1
+                            action = 'Would create' if dry_run else 'Created'
+                            self.stdout.write(f"    ✅ {action} grade: {grade_name}")
+                        else:
+                            self.stdout.write(f"    📋 Grade already exists: {grade_name}")
+                        
+                        # Create classrooms for this grade
+                        for section in sections:
+                            classroom, classroom_created = ClassRoom.objects.get_or_create(
+                                grade=grade,
+                                section=section,
+                                shift=shift,
+                                defaults={
+                                    'shift': shift,
+                                    'capacity': 30
+                                }
+                            )
+                            
+                            # Update classroom code if needed
+                            if classroom and not classroom.code:
+                                classroom.code = f"{grade.code}-{section}"
+                                classroom.save()
+                            
+                            if classroom_created:
+                                total_classrooms_created += 1
+                                action = 'Would create' if dry_run else 'Created'
+                                self.stdout.write(f"      ✅ {action} classroom: {grade_name}-{section}")
+                            else:
+                                self.stdout.write(f"      📋 Classroom already exists: {grade_name}-{section}")
+        
+        # Summary
+        self.stdout.write(f"\n{'='*50}")
+        self.stdout.write(f"📊 SUMMARY:")
+        if dry_run:
+            self.stdout.write(f"   Would create: {total_levels_created} levels")
+            self.stdout.write(f"   Would create: {total_grades_created} grades")
+            self.stdout.write(f"   Would create: {total_classrooms_created} classrooms")
+        else:
+            self.stdout.write(f"   Created: {total_levels_created} levels")
+            self.stdout.write(f"   Created: {total_grades_created} grades")
+            self.stdout.write(f"   Created: {total_classrooms_created} classrooms")
+        
+        self.stdout.write(
+            self.style.SUCCESS(f'✅ Campus {campus_code} setup completed!')
+        )
