@@ -66,7 +66,7 @@ def get_shift_code(shift):
     """
     shift_codes = {
         'morning': 'M',
-        'afternoon': 'F',
+        'afternoon': 'A',
         'night': 'N'
     }
     return shift_codes.get(shift.lower(), 'M')
@@ -84,7 +84,7 @@ def validate_id_format(id_string, id_type):
         return (
             campus_code.startswith('C') and 
             len(campus_code) >= 2 and
-            shift in ['M', 'E', 'N'] and
+            shift in ['M', 'A', 'N'] and
             year.isdigit() and len(year) == 2 and
             number.isdigit() and len(number) == 5
         )
@@ -98,7 +98,7 @@ def validate_id_format(id_string, id_type):
         return (
             campus_code.startswith('C') and 
             len(campus_code) >= 2 and
-            shift in ['M', 'E', 'N'] and
+            shift in ['M', 'A', 'N'] and
             year.isdigit() and len(year) == 2 and
             role in ['T', 'C', 'P', 'S'] and
             number.isdigit() and len(number) == 4

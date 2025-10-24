@@ -27,6 +27,7 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
   const [success, setSuccess] = useState('');
   const [timeLeft, setTimeLeft] = useState(0);
   const [canResend, setCanResend] = useState(false);
+  const [showExpiryPopup, setShowExpiryPopup] = useState(false);
 
   // Countdown timer for OTP
   useEffect(() => {
@@ -36,6 +37,7 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
         setTimeLeft((prev) => {
           if (prev <= 1) {
             setCanResend(true);
+            setShowExpiryPopup(true);
             return 0;
           }
           return prev - 1;
@@ -44,6 +46,16 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
     }
     return () => clearInterval(timer);
   }, [step, timeLeft]);
+
+  // Auto-dismiss expiry popup after 3 seconds
+  useEffect(() => {
+    if (showExpiryPopup) {
+      const timer = setTimeout(() => {
+        setShowExpiryPopup(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showExpiryPopup]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -65,7 +77,7 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
       const data = await response.json();
       
       if (response.ok) {
-        setTimeLeft(120); // 2 minutes
+        setTimeLeft(300); // 5 minutes
         setCanResend(false);
         setStep('otp-verify');
         setSuccess('OTP sent to your email address');
@@ -166,6 +178,7 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
     setOtpCode('');
     setError('');
     setSuccess('');
+    setShowExpiryPopup(false);
     handleSendOTP();
   };
 
@@ -235,17 +248,6 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
                 </div>
               )}
 
-              {canResend && (
-                <div className="text-center">
-                  <button
-                    onClick={handleResendOTP}
-                    disabled={loading}
-                    className="text-[#6096ba] hover:text-[#4a7ba7] font-medium disabled:opacity-50"
-                  >
-                    Resend Code
-                  </button>
-                </div>
-              )}
             </div>
 
             <button
@@ -366,6 +368,34 @@ export const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
 
           {/* Step Content */}
           {renderStepContent()}
+
+          {/* Expiry Popup */}
+          {showExpiryPopup && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
+              <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-4 p-6">
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                    <AlertCircle className="w-8 h-8 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#274c77] mb-2">
+                      OTP Expired
+                    </h3>
+                    <p className="text-gray-600">
+                      OTP has expired. Please try again.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleResendOTP}
+                    disabled={loading}
+                    className="w-full bg-[#6096ba] text-white py-3 px-6 rounded-lg font-medium hover:bg-[#4a7ba7] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {loading ? 'Sending...' : 'Resend OTP'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Progress Indicator */}
           <div className="mt-8 flex justify-center space-x-2">

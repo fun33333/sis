@@ -215,7 +215,7 @@ export function AcademicDetailsStep({ formData, invalidFields, onInputChange }: 
           </div>
 
           <div>
-            <Label htmlFor="admissionYear">Year of Admission *</Label>
+            <Label htmlFor="admissionYear">Enrollment Year *</Label>
             <Input
               id="admissionYear"
               type="number"

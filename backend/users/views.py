@@ -489,7 +489,7 @@ def send_password_change_otp(request):
             if success:
                 return Response({
                     'message': 'OTP sent successfully',
-                    'expires_in': 120  # 2 minutes
+                    'expires_in': 300  # 5 minutes
                 }, status=status.HTTP_200_OK)
             else:
                 return Response({'error': message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -618,6 +618,171 @@ def change_password_with_otp(request):
         
         return Response({
             'message': 'Password changed successfully. Please login again.'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# Forgot Password OTP Endpoints
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def send_forgot_password_otp(request):
+    """
+    Send OTP for forgot password - uses employee code
+    """
+    try:
+        employee_code = request.data.get('employee_code')
+        if not employee_code:
+            return Response({'error': 'Employee code is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Find user by username (employee_code)
+            user = User.objects.get(username=employee_code)
+            
+            # Create new OTP (invalidate any existing ones)
+            PasswordChangeOTP.objects.filter(user=user, is_used=False).update(is_used=True)
+            otp_obj = PasswordChangeOTP.objects.create(user=user)
+            
+            # Send OTP email
+            success, message = EmailNotificationService.send_password_change_otp_email(
+                user, otp_obj.otp_code
+            )
+            
+            if success:
+                return Response({
+                    'message': 'OTP sent successfully to your registered email',
+                    'expires_in': 300  # 5 minutes
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+        except User.DoesNotExist:
+            return Response({'error': 'Employee code not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_forgot_password_otp(request):
+    """
+    Verify OTP for forgot password
+    """
+    try:
+        employee_code = request.data.get('employee_code')
+        otp_code = request.data.get('otp_code')
+        
+        if not employee_code or not otp_code:
+            return Response({
+                'error': 'Employee code and OTP code are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Find user by username (employee_code)
+            user = User.objects.get(username=employee_code)
+            
+            # Find valid OTP
+            otp_obj = PasswordChangeOTP.objects.filter(
+                user=user,
+                otp_code=otp_code,
+                is_used=False
+            ).first()
+            
+            if not otp_obj:
+                return Response({
+                    'valid': False,
+                    'message': 'Invalid OTP code'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if otp_obj.is_expired():
+                otp_obj.is_used = True
+                otp_obj.save()
+                return Response({
+                    'valid': False,
+                    'message': 'OTP has expired. Please request a new one.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Verify OTP
+            if otp_obj.verify_otp(otp_code):
+                return Response({
+                    'valid': True,
+                    'message': 'OTP verified successfully',
+                    'session_token': otp_obj.session_token
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'valid': False,
+                    'message': 'Invalid OTP code'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except User.DoesNotExist:
+            return Response({'error': 'Employee code not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password_with_otp(request):
+    """
+    Reset password using verified OTP session
+    """
+    try:
+        session_token = request.data.get('session_token')
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+        
+        if not all([session_token, new_password, confirm_password]):
+            return Response({
+                'error': 'Session token, new password, and confirm password are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if new_password != confirm_password:
+            return Response({
+                'error': 'Passwords do not match'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find OTP by session token
+        try:
+            otp_obj = PasswordChangeOTP.objects.get(
+                session_token=session_token,
+                is_used=True  # OTP should be used (verified)
+            )
+        except PasswordChangeOTP.DoesNotExist:
+            return Response({
+                'error': 'Invalid session token'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if session is still valid (not expired)
+        if otp_obj.is_expired():
+            return Response({
+                'error': 'Session expired. Please request a new OTP.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = otp_obj.user
+        
+        # Validate password strength
+        try:
+            validate_password_strength(new_password, user)
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Update password
+        user.set_password(new_password)
+        user.has_changed_default_password = True
+        user.save()
+        
+        # Invalidate all existing OTPs for this user
+        PasswordChangeOTP.objects.filter(user=user).update(is_used=True)
+        
+        return Response({
+            'message': 'Password reset successfully. Please login with your new password.'
         }, status=status.HTTP_200_OK)
         
     except Exception as e:

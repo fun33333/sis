@@ -63,31 +63,23 @@ class User(AbstractUser):
     
     def save(self, *args, **kwargs):
         # Auto-generate employee code for super admin if not provided
-        if self.role == 'superadmin' and not self.username.startswith('C'):
+        if self.role == 'superadmin' and not self.username.startswith('S'):
             try:
-                from campus.models import Campus
                 from utils.id_generator import IDGenerator
                 
-                # Get first campus for super admin (super admin doesn't belong to specific campus)
-                campus = Campus.objects.first()
-                if campus:
-                    # Generate super admin employee code
-                    employee_code = IDGenerator.generate_employee_code(
-                        campus_id=campus.id,
-                        shift='morning',  # Default shift
-                        year=2025,
-                        role='superadmin',
-                        entity_id=1  # Super admin is always first
-                    )
-                    
-                    # Set username to employee code
-                    self.username = employee_code
-                    print(f"✅ Auto-generated super admin employee code: {employee_code}")
-                else:
-                    print("⚠️  No campus found, using default username")
+                # Generate super admin employee code without campus dependency
+                employee_code = IDGenerator.generate_superadmin_code()
+                
+                # Set username to employee code
+                self.username = employee_code
+                print(f"✅ Auto-generated super admin employee code: {employee_code}")
                     
             except Exception as e:
                 print(f"❌ Error generating super admin employee code: {str(e)}")
+        
+        # Ensure super admin doesn't have campus assignment
+        if self.role == 'superadmin':
+            self.campus = None
         
         super().save(*args, **kwargs)
     
@@ -108,7 +100,7 @@ class PasswordChangeOTP(models.Model):
     
     def save(self, *args, **kwargs):
         if not self.expires_at:
-            self.expires_at = timezone.now() + timedelta(minutes=2)
+            self.expires_at = timezone.now() + timedelta(minutes=5)
         if not self.otp_code:
             self.otp_code = self.generate_otp()
         if not self.session_token:
@@ -120,7 +112,7 @@ class PasswordChangeOTP(models.Model):
         return str(secrets.randbelow(900000) + 100000)
     
     def is_expired(self):
-        """Check if OTP has expired (2 minutes)"""
+        """Check if OTP has expired (5 minutes)"""
         return timezone.now() > self.expires_at
     
     def verify_otp(self, code):

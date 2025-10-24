@@ -6,6 +6,7 @@ import { useState, useEffect } from "react"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { UserProfilePopup } from "@/components/admin/user-profile-popup"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import { useSessionManager } from "@/hooks/useSessionManager"
 
 export default function AdminLayout({
   children,
@@ -13,6 +14,9 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  
+  // Initialize session manager for inactivity timeout
+  useSessionManager()
 
   // Responsive sidebar behavior
   useEffect(() => {

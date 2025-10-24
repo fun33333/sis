@@ -54,9 +54,6 @@ class PasswordStrengthValidator:
         if re.search(r'(.)\1{2,}', password):
             errors.append("Password cannot contain more than 2 consecutive identical characters.")
         
-        if re.search(r'(123|abc|qwe|asd|zxc)', password.lower()):
-            errors.append("Password cannot contain common keyboard patterns.")
-        
         if errors:
             raise ValidationError(errors)
     

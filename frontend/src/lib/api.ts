@@ -108,14 +108,26 @@ function getRefreshToken(): string | null {
 
 export function setAuthTokens(access: string, refresh?: string) {
   if (typeof window === 'undefined') return;
+  
+  // Store in localStorage
   window.localStorage.setItem(ACCESS_TOKEN_KEY, access);
   if (refresh) window.localStorage.setItem(REFRESH_TOKEN_KEY, refresh);
+  
+  // Also store in cookies for middleware access
+  document.cookie = `sis_access_token=${access}; path=/; max-age=${15 * 60}`; // 15 minutes
+  if (refresh) {
+    document.cookie = `sis_refresh_token=${refresh}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
+  }
 }
 
 export function clearAuthTokens() {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  
+  // Also clear cookies
+  document.cookie = 'sis_access_token=; path=/; max-age=0';
+  document.cookie = 'sis_refresh_token=; path=/; max-age=0';
 }
 
 // Centralized authorized fetch with auto-refresh and retry
@@ -169,6 +181,16 @@ export async function authorizedFetch(path: string, init: RequestInit = {}, alre
     }
   }
 
+  // If refresh failed or no refresh token, clear everything and redirect
+  console.log('❌ Token refresh failed, clearing session...');
+  if (typeof window !== 'undefined') {
+    window.localStorage.clear();
+    // Also clear cookies
+    document.cookie = 'sis_access_token=; path=/; max-age=0';
+    document.cookie = 'sis_refresh_token=; path=/; max-age=0';
+    window.location.href = '/Universal_Login';
+  }
+
   return res; // Caller will handle error body
 }
 
@@ -197,10 +219,13 @@ export async function loginWithEmailPassword(emailOrCode: string, password: stri
 }
 
 export function logoutClientOnly() {
-  clearAuthTokens();
   if (typeof window !== 'undefined') {
-    window.localStorage.removeItem('sis_user');
-    window.localStorage.removeItem('userProfile'); // Clear userProfile too
+    // Clear all localStorage completely for security
+    window.localStorage.clear();
+    
+    // Also clear all cookies
+    document.cookie = 'sis_access_token=; path=/; max-age=0';
+    document.cookie = 'sis_refresh_token=; path=/; max-age=0';
   }
 }
 
@@ -2003,6 +2028,75 @@ export async function changePasswordWithOTP(sessionToken: string, newPassword: s
     if (!response.ok) {
       const errorData = await response.json();
       throw new ApiError(errorData.error || 'Failed to change password', response.status, response.statusText);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
+  }
+}
+
+// ==================== FORGOT PASSWORD OTP APIs ====================
+
+export async function sendForgotPasswordOTP(employeeCode: string) {
+  try {
+    const response = await fetch('/api/users/send-forgot-password-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employee_code: employeeCode }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new ApiError(errorData.error || 'Failed to send OTP', response.status, response.statusText);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
+  }
+}
+
+export async function verifyForgotPasswordOTP(employeeCode: string, otpCode: string) {
+  try {
+    const response = await fetch('/api/users/verify-forgot-password-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        employee_code: employeeCode,
+        otp_code: otpCode
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new ApiError(errorData.message || 'Failed to verify OTP', response.status, response.statusText);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
+  }
+}
+
+export async function resetPasswordWithOTP(sessionToken: string, newPassword: string, confirmPassword: string) {
+  try {
+    const response = await fetch('/api/users/reset-password-with-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        session_token: sessionToken,
+        new_password: newPassword,
+        confirm_password: confirmPassword
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new ApiError(errorData.error || 'Failed to reset password', response.status, response.statusText);
     }
     
     return await response.json();
