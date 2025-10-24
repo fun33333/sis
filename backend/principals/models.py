@@ -20,7 +20,7 @@ SHIFT_CHOICES = [
 
 class Principal(models.Model):
     # User relationship
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='principal_profile', null=True, blank=True)
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, related_name='principal_profile', null=True, blank=True)
     
     # Personal Information
     full_name = models.CharField(max_length=150)
