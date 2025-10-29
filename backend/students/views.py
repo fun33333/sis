@@ -206,11 +206,25 @@ class StudentViewSet(viewsets.ModelViewSet):
             # Super admin: Show all campuses
             campuses = Campus.objects.all()
             
-        data = [
-            {"campus": c.campus_name, "count": Student.objects.filter(campus=c).count()}
-            for c in campuses
-        ]
-        return Response(data)
+        # Use annotation for better performance and ensure campus_name exists
+        from django.db.models import Count
+        
+        data = []
+        for c in campuses:
+            # Get count of non-deleted students for this campus
+            student_count = Student.objects.filter(
+                campus=c,
+                is_deleted=False
+            ).count()
+            
+            # Only include campus if it has a name
+            if c.campus_name:
+                data.append({
+                    "campus": c.campus_name,
+                    "count": student_count
+                })
+        
+        return Response(data if data else [{"campus": "No data available", "count": 0}])
     
     @action(detail=False, methods=["get"])
     def grade_distribution(self, request):

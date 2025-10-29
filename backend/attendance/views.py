@@ -214,16 +214,6 @@ def get_class_attendance(request, classroom_id):
             
         attendance_records = attendance_records.order_by('-date')
         serializer = AttendanceSerializer(attendance_records, many=True)
-        
-        # Debug: Print the serialized data
-        print("🔍 DEBUG: Serialized attendance data:")
-        for i, record in enumerate(serializer.data):
-            print(f"Record {i}: {record}")
-            if 'student_attendance' in record:
-                print(f"  Student attendance: {record['student_attendance']}")
-            else:
-                print("  ❌ No student_attendance field!")
-        
         return Response(serializer.data)
     else:
         # Get all attendance records for the class
@@ -231,16 +221,6 @@ def get_class_attendance(request, classroom_id):
             classroom=classroom
         ).prefetch_related('student_attendances__student').order_by('-date')
         serializer = AttendanceSerializer(attendance_records, many=True)
-        
-        # Debug: Print the serialized data
-        print("🔍 DEBUG: Serialized attendance data (all records):")
-        for i, record in enumerate(serializer.data):
-            print(f"Record {i}: {record}")
-            if 'student_attendance' in record:
-                print(f"  Student attendance: {record['student_attendance']}")
-            else:
-                print("  ❌ No student_attendance field!")
-        
         return Response(serializer.data)
 
 
@@ -544,15 +524,8 @@ def get_attendance_for_date(request, classroom_id, date):
     Get attendance for a specific date
     """
     try:
-        print(f"🔍 DEBUG: get_attendance_for_date called")
-        print(f"   - classroom_id: {classroom_id}")
-        print(f"   - date: {date}")
-        print(f"   - user: {request.user.username} ({request.user.role})")
-        
         classroom = get_object_or_404(ClassRoom, id=classroom_id)
         user = request.user
-        
-        print(f"   - classroom: {classroom} (Grade: {classroom.grade}, Level: {classroom.grade.level})")
         
         # Check permissions (support multi-class teachers)
         if user.is_teacher():

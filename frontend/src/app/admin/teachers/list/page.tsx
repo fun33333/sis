@@ -4,14 +4,16 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions";
 import { getFilteredTeachers, getAllCampuses } from "@/lib/api";
+import { DataTable, PaginationControls } from "@/components/shared";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Eye, Edit, MoreVertical, User, Mail, GraduationCap, MapPin, Award } from 'lucide-react';
+import { User, Mail, GraduationCap, MapPin, Award } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { getApiBaseUrl } from "@/lib/api";
 
 interface Teacher {
   id: number;
@@ -183,7 +185,9 @@ export default function TeacherListPage() {
       setEditingTeacher(teacher);
       
       // Fetch full teacher data
-      const response = await fetch(`http://127.0.0.1:8000/api/teachers/${teacher.id}/`, {
+      const baseForRead = getApiBaseUrl();
+      const cleanBaseForRead = baseForRead.endsWith('/') ? baseForRead.slice(0, -1) : baseForRead;
+      const response = await fetch(`${cleanBaseForRead}/api/teachers/${teacher.id}/`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('sis_access_token')}`,
           'Content-Type': 'application/json',
@@ -291,7 +295,9 @@ export default function TeacherListPage() {
 
       console.log('Updating teacher with data:', updateData);
 
-      const response = await fetch(`http://127.0.0.1:8000/api/teachers/${editingTeacher.id}/`, {
+      const baseForUpdate = getApiBaseUrl();
+      const cleanBaseForUpdate = baseForUpdate.endsWith('/') ? baseForUpdate.slice(0, -1) : baseForUpdate;
+      const response = await fetch(`${cleanBaseForUpdate}/api/teachers/${editingTeacher.id}/`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('sis_access_token')}`,
@@ -319,6 +325,99 @@ export default function TeacherListPage() {
       setIsSubmitting(false);
     }
   };
+
+  // Columns definition for DataTable
+  const columns = [
+    {
+      key: 'teacher_info',
+      label: 'Teacher',
+      icon: <User className="h-3 w-3 sm:h-4 sm:w-4" />,
+      render: (teacher: Teacher) => (
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex-shrink-0">
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center bg-[#6096ba]">
+              <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs sm:text-sm font-semibold text-gray-900 flex items-center space-x-1 sm:space-x-2">
+              <span className="truncate">{teacher.full_name}</span>
+              {teacher.is_class_teacher && (
+                <Award className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 flex-shrink-0" />
+              )}
+            </div>
+            <div className="text-xs text-gray-500 flex items-center space-x-1">
+              <Mail className="h-3 w-3" />
+              <span className="truncate max-w-[100px] sm:max-w-[150px]">
+                {teacher.email ? teacher.email.substring(0, teacher.email.length / 2) + '...' : 'N/A'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'subjects_classes',
+      label: 'Subjects/Classes',
+      icon: <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4" />,
+      render: (teacher: Teacher) => (
+        <div className="space-y-1">
+          <div className="flex items-center space-x-1 sm:space-x-2">
+            <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4 text-[#6096ba]" />
+            <span className="text-xs sm:text-sm font-medium text-gray-900">Subjects:</span>
+            <span className="text-xs sm:text-sm text-gray-600 max-w-[80px] sm:max-w-[120px] truncate">
+              {teacher.current_subjects ? teacher.current_subjects.split(',').slice(0, 2).join(', ') : 'N/A'}
+            </span>
+          </div>
+          <div className="flex items-center space-x-1 sm:space-x-2">
+            <User className="h-3 w-3 sm:h-4 sm:w-4 text-[#6096ba]" />
+            <span className="text-xs sm:text-sm font-medium text-gray-900">Classes:</span>
+            <span className="text-xs sm:text-sm text-gray-600 max-w-[80px] sm:max-w-[120px] truncate">
+              {teacher.current_classes_taught ? teacher.current_classes_taught.split(',').slice(0, 2).join(', ') : 'N/A'}
+            </span>
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'campus',
+      label: 'Campus',
+      icon: <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />,
+      render: (teacher: Teacher) => (
+        <div className="flex items-center space-x-1 sm:space-x-2">
+          <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-[#6096ba]" />
+          <div className="min-w-0 flex-1">
+            <div className="text-xs sm:text-sm font-bold text-gray-900 truncate">
+              {teacher.campus_name || 'N/A'}
+            </div>
+            {teacher.coordinator_names && teacher.coordinator_names.length > 0 && (
+              <div className="text-xs text-gray-600 truncate">
+                Coord: {teacher.coordinator_names[0]}
+              </div>
+            )}
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      icon: <div className="h-3 w-3 sm:h-4 sm:w-4 rounded-full bg-green-500"></div>,
+      render: (teacher: Teacher) => (
+        <span className={`inline-flex items-center px-2 sm:px-3 py-1 text-xs font-semibold rounded-full ${
+          teacher.is_currently_active 
+            ? 'bg-green-100 text-green-800 border border-green-200'
+            : 'bg-red-100 text-red-800 border border-red-200'
+        }`}>
+          <div className={`h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full mr-1 sm:mr-2 ${
+            teacher.is_currently_active ? 'bg-green-500' : 'bg-red-500'
+          }`}></div>
+          <span className="hidden sm:inline">{teacher.is_currently_active ? 'Active' : 'Inactive'}</span>
+          <span className="sm:hidden">{teacher.is_currently_active ? 'A' : 'I'}</span>
+        </span>
+      )
+    }
+  ];
 
   if (loading && teachers.length === 0) {
     return <LoadingSpinner message="Loading teachers..." fullScreen />;
@@ -444,220 +543,25 @@ export default function TeacherListPage() {
         </div>
       </div>
 
-      {/* Teachers Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden w-full" style={{ borderColor: '#a3cef1' }}>
-        <div className="overflow-x-auto w-full">
-          <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm md:text-base">
-            <thead style={{ backgroundColor: '#274c77' }}>
-              <tr>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider min-w-[120px] sm:min-w-[150px]">
-                  <div className="flex items-center space-x-1 sm:space-x-2">
-                    <User className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span>Teacher</span>
-                  </div>
-                </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider min-w-[100px] sm:min-w-[120px]">
-                  <div className="flex items-center space-x-1 sm:space-x-2">
-                    <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">Subjects/Classes</span>
-                    <span className="sm:hidden">Classes</span>
-                  </div>
-                </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider min-w-[80px] sm:min-w-[100px]">
-                  <div className="flex items-center space-x-1 sm:space-x-2">
-                    <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span>Campus</span>
-                  </div>
-                </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider min-w-[60px] sm:min-w-[80px]">
-                  <div className="flex items-center space-x-1 sm:space-x-2">
-                    <div className="h-3 w-3 sm:h-4 sm:w-4 rounded-full bg-green-500"></div>
-                    <span>Status</span>
-                  </div>
-                </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-white uppercase tracking-wider min-w-[80px] sm:min-w-[100px]">
-                  <div className="flex items-center space-x-1 sm:space-x-2">
-                    <MoreVertical className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span>Actions</span>
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {teachers.map((teacher, index) => (
-                <tr key={teacher.id} className={`hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : ''}`} style={{ backgroundColor: index % 2 === 0 ? 'white' : '#e7ecef' }}>
-                  <td className="px-2 sm:px-3 py-3 whitespace-nowrap">
-                    <div className="flex items-center space-x-2 sm:space-x-3">
-                      <div className="flex-shrink-0">
-                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6096ba' }}>
-                          <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                        </div>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs sm:text-sm font-semibold text-gray-900 flex items-center space-x-1 sm:space-x-2">
-                          <span className="truncate">{teacher.full_name}</span>
-                            {teacher.is_class_teacher && (
-                              <Award className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 flex-shrink-0" />
-                            )}
-                        </div>
-                        <div className="text-xs text-gray-500 flex items-center space-x-1">
-                          <Mail className="h-3 w-3" />
-                          <span className="truncate max-w-[100px] sm:max-w-[150px]">
-                            {teacher.email ? teacher.email.substring(0, teacher.email.length / 2) + '...' : 'N/A'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-2 sm:px-3 py-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-1 sm:space-x-2">
-                        <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4" style={{ color: '#6096ba' }} />
-                        <span className="text-xs sm:text-sm font-medium text-gray-900">Subjects:</span>
-                        <span className="text-xs sm:text-sm text-gray-600 max-w-[80px] sm:max-w-[120px] truncate">
-                          {teacher.current_subjects ? teacher.current_subjects.split(',').slice(0, 2).join(', ') : 'N/A'}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1 sm:space-x-2">
-                        <User className="h-3 w-3 sm:h-4 sm:w-4" style={{ color: '#6096ba' }} />
-                        <span className="text-xs sm:text-sm font-medium text-gray-900">Classes:</span>
-                        <span className="text-xs sm:text-sm text-gray-600 max-w-[80px] sm:max-w-[120px] truncate">
-                          {teacher.current_classes_taught ? teacher.current_classes_taught.split(',').slice(0, 2).join(', ') : 'N/A'}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-2 sm:px-3 py-3 whitespace-nowrap">
-                    <div className="flex items-center space-x-1 sm:space-x-2">
-                      <MapPin className="h-3 w-3 sm:h-4 sm:w-4" style={{ color: '#6096ba' }} />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs sm:text-sm font-bold text-gray-900 truncate">
-                          {teacher.campus_name || 'N/A'}
-                        </div>
-                        {teacher.coordinator_names && teacher.coordinator_names.length > 0 && (
-                          <div className="text-xs text-gray-600 truncate">
-                            Coord: {teacher.coordinator_names[0]}
-                            {teacher.coordinator_names.length > 1 && '...'}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-2 sm:px-3 py-3 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2 sm:px-3 py-1 text-xs font-semibold rounded-full ${
-                      teacher.is_currently_active 
-                        ? 'bg-green-100 text-green-800 border border-green-200'
-                        : 'bg-red-100 text-red-800 border border-red-200'
-                    }`}>
-                      <div className={`h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full mr-1 sm:mr-2 ${
-                        teacher.is_currently_active ? 'bg-green-500' : 'bg-red-500'
-                      }`}></div>
-                      <span className="hidden sm:inline">{teacher.is_currently_active ? 'Active' : 'Inactive'}</span>
-                      <span className="sm:hidden">{teacher.is_currently_active ? 'A' : 'I'}</span>
-                    </span>
-                  </td>
-                  <td className="px-2 sm:px-3 py-3 whitespace-nowrap text-xs sm:text-sm font-medium">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button
-                        onClick={() => router.push(`/admin/teachers/profile?id=${teacher.id}`)}
-                        className="inline-flex items-center px-1.5 sm:px-2 py-1 border border-transparent text-xs font-medium rounded-md text-white transition-all duration-200 shadow-sm hover:shadow-md"
-                        style={{ backgroundColor: '#6096ba' }}
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        <span className="hidden sm:inline">View</span>
-                      </button>
-                      <button
-                        onClick={() => handleEdit(teacher)}
-                        className="inline-flex items-center px-1.5 sm:px-2 py-1 border text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                        style={{ borderColor: '#6096ba', color: '#274c77' }}
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        <span className="hidden sm:inline">Edit</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-                </div>
+      {/* Teachers Table - USING REUSABLE COMPONENT */}
+      <DataTable
+        data={teachers}
+        columns={columns}
+        onView={(teacher) => router.push(`/admin/teachers/profile?id=${teacher.id}`)}
+        onEdit={(teacher) => handleEdit(teacher)}
+        isLoading={loading}
+        emptyMessage="No teachers found"
+        allowEdit={userRole !== 'superadmin' && userRole !== 'principal'}
+      />
 
-        {/* Pagination */}
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-          <div className="flex-1 flex justify-between sm:hidden">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-              </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing{' '}
-                <span className="font-medium">
-                  {Math.min((currentPage - 1) * pageSize + 1, totalCount)}
-                </span>{' '}
-                to{' '}
-                <span className="font-medium">
-                  {Math.min(currentPage * pageSize, totalCount)}
-                </span>{' '}
-                of{' '}
-                <span className="font-medium">{totalCount}</span>{' '}
-                results
-              </p>
-            </div>
-            <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                
-                {/* Page numbers */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const pageNum = Math.max(1, currentPage - 2) + i;
-                  if (pageNum > totalPages) return null;
-                  
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        pageNum === currentPage
-                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-                
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </nav>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+      />
 
       {error && (
         <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">

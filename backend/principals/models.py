@@ -14,7 +14,7 @@ GENDER_CHOICES = [
 SHIFT_CHOICES = [
     ("morning", "Morning"),
     ("afternoon", "Afternoon"),
-    ("both", "Morning + Afternoon"),
+    ("both", "Both"),
     ("all", "All Shifts"),
 ]
 
@@ -54,6 +54,13 @@ class Principal(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def save(self, *args, **kwargs):
+        # Force regenerate employee code if we're updating and campus/shift/joining_date changed
+        regenerate_code = kwargs.pop('regenerate_code', False)
+        
+        if regenerate_code and self.campus:
+            # Force employee_code to None so it gets regenerated
+            self.employee_code = None
+        
         # Auto-generate employee_code if not provided
         if not self.employee_code and self.campus:
             try:
@@ -78,6 +85,11 @@ class Principal(models.Model):
         
         super().save(*args, **kwargs)
     
+    def get_shift_display(self):
+        """Return display text for shift"""
+        shift_dict = dict(SHIFT_CHOICES)
+        return shift_dict.get(self.shift, self.shift)
+    
     def __str__(self):
         return f"{self.full_name} ({self.employee_code})"
 
@@ -86,9 +98,10 @@ class Principal(models.Model):
         verbose_name_plural = "Principals"
         ordering = ['-created_at']
         constraints = [
-            # Ensure only one principal per campus
+            # Ensure only one principal per campus AND shift combination
+            # This allows multiple principals if they have different shifts (morning/afternoon/both)
             models.UniqueConstraint(
-                fields=['campus'],
-                name='unique_principal_per_campus'
+                fields=['campus', 'shift'],
+                name='unique_principal_per_campus_shift'
             )
         ]

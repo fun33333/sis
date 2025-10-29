@@ -69,9 +69,6 @@ class AttendanceSerializer(serializers.ModelSerializer):
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        print(f"🔍 DEBUG: Serializing attendance {instance.id}")
-        print(f"  Student attendances count: {instance.student_attendances.count()}")
-        print(f"  Student attendance data: {data.get('student_attendance', 'NOT FOUND')}")
         return data
 
 

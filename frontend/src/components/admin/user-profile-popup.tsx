@@ -197,6 +197,7 @@ export function UserProfilePopup() {
 
   const handleViewFullProfile = () => {
     const role = userProfile?.role || currentUser.role;
+    // All roles use standard profile routes
     router.push(`/${role}/profile`);
     setIsOpen(false);
   }
@@ -298,15 +299,18 @@ export function UserProfilePopup() {
                         </div>
                       )}
 
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <Building2 className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-gray-500">Campus</p>
-                          <p className="text-xs sm:text-sm font-medium truncate">
-                            {userProfile?.campus?.campus_name || 'Not Assigned'}
-                          </p>
+                      {/* Only show campus for non-SuperAdmin users */}
+                      {((userProfile?.role || currentUser.role) !== 'superadmin') && (
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <Building2 className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-gray-500">Campus</p>
+                            <p className="text-xs sm:text-sm font-medium truncate">
+                              {userProfile?.campus?.campus_name || 'Not Assigned'}
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       <div className="flex items-center gap-2 sm:gap-3">
                         <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />

@@ -1,8 +1,10 @@
-# backend/principals/urls.py
-from django.urls import path
-from . import views
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import PrincipalViewSet
+
+router = DefaultRouter()
+router.register(r'principals', PrincipalViewSet, basename='principal')
 
 urlpatterns = [
-    # Add your principal URLs here when needed
-    # For now, empty list since we don't have views yet
+    path('', include(router.urls)),
 ]

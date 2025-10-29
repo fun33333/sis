@@ -313,7 +313,7 @@ export default function TransferManagementPage() {
             </div>
           </div>
           <Button
-            onClick={() => router.push('/admin/principal/transfers/create')}
+            onClick={() => router.push('/admin/principals/transfers/create')}
             className="flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />

@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
+import { ProgressBar } from "@/components/ui/progress-bar"
 import { ArrowLeft, ArrowRight, Eye } from "lucide-react"
 import { PersonalDetailsStep } from "./student-form/personal-details-step"
 import { StudentPreview } from "./student-form/student-preview"
@@ -27,7 +27,6 @@ export function StudentForm() {
   const [uploadedImages, setUploadedImages] = useState<{ [key: string]: string }>({})
   const [invalidFields, setInvalidFields] = useState<string[]>([])
   const [submitError, setSubmitError] = useState<string>('')
-  const [submitSuccess, setSubmitSuccess] = useState<{name: string, studentId?: string, grade?: string} | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null) as React.RefObject<HTMLInputElement>
 
   const totalSteps = steps.length
@@ -174,14 +173,15 @@ export function StudentForm() {
             const studentId = formData.studentId || "Pending"
             const grade = formData.currentGrade || "N/A"
             
-            setSubmitSuccess({
-              name: studentName,
-              studentId: studentId,
-              grade: grade
-            })
-            
-            sonnerToast.success("Student Added Successfully!", {
-              description: `${studentName} (${studentId}) • Grade: ${grade}`,
+            sonnerToast.success("✅ Student Added Successfully!", {
+              description: (
+                <div className="space-y-1">
+                  <p className="font-semibold">Student: {studentName}</p>
+                  <p>Student ID: {studentId}</p>
+                  <p>Grade: {grade}</p>
+                </div>
+              ),
+              duration: 5000,
             })
           }}
         />
@@ -251,50 +251,6 @@ export function StudentForm() {
         </div>
       )}
 
-      {/* Success Popup Modal */}
-      {submitSuccess && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <Card className="border-green-500 bg-white shadow-2xl max-w-md w-full mx-4">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-green-600 text-xl">✓</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-green-800 text-lg">Success!</h3>
-                  <p className="text-green-700 text-sm mt-1">
-                    <strong>{submitSuccess.name}</strong> has been added successfully!
-                  </p>
-                  <p className="text-green-600 text-xs mt-1">
-                    Student ID: <strong>{submitSuccess.studentId}</strong>
-                  </p>
-                  {submitSuccess.grade && (
-                    <p className="text-green-600 text-xs mt-1">
-                      Grade: <strong>{submitSuccess.grade}</strong>
-                    </p>
-                  )}
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setSubmitSuccess(null)}
-                  className="text-green-600 hover:text-green-800 hover:bg-green-100"
-                >
-                  ✕
-                </Button>
-              </div>
-              <div className="mt-4 flex justify-end">
-                <Button 
-                  onClick={() => setSubmitSuccess(null)}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  OK
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       {!showPreview && (
         <Card className="border-2">
@@ -310,35 +266,12 @@ export function StudentForm() {
                 <div className="text-sm text-muted-foreground">Add Student</div>
               </div>
               <div className="mt-4">
-                <Progress value={(currentStep / totalSteps) * 100} className="h-2 rounded-full" />
-                <div className="flex items-center justify-between mt-3 gap-2">
-                  {steps.map((step, index) => (
-                    <button
-                      key={step.id}
-                      onClick={() => handleStepChange(step.id)}
-                      className={`flex items-center gap-3 text-sm px-2 py-1 rounded-lg transition-all focus:outline-none ${
-                        currentStep === step.id
-                          ? "bg-primary text-white font-medium"
-                          : currentStep > step.id
-                            ? "bg-green-50 text-green-700"
-                            : "text-muted-foreground"
-                      }`}
-                    >
-                      <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${
-                          currentStep === step.id
-                            ? "bg-primary text-white"
-                            : currentStep > step.id
-                              ? "bg-green-500 text-white"
-                              : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {index + 1}
-                      </div>
-                      <span className="hidden sm:inline">{step.title}</span>
-                    </button>
-                  ))}
-                </div>
+                <ProgressBar 
+                  steps={steps} 
+                  currentStep={currentStep}
+                  onStepClick={handleStepChange}
+                  showClickable={true}
+                />
               </div>
             </div>
           </CardHeader>

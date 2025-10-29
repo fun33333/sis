@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ProgressBar } from "@/components/ui/progress-bar"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, ArrowRight, Eye } from "lucide-react"
 import { PersonalInfoStep } from "./coordinator-form/personal-info-step"
@@ -13,6 +14,7 @@ import { getCurrentUser, getCurrentUserRole } from "@/lib/permissions"
 import { useFormErrorHandler } from "@/hooks/use-error-handler"
 import { ErrorDisplay } from "@/components/ui/error-display"
 import { toast as sonnerToast } from "sonner"
+import { getApiBaseUrl } from "@/lib/api"
 
 const steps = [
   { id: 1, title: "Personal" },
@@ -63,17 +65,16 @@ export function CoordinatorForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [generalError, setGeneralError] = useState<string>('')
   const [submitError, setSubmitError] = useState<string>('')
-  const [submitSuccess, setSubmitSuccess] = useState<{name: string, code: string, level?: string} | null>(null)
   
   // Use form error handler
-  const { handleFormError, clearAllErrors, getFieldError } = useFormErrorHandler({
-    onFieldError: (field, message) => {
-      setDuplicateErrors(prev => ({ ...prev, [field]: message }))
-    },
-    onGeneralError: (message) => {
-      setGeneralError(message)
-    }
-  })
+  // const { handleFormError, clearAllErrors, getFieldError } = useFormErrorHandler({
+  //   onFieldError: (field, message) => {
+  //     setDuplicateErrors(prev => ({ ...prev, [field]: message }))
+  //   },
+  //   onGeneralError: (message) => {
+  //     setGeneralError(message)
+  //   }
+  // })
 
   const totalSteps = steps.length
 
@@ -105,7 +106,9 @@ export function CoordinatorForm({
           // Load campus data from API for principal
           try {
             const token = localStorage.getItem('sis_access_token');
-            const response = await fetch('http://localhost:8000/api/campus/', {
+            const base = getApiBaseUrl();
+            const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+            const response = await fetch(`${cleanBase}/api/campus/`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -145,7 +148,9 @@ export function CoordinatorForm({
         
         try {
           const token = localStorage.getItem('sis_access_token');
-          const response = await fetch('http://localhost:8000/api/campus/', {
+          const base = getApiBaseUrl();
+          const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+          const response = await fetch(`${cleanBase}/api/campus/`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
@@ -195,7 +200,9 @@ export function CoordinatorForm({
       
       // Get all levels for the campus
       const token = localStorage.getItem('sis_access_token');
-      const response = await fetch(`http://localhost:8000/api/levels/?campus=${campusId}`, {
+      const base = getApiBaseUrl();
+      const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+      const response = await fetch(`${cleanBase}/api/levels/?campus=${campusId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -209,7 +216,7 @@ export function CoordinatorForm({
         const allLevels = data.results || data;
         
         // Get levels that already have coordinators assigned for this shift
-        const coordinatorsResponse = await fetch(`http://localhost:8000/api/coordinators/?campus=${campusId}`, {
+        const coordinatorsResponse = await fetch(`${cleanBase}/api/coordinators/?campus=${campusId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -286,7 +293,9 @@ export function CoordinatorForm({
 
       // Check email duplicate
       if (email && email.trim()) {
-        const emailResponse = await fetch(`http://localhost:8000/api/coordinators/?email=${encodeURIComponent(email)}`, {
+        const base = getApiBaseUrl();
+        const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+        const emailResponse = await fetch(`${cleanBase}/api/coordinators/?email=${encodeURIComponent(email)}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -308,7 +317,9 @@ export function CoordinatorForm({
 
       // Check CNIC duplicate
       if (cnic && cnic.trim()) {
-        const cnicResponse = await fetch(`http://localhost:8000/api/coordinators/?cnic=${encodeURIComponent(cnic)}`, {
+        const base = getApiBaseUrl();
+        const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+        const cnicResponse = await fetch(`${cleanBase}/api/coordinators/?cnic=${encodeURIComponent(cnic)}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -495,7 +506,9 @@ export function CoordinatorForm({
     
     setIsSubmitting(true);
     try {
-      const url = isEdit ? `http://localhost:8000/api/coordinators/${editData?.id}/` : 'http://localhost:8000/api/coordinators/';
+      const base = getApiBaseUrl();
+      const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+      const url = isEdit ? `${cleanBase}/api/coordinators/${editData?.id}/` : `${cleanBase}/api/coordinators/`;
       const method = isEdit ? 'PUT' : 'POST';
       
       // Prepare form data for submission
@@ -573,14 +586,17 @@ export function CoordinatorForm({
           }
         }
         
-        setSubmitSuccess({
-          name: coordinatorName,
-          code: employeeCode,
-          level: levelName
-        })
-        
-        sonnerToast.success(`Coordinator ${isEdit ? 'Updated' : 'Added'} Successfully!`, {
-          description: `${coordinatorName} (${employeeCode})${!isEdit ? ` • Level: ${levelName}` : ''}`,
+        sonnerToast.success(`✅ Coordinator ${isEdit ? 'Updated' : 'Added'} Successfully!`, {
+          description: (
+            <div className="space-y-1">
+              <p className="font-semibold">Coordinator: {coordinatorName}</p>
+              <p>Employee Code: {employeeCode}</p>
+              {!isEdit && levelName && (
+                <p>Level: {levelName}</p>
+              )}
+            </div>
+          ),
+          duration: 5000,
         })
         
         // Reset form and go to first step
@@ -699,50 +715,7 @@ export function CoordinatorForm({
         </div>
       )}
 
-      {/* Success Popup Modal */}
-      {submitSuccess && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <Card className="border-green-500 bg-white shadow-2xl max-w-md w-full mx-4">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-green-600 text-xl">✓</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-green-800 text-lg">Success!</h3>
-                  <p className="text-green-700 text-sm mt-1">
-                    <strong>{submitSuccess.name}</strong> has been added successfully!
-                  </p>
-                  <p className="text-green-600 text-xs mt-1">
-                    Employee Code: <strong>{submitSuccess.code}</strong>
-                  </p>
-                  {submitSuccess.level && (
-                    <p className="text-green-600 text-xs mt-1">
-                      Level: <strong>{submitSuccess.level}</strong>
-                    </p>
-                  )}
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setSubmitSuccess(null)}
-                  className="text-green-600 hover:text-green-800 hover:bg-green-100"
-                >
-                  ✕
-                </Button>
-              </div>
-              <div className="mt-4 flex justify-end">
-                <Button 
-                  onClick={() => setSubmitSuccess(null)}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  OK
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+
       <div className="max-w-7xl mx-auto">
         <Card className="shadow-2xl border-0">
           <CardHeader className="bg-white border-b-2 border-gray-200 rounded-t-lg">
@@ -768,63 +741,15 @@ export function CoordinatorForm({
           </CardHeader>
           
           <CardContent className="p-0">
-            {/* Progress Bar - Exactly like the image */}
+            {/* Progress Bar */}
             <div className="bg-white px-8 py-6 border-b">
-              <div className="flex items-center justify-between mb-4">
-            <div>
-                  <h3 className="text-lg font-bold text-gray-800">Progress</h3>
-                  <p className="text-sm text-gray-500">Step {currentStep} of {totalSteps}</p>
+              <ProgressBar 
+                steps={steps} 
+                currentStep={currentStep}
+                onStepClick={handleStepChange}
+                showClickable={true}
+              />
             </div>
-                <div className="text-sm text-gray-500">
-                  Add Coordinator
-            </div>
-          </div>
-              
-              {/* Horizontal Progress Bar */}
-              <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
-                <div 
-                  className="h-2 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: `${(currentStep / totalSteps) * 100}%`,
-                    backgroundColor: '#365486'
-                  }}
-                ></div>
-        </div>
-              
-              {/* Step Indicators */}
-              <div className="flex items-center justify-between">
-                  {steps.map((step, index) => (
-                  <div key={step.id} className="flex items-center">
-                    <button
-                      onClick={() => handleStepChange(step.id)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        currentStep === step.id
-                            ? "text-white"
-                            : step.id < currentStep
-                              ? "bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer"
-                              : "bg-gray-50 text-gray-400 cursor-not-allowed"
-                        }`}
-                        style={currentStep === step.id ? { backgroundColor: '#365486' } : {}}
-                      disabled={step.id > currentStep}
-                    >
-                      <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                          currentStep === step.id
-                            ? "bg-white"
-                            : step.id < currentStep
-                              ? "bg-green-500 text-white"
-                              : "bg-gray-300 text-gray-500"
-                        }`}
-                        style={currentStep === step.id ? { color: '#365486' } : {}}
-                      >
-                        {step.id < currentStep ? "✓" : step.id}
-                      </div>
-                      <span>{step.title}</span>
-                    </button>
-                  </div>
-                  ))}
-                </div>
-              </div>
 
             {/* Step Content */}
             <div className="p-8">

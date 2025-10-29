@@ -1,11 +1,24 @@
 import { CacheManager } from './cache';
 
 export function getApiBaseUrl(): string {
-  const baseUrl = typeof window !== "undefined" 
-    ? (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000")
-    : (process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://backend:8000");
-  
-  console.log('🌐 API Base URL:', baseUrl);
+  const isBrowser = typeof window !== "undefined";
+  const isProd = process.env.NODE_ENV === 'production';
+
+  // Prefer envs; provide sensible fallbacks per environment
+  const baseUrl = isBrowser
+    ? (
+        process.env.NEXT_PUBLIC_API_BASE_URL 
+        || (isProd ? 'https://sms.idaraalkhair.sbs:8002' : 'http://127.0.0.1:8000')
+      )
+    : (
+        process.env.API_BASE_URL 
+        || process.env.NEXT_PUBLIC_API_BASE_URL 
+        || (isProd ? 'https://sms.idaraalkhair.sbs:8002' : 'http://backend:8000')
+      );
+
+  if (!isProd) {
+    console.log('🌐 API Base URL:', baseUrl);
+  }
   return baseUrl;
 }
 
@@ -29,6 +42,7 @@ export const API_ENDPOINTS = {
   AUTH_LOGIN: "/api/auth/login/",
   AUTH_REFRESH: "/api/auth/refresh/",
   COORDINATORS: "/api/coordinators/",
+  PRINCIPALS: "/api/principals/",
   LEVELS: "/api/levels/",
   GRADES: "/api/grades/",
   CLASSROOMS: "/api/classrooms/",
@@ -2098,6 +2112,107 @@ export async function sendForgotPasswordOTP(employeeCode: string) {
   } catch (error) {
     if (error instanceof ApiError) throw error;
     throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
+  }
+}
+
+// Principal APIs
+export async function getAllPrincipals() {
+  try {
+    const principals = await apiGet(API_ENDPOINTS.PRINCIPALS) as any;
+    return Array.isArray(principals) ? principals : (principals?.results || []);
+  } catch (error) {
+    console.error('Failed to fetch principals:', error);
+    return [];
+  }
+}
+
+export async function getFilteredPrincipals(params: {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  campus?: number;
+  shift?: string;
+  is_currently_active?: boolean;
+  ordering?: string;
+}): Promise<{
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: any[];
+}> {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    // Add pagination params
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.page_size) queryParams.append('page_size', params.page_size.toString());
+    
+    // Add search param
+    if (params.search) queryParams.append('search', params.search);
+    
+    // Add filter params
+    if (params.campus) queryParams.append('campus', params.campus.toString());
+    if (params.shift) queryParams.append('shift', params.shift);
+    if (params.is_currently_active !== undefined) queryParams.append('is_currently_active', params.is_currently_active.toString());
+    
+    // Add ordering param
+    if (params.ordering) queryParams.append('ordering', params.ordering);
+    
+    const response = await apiGet(`${API_ENDPOINTS.PRINCIPALS}?${queryParams.toString()}`);
+    return response as {
+      count: number;
+      next: string | null;
+      previous: string | null;
+      results: any[];
+    };
+  } catch (error) {
+    console.error('Failed to fetch filtered principals:', error);
+    throw error;
+  }
+}
+
+export async function getPrincipalById(id: number) {
+  try {
+    return await apiGet(`${API_ENDPOINTS.PRINCIPALS}${id}/`);
+  } catch (error) {
+    console.error('Failed to fetch principal:', error);
+    throw error;
+  }
+}
+
+export async function createPrincipal(data: any) {
+  try {
+    return await apiPost(API_ENDPOINTS.PRINCIPALS, data);
+  } catch (error) {
+    console.error('Failed to create principal:', error);
+    throw error;
+  }
+}
+
+export async function updatePrincipal(id: number, data: any) {
+  try {
+    return await apiPut(`${API_ENDPOINTS.PRINCIPALS}${id}/`, data);
+  } catch (error) {
+    console.error('Failed to update principal:', error);
+    throw error;
+  }
+}
+
+export async function deletePrincipal(id: number) {
+  try {
+    return await apiDelete(`${API_ENDPOINTS.PRINCIPALS}${id}/`);
+  } catch (error) {
+    console.error('Failed to delete principal:', error);
+    throw error;
+  }
+}
+
+export async function getPrincipalStats() {
+  try {
+    return await apiGet(`${API_ENDPOINTS.PRINCIPALS}stats/`);
+  } catch (error) {
+    console.error('Failed to fetch principal stats:', error);
+    throw error;
   }
 }
 

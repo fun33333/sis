@@ -4,15 +4,15 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, Search, Edit, X } from "lucide-react"
-import { getAllCoordinators } from "@/lib/api"
+import { Users, Search, Edit, X, Mail, Calendar, Clock, Award } from "lucide-react"
+import { getAllCoordinators, getApiBaseUrl } from "@/lib/api"
 import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions"
+import { DataTable, PaginationControls, LoadingState } from "@/components/shared"
 
 interface CoordinatorUser {
   id: number
@@ -296,6 +296,40 @@ export default function CoordinatorListPage() {
     setEditFormData({})
   }
 
+  // Define columns for DataTable
+  const columns = [
+    {
+      key: 'name',
+      label: 'Name',
+      icon: <Users className="w-4 h-4" />
+    },
+    {
+      key: 'email',
+      label: 'Email',
+      icon: <Mail className="w-4 h-4" />
+    },
+    {
+      key: 'level',
+      label: 'Level',
+      icon: <Award className="w-4 h-4" />
+    },
+    {
+      key: 'shift',
+      label: 'Shift',
+      icon: <Clock className="w-4 h-4" />
+    },
+    {
+      key: 'joining_date',
+      label: 'Joining Date',
+      icon: <Calendar className="w-4 h-4" />
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      icon: <Users className="w-4 h-4" />
+    }
+  ]
+
   const handleEditSubmit = async () => {
     if (!editingCoordinator) return
 
@@ -324,8 +358,9 @@ export default function CoordinatorListPage() {
       console.log('Updating coordinator with data:', updateData)
 
       // Use the correct API endpoint with proper base URL
-      const baseUrl = 'http://127.0.0.1:8000'
-      const endpoint = `${baseUrl}/api/coordinators/${editingCoordinator.id}/`
+      const baseUrl = getApiBaseUrl()
+      const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
+      const endpoint = `${cleanBase}/api/coordinators/${editingCoordinator.id}/`
       
       console.log(`Updating coordinator at: ${endpoint}`)
       console.log('Update data:', updateData)
@@ -437,74 +472,40 @@ export default function CoordinatorListPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">
-              {userRole === 'principal' && userCampus 
-                ? `Loading coordinators from ${userCampus}...`
-                : 'Loading coordinators...'
-              }
-            </div>
+            <LoadingState message={userRole === 'principal' && userCampus 
+              ? `Loading coordinators from ${userCampus}...`
+              : 'Loading coordinators...'
+            } />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow style={{ backgroundColor: '#274c77' }}>
-                  <TableHead className="text-white">Name</TableHead>
-                  <TableHead className="text-white">Email</TableHead>
-                  <TableHead className="text-white">Level</TableHead>
-                  <TableHead className="text-white">Shift</TableHead>
-                  <TableHead className="text-white">Joining Date</TableHead>
-                  <TableHead className="text-white">Status</TableHead>
-                  <TableHead className="text-white">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((u, index) => (
-                  <TableRow key={u.id} style={{ backgroundColor: index % 2 === 0 ? '#e7ecef' : 'white' }} className="hover:bg-[#a3cef1] transition">
-                    <TableCell className="font-medium">{`${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username}</TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>{u.level || '—'}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" style={{ borderColor: '#6096ba', color: '#274c77' }}>
-                        {u.shift ? u.shift.charAt(0).toUpperCase() + u.shift.slice(1) : '—'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{u.joining_date || '—'}</TableCell>
-                    <TableCell>
-                      <Badge style={{ backgroundColor: u.is_active ? '#6096ba' : '#8b8c89', color: 'white' }}>
-                        {u.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation()
-                            router.push(`/admin/coordinator/profile/${u.id}`)
-                          }}
-                          className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                        >
-                          View Profile
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation()
-                            handleEdit(u)
-                          }}
-                          className="text-green-600 border-green-300 hover:bg-green-50"
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+            <>
+          <DataTable
+            data={filtered.map(u => ({
+              id: u.id,
+              name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username,
+              email: u.email,
+              level: u.level || '—',
+              shift: u.shift ? (
+                <Badge variant="outline" style={{ borderColor: '#6096ba', color: '#274c77' }}>
+                  {u.shift.charAt(0).toUpperCase() + u.shift.slice(1)}
+                </Badge>
+              ) : '—',
+              joining_date: u.joining_date || '—',
+              status: (
+                <Badge style={{ backgroundColor: u.is_active ? '#6096ba' : '#8b8c89', color: 'white' }}>
+                  {u.is_active ? 'Active' : 'Inactive'}
+                </Badge>
+              )
+            }))}
+            columns={columns}
+            onView={(coordinator) => router.push(`/admin/coordinator/profile/${coordinator.id}`)}
+            onEdit={(coordinator) => handleEdit(filtered.find(u => u.id === coordinator.id)!)}
+            isLoading={loading}
+            emptyMessage="No coordinators found"
+            allowEdit={userRole !== 'student'}
+            allowDelete={false}
+          />
+          </>
+        )}
         </CardContent>
       </Card>
 

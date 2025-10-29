@@ -104,6 +104,11 @@ interface ProfileData {
     section: string
     shift: string
   }
+  // Admin specific
+  role_display?: string
+  is_verified?: boolean
+  is_active?: boolean
+  last_login?: string
 }
 
 const ProfileSection = ({ title, children, icon: Icon }: { title: string, children: React.ReactNode, icon?: any }) => (
@@ -150,6 +155,7 @@ const getRoleIcon = (role: string) => {
     case 'coordinator': return <Users className="w-4 h-4" />
     case 'principal': return <Shield className="w-4 h-4" />
     case 'student': return <BookOpen className="w-4 h-4" />
+    case 'admin': return <Shield className="w-4 h-4" />
     default: return <User className="w-4 h-4" />
   }
 }
@@ -160,6 +166,7 @@ const getRoleColor = (role: string) => {
     case 'coordinator': return 'bg-gradient-to-r from-green-500 to-green-600 text-white border-green-500 shadow-lg'
     case 'principal': return 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-purple-500 shadow-lg'
     case 'student': return 'bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-500 shadow-lg'
+    case 'admin': return 'bg-gradient-to-r from-red-500 to-red-600 text-white border-red-500 shadow-lg'
     default: return 'bg-gradient-to-r from-gray-500 to-gray-600 text-white border-gray-500 shadow-lg'
   }
 }
@@ -469,6 +476,29 @@ export default function UnifiedProfile() {
                     label="Campus" 
                     value={profile.campus?.campus_name} 
                     icon={Building2} 
+                  />
+                </div>
+              </ProfileSection>
+            )}
+
+            {role === 'admin' && (
+              <ProfileSection title="Admin Information" icon={Shield}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-0">
+                  <InfoField 
+                    label="Username" 
+                    value={profile.username} 
+                  />
+                  <InfoField 
+                    label="User ID" 
+                    value={profile.id?.toString()} 
+                  />
+                  <InfoField 
+                    label="Role" 
+                    value={profile.role_display || 'Super Admin'} 
+                  />
+                  <InfoField 
+                    label="Verified" 
+                    value={profile.is_verified ? 'Yes' : 'No'} 
                   />
                 </div>
               </ProfileSection>

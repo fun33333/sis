@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertCircle, Loader2, CheckCircle } from "lucide-react"
+import { getApiBaseUrl } from "@/lib/api"
 
 interface PersonalInfoStepProps {
   formData: any
@@ -60,7 +61,9 @@ export function PersonalInfoStep({ formData, invalidFields, onInputChange, field
   // Check uniqueness functions
   const checkEmailUniqueness = async (email: string): Promise<{ isUnique: boolean; message: string }> => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/teachers/check-email/?email=${encodeURIComponent(email)}`, {
+      const base = getApiBaseUrl()
+      const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base
+      const response = await fetch(`${cleanBase}/api/teachers/check-email/?email=${encodeURIComponent(email)}`, {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -89,8 +92,10 @@ export function PersonalInfoStep({ formData, invalidFields, onInputChange, field
 
   const checkCNICUniqueness = async (cnic: string): Promise<{ isUnique: boolean; message: string }> => {
     try {
+      const base = getApiBaseUrl()
+      const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base
       const cleanCNIC = cnic.replace(/\D/g, '')
-      const response = await fetch(`http://127.0.0.1:8000/api/teachers/check-cnic/?cnic=${cleanCNIC}`, {
+      const response = await fetch(`${cleanBase}/api/teachers/check-cnic/?cnic=${cleanCNIC}`, {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'

@@ -1,20 +1,20 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 import { ArrowLeft, ArrowRight, Eye } from "lucide-react"
 import { GeneralInfoStep } from "./campus-form/general-info-step"
 import { FacilitiesStep } from "./campus-form/facilities-step"
 import { ContactStep } from "./campus-form/contect-step"
 import { CampusPreview } from "./campus-form/campus-preview"
 import { useToast } from "@/hooks/use-toast"
+import { ProgressBar } from "@/components/ui/progress-bar"
 
 const steps = [
   { id: 1, title: "General Information" },
   { id: 2, title: "Facilities" },
-  { id: 3, title: "Contact & Misc" },
+  { id: 3, title: "Contact & Info" },
 ]
 
 export function CampusForm() {
@@ -38,7 +38,7 @@ export function CampusForm() {
 
   const validateCurrentStep = () => {
     const requiredFields: { [step: number]: string[] } = {
-      1: ["name", "status"], // Only name and status are required
+      1: ["campus_name", "city", "postal_code", "status", "address_full", "shift_available"], // Required fields for Step 1
       2: [], // No required fields in facilities step
       3: [], // No required fields in contact step
     }
@@ -133,49 +133,15 @@ export function CampusForm() {
         <Card className="border-2">
           <CardHeader>
             <div className="w-full">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">Progress</CardTitle>
-                  <CardDescription className="text-sm">
-                    Step {currentStep} of {totalSteps}
-                  </CardDescription>
-                </div>
-                <div className="text-sm text-muted-foreground">Add Campus</div>
+              <div className="flex items-center justify-between mb-4">
+                <CardTitle className="text-lg">Add Campus</CardTitle>
               </div>
-              <div className="mt-4">
-                <Progress value={(currentStep / totalSteps) * 100} className="h-2 rounded-full" />
-                <div className="flex items-center justify-between mt-3 gap-2">
-                  {steps.map((step, index) => (
-                    <button
-                      key={step.id}
-                      onClick={() => handleStepChange(step.id)}
-                      disabled={step.id > currentStep}
-                      className={`flex items-center gap-3 text-sm px-2 py-1 rounded-lg transition-all focus:outline-none ${
-                        currentStep === step.id
-                          ? "bg-primary text-white font-medium"
-                          : currentStep > step.id
-                            ? "bg-green-50 text-green-700 cursor-pointer hover:bg-green-100"
-                            : step.id > currentStep
-                              ? "text-muted-foreground cursor-not-allowed opacity-50"
-                              : "text-muted-foreground"
-                      }`}
-                    >
-                      <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${
-                          currentStep === step.id
-                            ? "bg-primary text-white"
-                            : currentStep > step.id
-                              ? "bg-green-500 text-white"
-                              : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {index + 1}
-                      </div>
-                      <span className="hidden sm:inline">{step.title}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <ProgressBar 
+                steps={steps}
+                currentStep={currentStep}
+                onStepClick={handleStepChange}
+                showClickable={true}
+              />
             </div>
           </CardHeader>
         </Card>

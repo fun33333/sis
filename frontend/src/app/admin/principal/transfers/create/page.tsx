@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Search, User, GraduationCap, FileText, CheckCircle, XCircle, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { createTransferRequest, previewIDChange, getAllCampuses, getAllStudents, getAllTeachers } from '@/lib/api';
-import { getCurrentUserRole } from '@/lib/permissions';
 
 interface Campus {
   id: number;
@@ -71,8 +70,7 @@ export default function CreateTransferRequestPage() {
   
   // Data lists
   const [campuses, setCampuses] = useState<Campus[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
+
   const [searchResults, setSearchResults] = useState<(Student | Teacher)[]>([]);
   const [selectedEntity, setSelectedEntity] = useState<Student | Teacher | null>(null);
   const [searchQuery, setSearchQuery] = useState('');

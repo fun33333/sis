@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { MultiSelectFilter } from "@/components/dashboard/multi-select-filter"
 import { KpiCard } from "@/components/dashboard/kpi-card"
 import { GradeDistributionChart } from "@/components/dashboard/grade-distribution-chart"
-import { CampusPerformanceChart } from "@/components/dashboard/campus-performance-chart"
 import { GenderDistributionChart } from "@/components/dashboard/gender-distribution-chart"
 import { MotherTongueChart } from "@/components/dashboard/mother-tongue-chart"
 import { ReligionChart } from "@/components/dashboard/religion-chart"
@@ -15,8 +14,8 @@ import { WeeklyAttendanceChart } from "@/components/dashboard/weekly-attendance-
 import { ZakatStatusChart } from "@/components/dashboard/zakat-status-chart"
 import { HouseOwnershipChart } from "@/components/dashboard/house-ownership-chart"
 import { UserGreeting } from "@/components/dashboard/user-greeting"
-import { ArrowLeft, Users, Download, ChevronDown, GraduationCap, UsersRound, RefreshCw } from "lucide-react"
-import { getGradeDistribution, getGenderDistribution, getCampusPerformance, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution, getAgeDistribution, getZakatStatusDistribution, getHouseOwnershipDistribution } from "@/lib/chart-utils"
+import { Users, Download, ChevronDown, GraduationCap, UsersRound } from "lucide-react"
+import { getGradeDistribution, getGenderDistribution, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution, getAgeDistribution, getZakatStatusDistribution, getHouseOwnershipDistribution } from "@/lib/chart-utils"
 import type { FilterState, LegacyStudent as DashboardStudent } from "@/types/dashboard"
 import { useRouter } from "next/navigation"
 import { getDashboardStats, getAllStudents, getAllCampuses, apiGet, getCurrentUserProfile } from "@/lib/api"
@@ -42,8 +41,6 @@ export default function MainDashboardPage() {
           }
         }
         keysToRemove.forEach(key => localStorage.removeItem(key))
-        console.log('🧹 Cleared localStorage cache on page load')
-        
         // Also clear any cached data that might cause the 50 students issue
         const allKeys = Object.keys(localStorage)
         allKeys.forEach(key => {
@@ -51,7 +48,6 @@ export default function MainDashboardPage() {
             localStorage.removeItem(key)
           }
         })
-        console.log('🧹 Cleared all related cache keys')
       } catch (error) {
         console.warn('Error clearing localStorage on mount:', error)
       }
@@ -197,8 +193,7 @@ export default function MainDashboardPage() {
   const [showLoader, setShowLoader] = useState(true)
   const [principalCampusId, setPrincipalCampusId] = useState<number | null>(null)
   const [cacheTimestamp, setCacheTimestamp] = useState<number>(0)
-  const [totalStudentsCount, setTotalStudentsCount] = useState<number>(0) // From API stats
-  const [apiChartData, setChartData] = useState<any>(null) // Chart data from API (all students)
+  const [totalStudentsCount, setTotalStudentsCount] = useState<number>(0) // From API stats (for reference)
   const [teachersCount, setTeachersCount] = useState<number>(0) // Total teachers count
   const [weeklyAttendanceData, setWeeklyAttendanceData] = useState<any[]>([]) // Weekly attendance data
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false) // Refresh state
@@ -220,13 +215,10 @@ export default function MainDashboardPage() {
       const now = Date.now()
       const cacheKey = `dashboard_${userRole}_${userCampus || 'all'}`
       
-      // Skip cache for now to always get fresh data
-      // This prevents the issue where cached data shows first, then real data loads
-      console.log('🔄 Skipping cache to fetch fresh data')
+    
       
       setLoading(true)
       setShowLoader(true)
-      console.log('🔄 Starting fresh data fetch...')
       
       try {
         // Fetch teachers count and weekly attendance data
@@ -247,7 +239,6 @@ export default function MainDashboardPage() {
         try {
           const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
           
-          // Try to fetch real attendance data
           try {
             const attendanceResponse: any = await apiGet('/api/attendance/')
             
@@ -307,18 +298,18 @@ export default function MainDashboardPage() {
           // Fetch stats separately to avoid blocking
           const apiStats = await getDashboardStats()
           
-          console.log('📊 API Response:', {
-            students: Array.isArray(apiStudents) ? apiStudents.length : 'Not array',
-            stats: apiStats,
-            campuses: Array.isArray(caps) ? caps.length : 'Not array'
-          });
+          // console.log('📊 API Response:', {
+          //   students: Array.isArray(apiStudents) ? apiStudents.length : 'Not array',
+          //   stats: apiStats,
+          //   campuses: Array.isArray(caps) ? caps.length : 'Not array'
+          // });
           
           // Filter students by principal's campus
           const studentsArray = Array.isArray(apiStudents) ? apiStudents : [];
           const campusArray = Array.isArray(caps) ? caps : (Array.isArray((caps as any)?.results) ? (caps as any).results : [])
           
-          console.log('Total students fetched:', studentsArray.length)
-          console.log('Available campuses:', campusArray.map((c: any) => c.campus_name || c.name))
+          // console.log('Total students fetched:', studentsArray.length)
+          // console.log('Available campuses:', campusArray.map((c: any) => c.campus_name || c.name))
           
           // Find principal's campus ID
           const principalCampus = campusArray.find((c: any) => {
@@ -329,25 +320,25 @@ export default function MainDashboardPage() {
                    String(c.id) === String(userCampus);
           })
           
-          console.log('Principal campus found:', principalCampus)
+          // console.log('Principal campus found:', principalCampus)
           
           if (principalCampus) {
             // Filter students by campus
             const campusStudents = studentsArray.filter((student: any) => {
               if (!student || !student.campus) {
-                console.log('❌ Student or campus is null:', student);
+                // console.log('❌ Student or campus is null:', student);
                 return false;
               }
               
               const studentCampus = student.campus
-              console.log('Student campus:', studentCampus, 'Principal campus:', userCampus, 'Principal campus ID:', principalCampus.id)
+              // console.log('Student campus:', studentCampus, 'Principal campus:', userCampus, 'Principal campus ID:', principalCampus.id)
               
               if (typeof studentCampus === 'object' && studentCampus !== null) {
                 const matches = (studentCampus.campus_name === userCampus) || 
                                (studentCampus.name === userCampus) ||
                                (studentCampus.campus_code === userCampus) ||
                                (studentCampus.id === principalCampus.id)
-                console.log('Object campus match:', matches)
+                // console.log('Object campus match:', matches)
                 return matches
               }
               
@@ -356,11 +347,11 @@ export default function MainDashboardPage() {
                              (studentCampus === userCampus) ||
                              (String(studentCampus) === String(principalCampus.id)) ||
                              (String(studentCampus) === String(userCampus))
-              console.log('ID campus match:', matches)
+              // console.log('ID campus match:', matches)
               return matches
             })
             
-            console.log('Filtered campus students:', campusStudents.length)
+            // console.log('Filtered campus students:', campusStudents.length)
             
             // Process filtered students
             const idToCampusName = new Map<string, string>(
@@ -404,22 +395,12 @@ export default function MainDashboardPage() {
               }
             })
             
-            console.log('Mapped campus students:', mapped.length)
-            console.log('Sample student data:', mapped[0])
-            console.log('Campus filtering debug:', {
-              userCampus,
-              principalCampusId: principalCampus.id,
-              totalStudents: studentsArray.length,
-              filteredStudents: campusStudents.length,
-              campusStudents: campusStudents.slice(0, 3).map(s => ({
-                id: s.id,
-                name: s.name,
-                campus: s.campus,
-                gender: s.gender
-              }))
-            })
+            // console.log('✅ Mapped campus students:', mapped.length)
+            // console.log('Sample student data:', mapped[0])
+            // console.log('Campus filtering debug:', {...})
             
             setStudents(mapped)
+            setTotalStudentsCount(mapped.length)
             setCacheTimestamp(Date.now())
             
             // Save to cache (with total count) - only store essential data to avoid quota exceeded
@@ -432,35 +413,29 @@ export default function MainDashboardPage() {
             localStorage.setItem(cacheKey, JSON.stringify(cacheData))
             localStorage.setItem(`${cacheKey}_time`, now.toString())
           } else {
-            console.warn('Principal campus not found:', userCampus)
+            // console.warn('Principal campus not found:', userCampus)
             setStudents([])
           }
         } else {
-          // Other roles: For dashboard, we don't need ALL students - just stats!
-        // Import getDashboardStudents and getDashboardChartData at the top
-        const { getDashboardStudents, getDashboardChartData } = await import('@/lib/api');
-        
-        // Fetch students (for table), stats (for metrics), charts (for all students), and campuses
-        const [firstPageStudents, apiStats, chartData, caps] = await Promise.all([
-          getDashboardStudents(100), // Only first 100 students for dashboard table
+          // Super Admin: Fetch ALL students for accurate filtering and charting
+        // Fetch all students for dashboard (charts need all data for accurate filtering)
+        const [apiStudents, apiStats, caps] = await Promise.all([
+          getAllStudents(), // Fetch ALL students for accurate charts and filtering
           getDashboardStats(), // Total count and basic stats
-          getDashboardChartData(), // Chart data for ALL students
           getAllCampuses()
         ])
 
-          // Use only first page of students for display
-        const studentsArray = Array.isArray(firstPageStudents) ? firstPageStudents : [];
+          // Use all students for charts and filtering
+        const studentsArray = Array.isArray(apiStudents) ? apiStudents : [];
+        
+        // console.log('📊 Fetched students for Super Admin:', { total: studentsArray.length })
         
         // Set total count from API stats
         if (apiStats && typeof apiStats.totalStudents === 'number') {
           setTotalStudentsCount(apiStats.totalStudents)
         }
         
-        // Store chart data separately (will be used instead of calculating from 100 students)
-        if (chartData) {
-          console.log('📊 Raw API Chart Data:', chartData)
-          setChartData(chartData)
-        }
+        // Note: Charts are now calculated from filtered students dynamically
         const campusArray = Array.isArray(caps) ? caps : (Array.isArray((caps as any)?.results) ? (caps as any).results : [])
         const idToCampusCode = new Map<string, string>(
             campusArray.map((c: any) => [String(c.id), String(c.campus_code || c.code || '')])
@@ -512,12 +487,15 @@ export default function MainDashboardPage() {
             }
           })
         
+        // console.log('✅ Mapped students for charts:', mapped.length)
+        
         setStudents(mapped)
+        setTotalStudentsCount(mapped.length)
         setCacheTimestamp(Date.now())
         
         // Save to cache (with total count) - only store essential data to avoid quota exceeded
         const cacheData = {
-          totalCount: totalStudentsCount,
+          totalCount: mapped.length,
           // Only store first 50 students to avoid localStorage quota issues
           students: mapped.slice(0, 50),
           hasMore: mapped.length > 50
@@ -559,16 +537,18 @@ export default function MainDashboardPage() {
   }, [filters, students])
 
   const metrics = useMemo(() => {
-    // Use totalStudentsCount from API stats instead of filtered students length
-    const totalStudents = totalStudentsCount
+    // Use filtered students count to respect user's filter selections
+    const totalStudents = filteredStudents.length
     
     // Calculate real attendance from weekly data (average of present students)
     const averageAttendance = weeklyAttendanceData.length > 0 
       ? Math.round(weeklyAttendanceData.reduce((sum, day) => sum + day.present, 0) / weeklyAttendanceData.length)
       : 0
     
-    // Teacher:Student ratio
+    // Teacher:Student ratio based on filtered students
     const teacherStudentRatio = teachersCount > 0 ? Math.round(totalStudents / teachersCount) : 0
+    
+    // console.log('📊 Metrics calculated')
     
     return { 
       totalStudents, 
@@ -578,7 +558,7 @@ export default function MainDashboardPage() {
       averageScore: 0, // Removed
       retentionRate: 0 // Removed
     }
-  }, [totalStudentsCount, teachersCount, weeklyAttendanceData])
+  }, [filteredStudents.length, teachersCount, weeklyAttendanceData])
 
   // Campus performance data - use filtered students
   const campusPerformanceData = useMemo(() => {
@@ -598,29 +578,9 @@ export default function MainDashboardPage() {
   }, [filteredStudents])
 
   const chartData = useMemo(() => {
-    // Use API chart data if available, otherwise calculate from filtered students
-    if (apiChartData) {
-      // Transform API data to match frontend expectations
-      const transformedData = {
-        gradeDistribution: apiChartData.gradeDistribution?.map((item: any) => ({
-          name: item.grade || item.name,
-          value: item.count || item.value
-        })) || [],
-        genderDistribution: apiChartData.genderDistribution || [],
-        campusPerformance: apiChartData.campusPerformance || [],
-        enrollmentTrend: apiChartData.enrollmentTrend || [],
-        motherTongueDistribution: apiChartData.motherTongueDistribution || [],
-        religionDistribution: apiChartData.religionDistribution || [],
-        ageDistribution: apiChartData.ageDistribution || [],
-        zakatStatus: apiChartData.zakatStatus || [],
-        houseOwnership: apiChartData.houseOwnership || [],
-      }
-      
-      console.log('📊 Transformed API Chart Data:', transformedData)
-      return transformedData
-    }
+    // Always calculate from filtered students to respect user's filter selections
+    // console.log('🔄 Recalculating charts with filters')
     
-    // Fallback: calculate from filtered students
     const gradeDistribution = getGradeDistribution(filteredStudents as unknown as any[])
     const genderDistribution = getGenderDistribution(filteredStudents as unknown as any[])
     const enrollmentTrend = getEnrollmentTrend(filteredStudents as unknown as any[])
@@ -630,7 +590,7 @@ export default function MainDashboardPage() {
     const zakatStatus = getZakatStatusDistribution(filteredStudents as unknown as any[])
     const houseOwnership = getHouseOwnershipDistribution(filteredStudents as unknown as any[])
     
-    return {
+    const result = {
       gradeDistribution,
       genderDistribution,
       campusPerformance: campusPerformanceData,
@@ -641,7 +601,11 @@ export default function MainDashboardPage() {
       zakatStatus,
       houseOwnership,
     }
-  }, [apiChartData, filteredStudents, campusPerformanceData])
+    
+    // console.log('📊 Calculated chart data')
+    
+    return result
+  }, [filteredStudents, campusPerformanceData, filters])
 
   // Dynamic filter options based on real data
   const dynamicAcademicYears = useMemo(() => {
@@ -1052,34 +1016,22 @@ export default function MainDashboardPage() {
         {/* Filters Card */}
         <Card className="!bg-[#E7ECEF] shadow-lg mb-6">
           <CardHeader className="!bg-[#E7ECEF]">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <Button variant="ghost" className="flex items-center gap-2 rounded-xl shadow-sm hover:bg-white/50 transition" onClick={() => window.history.back()}>
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-              <div className="flex gap-2 items-center">
-                <Button 
-                  onClick={refreshData} 
-                  variant="outline" 
-                  disabled={isRefreshing}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
-                </Button>
-                <Button onClick={resetFilters} variant="outline">
-                  Reset Filters
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4">
+              <div className="flex gap-2 items-center w-full sm:w-auto flex-wrap">
+                <Button onClick={resetFilters} variant="outline" className="flex-1 sm:flex-none">
+                  <span className="hidden sm:inline">Reset Filters</span>
+                  <span className="sm:hidden">Reset</span>
                 </Button>
                 {/* Export Button Dropdown (moved here) */}
-                <div className="relative" ref={exportRef}>
+                <div className="relative flex-1 sm:flex-none" ref={exportRef}>
                   <Button
                     variant="outline"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg shadow hover:bg-gray-100"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg shadow hover:bg-gray-100 w-full sm:w-auto"
                     onClick={() => setExportOpen((v) => !v)}
                     aria-haspopup="true"
                     aria-expanded={exportOpen}
                   >
-                    <Download className="w-4 h-4" /> Export <ChevronDown className="w-4 h-4" />
+                    <Download className="w-4 h-4" /> <span className="hidden sm:inline">Export</span> <ChevronDown className="w-4 h-4" />
                   </Button>
                   {exportOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-50 animate-fade-in">
@@ -1093,7 +1045,7 @@ export default function MainDashboardPage() {
             </div>
           </CardHeader>
           <CardContent className="!bg-[#E7ECEF]">
-            <div className="flex flex-wrap gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <MultiSelectFilter title="Academic Year" options={dynamicAcademicYears} selectedValues={filters.academicYears} onSelectionChange={(val) => setFilters((prev) => ({ ...prev, academicYears: val as number[] }))} placeholder="All years" />
               {/* Hide campus filter for principal - they only see their campus data */}
               {userRole !== 'principal' && (
@@ -1119,7 +1071,7 @@ export default function MainDashboardPage() {
                     const choice = String(newSelection[newSelection.length - 1] || 'All')
                     const normalized = choice.toLowerCase()
                     setShiftFilter(normalized)
-                    console.log('Shift filter changed to:', normalized, 'from selection:', newSelection)
+                    // console.log('Shift filter changed to:', normalized, 'from selection:', newSelection)
                   }}
                   placeholder="All shifts"
                 />
@@ -1176,28 +1128,23 @@ export default function MainDashboardPage() {
           <EnrollmentTrendChart data={chartData.enrollmentTrend.map((t: any) => ({ name: String(t.year), value: t.enrollment }))} />
         </div>
 
-        {/* Row 3: Campus Students - Full Width (only for non-principal) */}
+        {/* Row 3: Grade Distribution - Full Width (only for non-principal) */}
         {userRole !== 'principal' && (
         <div className="grid grid-cols-1 gap-4 md:gap-6 mt-8">
-            <CampusPerformanceChart data={chartData.campusPerformance} valueKind="count" />
+            <GradeDistributionChart data={chartData.gradeDistribution} />
         </div>
         )}
 
         {/* Row 4: Weekly Attendance & Age Distribution */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8">
           <WeeklyAttendanceChart data={weeklyAttendanceData} />
-          <AgeDistributionChart data={chartData.ageDistribution.map((item: any) => ({ name: `${item.age} years`, value: item.count }))} />
+          <AgeDistributionChart data={chartData.ageDistribution} />
         </div>
 
         {/* Row 5: Zakat Status & House Ownership */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8">
-          <ZakatStatusChart data={chartData.zakatStatus.map((item: any) => ({ name: item.status, value: item.count }))} />
-          <HouseOwnershipChart data={chartData.houseOwnership.map((item: any) => ({ name: item.status, value: item.count }))} />
-        </div>
-
-        {/* Row 6: Grade Distribution - Full Width */}
-        <div className="grid grid-cols-1 gap-4 md:gap-6 mt-8 mb-8">
-          <GradeDistributionChart data={chartData.gradeDistribution} />
+          <ZakatStatusChart data={chartData.zakatStatus} />
+          <HouseOwnershipChart data={chartData.houseOwnership} />
         </div>
       </div>
     </main>
