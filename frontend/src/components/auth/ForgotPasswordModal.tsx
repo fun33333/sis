@@ -60,7 +60,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     // Validate employee code format
     const employeeCodeOk = /^[A-Z0-9-]+$/.test(employeeCode.trim());
     if (!employeeCodeOk) {
-      setError('Please enter a valid employee code (e.g., C01-M-25-T-0068)');
+      setError('Please enter a valid employee code');
       return;
     }
 

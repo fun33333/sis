@@ -174,7 +174,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         key: "campus-management",
         title: "Campus Management",
         icon: Building2,
-        href: "/admin/principal/campus-management",
+        href: "/admin/principals/campus-management",
         subItems: [],
       },
       {
@@ -185,6 +185,16 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         subItems: [
           { title: "Student List", href: "/admin/students/student-list" },
           { title: "Add Student", href: "/admin/students/add" },
+        ],
+      },
+      {
+        key: "principals",
+        title: "Principals",
+        icon: Award,
+        href: "/admin/principals/list",
+        subItems: [
+          { title: "Add Principal", href: "/admin/principals/add" },
+          { title: "Principal List", href: "/admin/principals/list" }
         ],
       },
       {
@@ -201,10 +211,10 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         key: "transfers",
         title: "Transfers",
         icon: ArrowRightLeft,
-        href: "/admin/principal/transfers",
+        href: "/admin/principals/transfers",
         subItems: [
-          { title: "Transfer Management", href: "/admin/principal/transfers" },
-          { title: "Create Transfer", href: "/admin/principal/transfers/create" },
+          { title: "Transfer Management", href: "/admin/principals/transfers" },
+          { title: "Create Transfer", href: "/admin/principals/transfers/create" },
         ],
       },
       {
@@ -255,6 +265,16 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
         ],
       },
       {
+        key: "principals",
+        title: "Principals",
+        icon: Award,
+        href: "/admin/principals/list",
+        subItems: [
+          { title: "Add Principal", href: "/admin/principals/add" },
+          { title: "Principal List", href: "/admin/principals/list" }
+        ],
+      },
+      {
         key: "campus",
         title: "Campus",
         icon: Building2,
@@ -264,22 +284,6 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
           { title: "Campus List", href: "/admin/campus/list" },
         ],
       },
-      // // {
-      // //   key: "coordinator",
-      // //   title: "Co-Ordinator",
-      // //   icon: Award,
-      // //   href: "/admin/coordinator",
-      // //   subItems: [
-      // //     { title: "Teacher List", href: "/admin/coordinator/teacher-list" },
-      // //     { title: "Attendance Review", href: "/admin/coordinator/attendance-review" },
-      // //     { title: "Request & Complain", href: "/admin/coordinator/request-complain" },
-      // //     { title: "Result Approval", href: "/admin/coordinator/result-approval" },
-      // //     { title: "Class Assign", href: "/admin/coordinator/class-assign" },
-      // //     { title: "Subject Assign", href: "/admin/coordinator/subject-assign" },
-      // //     { title: "Time Table", href: "/admin/coordinator/time-table" },
-      // //     { title: "Sections Progress", href: "/admin/coordinator/sections-progress" },
-      // //   ],
-      // },
     ]
     : [
       // Default/Principal: Full access

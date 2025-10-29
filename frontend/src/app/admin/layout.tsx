@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { UserProfilePopup } from "@/components/admin/user-profile-popup"
+import { NotificationBell } from "@/components/admin/notification-bell"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import { useSessionManager } from "@/hooks/useSessionManager"
 
@@ -56,7 +57,10 @@ export default function AdminLayout({
         >
           <div className="flex items-center justify-between mb-4 sm:mb-6 md:mb-8">
             <div></div>
-            <UserProfilePopup />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <NotificationBell />
+              <UserProfilePopup />
+            </div>
           </div>
           <ProtectedRoute>
             <div className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl shadow-xl p-4 sm:p-6 md:p-8">{children}</div>

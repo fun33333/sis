@@ -47,7 +47,7 @@ export function MultiSelectFilter({
         : `${selectedValues.length} selected`
 
   return (
-    <div className="space-y-2 flex-1 min-w-[200px] max-w-[300px] transition-all duration-300">
+    <div className="space-y-2 w-full transition-all duration-300">
       <label className="text-sm font-semibold text-[#274C77]">{title}</label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -55,7 +55,7 @@ export function MultiSelectFilter({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className={`w-full justify-between bg-white hover:bg-[#E7ECEF] border-2 transition-all duration-200 ${
+            className={`w-full justify-between bg-white hover:bg-gray-50 border-2 transition-all duration-200 ${
               selectedValues.length > 0 ? 'border-[#6096BA] shadow-sm' : 'border-gray-200'
             }`}
           >

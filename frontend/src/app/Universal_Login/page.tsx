@@ -12,7 +12,6 @@ import {
   User,
   
 } from "lucide-react";
-import Image from "next/image";
 import { loginWithEmailPassword, ApiError } from "@/lib/api";
 import { parseApiError, isAuthError } from "@/lib/error-handling";
 import { PasswordChangeModal } from "@/components/auth/PasswordChangeModal";
@@ -125,7 +124,7 @@ export default function LoginPage() {
       if (!employeeCodeOk) {
         setError({
           title: "Invalid Employee Code",
-          message: "Please enter a valid employee code (e.g., C01-M-25-T-0068 or S-25-0001 for Super Admin)",
+          message: "Please enter a valid employee code",
           type: "error"
         });
         setLoading(false);
@@ -229,14 +228,8 @@ export default function LoginPage() {
             {/* Logo Section */}
             <div className="flex items-center justify-center mb-8">
               <div className="flex items-center space-x-3">
-                <div className="relative w-12 h-12 sm:w-16 sm:h-16">
-                  <Image
-                    src="/Logo 2 pen.png"
-                    alt="School Logo"
-                    fill
-                    className="object-contain"
-                    priority
-                  />
+                <div className="flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-[#274c77] to-[#6096ba] rounded-xl shadow-lg">
+                  <GraduationCap className="w-7 h-7 sm:w-9 sm:h-9 text-white" />
                 </div>
                 <div className="text-left">
                   <h1 className="text-xl sm:text-2xl font-bold text-[#274c77]">School Portal</h1>

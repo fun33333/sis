@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getApiBaseUrl } from '@/lib/api';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,7 +10,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/send-password-change-otp/`, {
+    const base = getApiBaseUrl();
+    const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+    const response = await fetch(`${cleanBase}/api/send-password-change-otp/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),

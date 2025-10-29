@@ -27,7 +27,11 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-=39c$+$@eu_gk4mrp6#cey0mq%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# Allow localhost by default plus production domain
+ALLOWED_HOSTS = os.getenv(
+    'ALLOWED_HOSTS',
+    'sms.idaraalkhair.sbs,localhost,127.0.0.1'
+).split(',')
 
 
 # Application definition
@@ -95,14 +99,14 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'project_db',
-        'USER': 'project_user',
-        'PASSWORD': 'project_pass',
-        'HOST': 'localhost',
-        'PORT': '5432',
-        'CONN_MAX_AGE': 0,  
+        'NAME': os.getenv('DB_NAME', 'project_db'),
+        'USER': os.getenv('DB_USER', 'project_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'project_pass'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
+        'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '0' if DEBUG else '60')),
         'OPTIONS': {
-            'connect_timeout': 10,
+            'connect_timeout': int(os.getenv('DB_CONNECT_TIMEOUT', '10')),
         },
     }
 }
@@ -138,6 +142,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+# Where collectstatic will put compiled static files in production
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files (User uploads)
 MEDIA_URL = '/media/'
@@ -200,7 +206,7 @@ SIMPLE_JWT = {
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         }
@@ -211,9 +217,14 @@ CACHES = {
 CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True').lower() == 'true'
 
 # Specific origins for production
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
-
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
+CORS_ALLOWED_ORIGINS = os.getenv(
+    'CORS_ALLOWED_ORIGINS',
+    'https://sms.idaraalkhair.sbs,http://sms.idaraalkhair.sbs:3002,http://localhost:3000,http://127.0.0.1:3000,http://localhost:3002,http://127.0.0.1:3002'
+).split(',')
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    'CSRF_TRUSTED_ORIGINS',
+    'https://sms.idaraalkhair.sbs,http://sms.idaraalkhair.sbs:3002,http://localhost:3000,http://127.0.0.1:3000,http://localhost:3002,http://127.0.0.1:3002'
+).split(',')
 
 # Additional CORS settings for development
 CORS_ALLOW_CREDENTIALS = True
@@ -230,31 +241,7 @@ GRAPHENE = {
     # ],
 }
 
-# GraphQL JWT Configuration (Commented out for Django 5.0 compatibility)
-# AUTHENTICATION_BACKENDS = [
-#     'graphql_jwt.backends.JSONWebTokenBackend',
-#     'django.contrib.auth.backends.ModelBackend',
-# ]
 
-# GRAPHQL_JWT = {
-#     'JWT_VERIFY_EXPIRATION': True,
-#     'JWT_LONG_RUNNING_REFRESH_TOKEN': True,
-#     'JWT_EXPIRATION_DELTA': timedelta(minutes=60),
-#     'JWT_REFRESH_EXPIRATION_DELTA': timedelta(days=7),
-# }
-
-# GraphQL Auth Configuration (Commented out for Django 5.0 compatibility)
-# GRAPHQL_AUTH = {
-#     'LOGIN_ALLOWED_FIELDS': ['email'],
-#     'REGISTER_MUTATION_FIELDS': ['email', 'first_name', 'last_name'],
-#     'REGISTER_MUTATION_FIELDS_OPTIONAL': [],
-#     'USER_NODE_EXCLUDE_FIELDS': ['password'],
-#     'USER_NODE_FILTER_FIELDS': {
-#         'email': ['exact'],
-#         'is_active': ['exact'],
-#         'date_joined': ['exact', 'isnull'],
-#     },
-# }
 
 # Superuser credentials (use environment variables in production)
 SUPERUSER_USERNAME = os.getenv('SUPERUSER_USERNAME', 'admin')
@@ -269,5 +256,16 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'no-reply.ait@iak.ngo'
 EMAIL_HOST_PASSWORD = 'ztyrojmkeuozvrjw'
 DEFAULT_FROM_EMAIL = 'no-reply.ait@iak.ngo'
-FRONTEND_URL = 'http://localhost:3000'
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://sms.idaraalkhair.sbs')
+EMAIL_USE_SSL = False
+
+# Security hardening for production (kept env-driven via DEBUG)
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True').lower() == 'true'
+    SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '0' if DEBUG else '31536000'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv('SECURE_HSTS_INCLUDE_SUBDOMAINS', 'True').lower() == 'true'
+    SECURE_HSTS_PRELOAD = os.getenv('SECURE_HSTS_PRELOAD', 'True').lower() == 'true'
 EMAIL_USE_SSL = False

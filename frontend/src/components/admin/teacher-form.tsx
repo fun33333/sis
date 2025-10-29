@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
+import { ProgressBar } from "@/components/ui/progress-bar"
 import { ArrowLeft, ArrowRight, Eye } from "lucide-react"
 import { PersonalInfoStep } from "./teacher-form/personal-info-step"
 import { EducationStep } from "./teacher-form/education-step"
@@ -15,6 +15,7 @@ import { toast as sonnerToast } from "sonner"
 import { getClassrooms } from "@/lib/api"
 import { useFormErrorHandler } from "@/hooks/use-error-handler"
 import { ErrorDisplay } from "@/components/ui/error-display"
+import { getApiBaseUrl } from "@/lib/api"
 
 const steps = [
   { id: 1, title: "Personal" },
@@ -82,7 +83,6 @@ export function TeacherForm() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isValidating, setIsValidating] = useState<Record<string, boolean>>({})
   const [submitError, setSubmitError] = useState<string>('')
-  const [submitSuccess, setSubmitSuccess] = useState<{name: string, code: string, classroom?: string} | null>(null)
   
   // Use form error handler
   useFormErrorHandler({
@@ -301,7 +301,9 @@ export function TeacherForm() {
 
       console.log('Submitting teacher data:', submitData)
 
-      const response = await fetch('http://127.0.0.1:8000/api/teachers/', {
+      const base = getApiBaseUrl()
+      const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base
+      const response = await fetch(`${cleanBase}/api/teachers/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -373,13 +375,17 @@ export function TeacherForm() {
         
         // Show success popup modal
         setSubmitError('') // Clear any errors
-        setSubmitSuccess({
-          name: teacherName,
-          code: employeeCode,
-          classroom: formData.is_class_teacher ? classroomName : undefined
-        })
-        sonnerToast.success("Teacher Added Successfully!", {
-          description: `${teacherName} (${employeeCode})${formData.is_class_teacher ? ` • Classroom(s): ${classroomName}` : ''}`,
+        sonnerToast.success("✅ Teacher Added Successfully!", {
+          description: (
+            <div className="space-y-1">
+              <p className="font-semibold">Teacher: {teacherName}</p>
+              <p>Employee Code: {employeeCode}</p>
+              {formData.is_class_teacher && classroomName && (
+                <p>Classroom: {classroomName}</p>
+              )}
+            </div>
+          ),
+          duration: 5000,
         })
       } else {
         const errorData = await response.json();
@@ -511,50 +517,6 @@ export function TeacherForm() {
         </div>
       )}
 
-      {/* Success Popup Modal */}
-      {submitSuccess && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <Card className="border-green-500 bg-white shadow-2xl max-w-md w-full mx-4">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-green-600 text-xl">✓</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-green-800 text-lg">Success!</h3>
-                  <p className="text-green-700 text-sm mt-1">
-                    <strong>{submitSuccess.name}</strong> has been added successfully!
-                  </p>
-                  <p className="text-green-600 text-xs mt-1">
-                    Employee Code: <strong>{submitSuccess.code}</strong>
-                  </p>
-                  {submitSuccess.classroom && (
-                    <p className="text-green-600 text-xs mt-1">
-                      Classroom: <strong>{submitSuccess.classroom}</strong>
-                    </p>
-                  )}
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setSubmitSuccess(null)}
-                  className="text-green-600 hover:text-green-800 hover:bg-green-100"
-                >
-                  ✕
-                </Button>
-              </div>
-              <div className="mt-4 flex justify-end">
-                <Button 
-                  onClick={() => setSubmitSuccess(null)}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  OK
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       {!showPreview && (
         <Card className="border-2">
@@ -570,35 +532,12 @@ export function TeacherForm() {
                 <div className="text-sm text-muted-foreground">Add Teacher</div>
               </div>
               <div className="mt-4">
-                <Progress value={(currentStep / totalSteps) * 100} className="h-2 rounded-full" />
-                <div className="flex items-center justify-between mt-3 gap-2">
-                  {steps.map((step, index) => (
-                    <button
-                      key={step.id}
-                      onClick={() => handleStepChange(step.id)}
-                      className={`flex items-center gap-3 text-sm px-2 py-1 rounded-lg transition-all focus:outline-none ${
-                        currentStep === step.id
-                          ? "bg-primary text-white font-medium"
-                          : currentStep > step.id
-                            ? "bg-green-50 text-green-700"
-                            : "text-muted-foreground"
-                      }`}
-                    >
-                      <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${
-                          currentStep === step.id
-                            ? "bg-primary text-white"
-                            : currentStep > step.id
-                              ? "bg-green-500 text-white"
-                              : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {index + 1}
-                      </div>
-                      <span className="hidden sm:inline">{step.title}</span>
-                    </button>
-                  ))}
-                </div>
+                <ProgressBar 
+                  steps={steps} 
+                  currentStep={currentStep}
+                  onStepClick={handleStepChange}
+                  showClickable={true}
+                />
               </div>
             </div>
           </CardHeader>

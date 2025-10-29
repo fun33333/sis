@@ -10,8 +10,8 @@ interface GenderDistributionChartProps {
 
 // Custom palette for gender chart (case-insensitive keys)
 const GENDER_COLORS: Record<string, string> = {
-  female: '#274C77', // blue
-  male: '#de3492ff', // teal-pink
+  female: '#ec4899', // Pink for female
+  male: '#274C77', // Blue for male
   other: '#a3a3a3',
 }
 

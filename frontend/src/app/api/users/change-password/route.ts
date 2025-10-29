@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getApiBaseUrl } from '@/lib/api';
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,7 +18,9 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/change-password-with-otp/`, {
+    const base = getApiBaseUrl();
+    const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+    const response = await fetch(`${cleanBase}/api/change-password-with-otp/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
