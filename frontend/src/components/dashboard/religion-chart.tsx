@@ -1,5 +1,5 @@
 "use client"
-import { Pie, PieChart, Sector, ResponsiveContainer, Cell } from "recharts"
+import { Pie, PieChart, Sector, Cell } from "recharts"
 import { PieSectorDataItem } from "recharts/types/polar/Pie"
 import {
   Card,
@@ -69,31 +69,29 @@ export function ReligionChart({ data }: ReligionChartProps) {
           config={chartConfig}
           className="mx-auto aspect-square max-h-[320px]"
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel />}
-              />
-              <Pie
-                data={chartData}
-                dataKey="students"
-                nameKey="religion"
-                innerRadius={60}
-                outerRadius={100}
-                strokeWidth={5}
-                label={(props: any) => `${props.name}: ${((props.percent ?? 0) * 100).toFixed(0)}%`}
-                labelLine={true}
-                activeShape={({ outerRadius = 0, ...props }: PieSectorDataItem) => (
-                  <Sector {...props} outerRadius={outerRadius + 10} />
-                )}
-              >
-                {chartData.map((entry, idx) => (
-                  <Cell key={entry.religion} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
+          <PieChart width={285} height={285}>
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent hideLabel />}
+            />
+            <Pie
+              data={chartData}
+              dataKey="students"
+              nameKey="religion"
+              innerRadius={60}
+              outerRadius={100}
+              strokeWidth={5}
+              label={(props: any) => `${props.name}: ${((props.percent ?? 0) * 100).toFixed(0)}%`}
+              labelLine={true}
+              activeShape={({ outerRadius = 0, ...props }: PieSectorDataItem) => (
+                <Sector {...props} outerRadius={outerRadius + 10} />
+              )}
+            >
+              {chartData.map((entry, idx) => (
+                <Cell key={entry.religion} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+              ))}
+            </Pie>
+          </PieChart>
         </ChartContainer>
       </CardContent>
     </Card>

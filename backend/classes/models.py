@@ -39,10 +39,12 @@ class Level(models.Model):
     )
     code = models.CharField(max_length=25, unique=True, blank=True, null=True, editable=False)
     
-    # Campus connection
+    # Campus connection - set to null if campus is deleted (data preservation)
     campus = models.ForeignKey(
         'campus.Campus',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='levels',
         help_text="Campus this level belongs to"
     )
@@ -53,22 +55,24 @@ class Level(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            campus_code = self.campus.campus_code
-            level_mapping = {
-                'Pre-Primary': 'L1',
-                'Primary': 'L2', 
-                'Secondary': 'L3'
-            }
-            level_num = level_mapping.get(self.name, 'L1')
-            shift_code = self.shift[0].upper()  # M for morning, A for afternoon, etc.
-            self.code = f"{campus_code}-{level_num}-{shift_code}"
+            if self.campus and self.campus.campus_code:
+                campus_code = self.campus.campus_code
+                level_mapping = {
+                    'Pre-Primary': 'L1',
+                    'Primary': 'L2', 
+                    'Secondary': 'L3'
+                }
+                level_num = level_mapping.get(self.name, 'L1')
+                shift_code = self.shift[0].upper()  # M for morning, A for afternoon, etc.
+                self.code = f"{campus_code}-{level_num}-{shift_code}"
         super().save(*args, **kwargs)
 
     class Meta:
         unique_together = ("campus", "name", "shift")
     
     def __str__(self):
-        return f"{self.name}-{self.shift.title()} ({self.campus.campus_name})"
+        campus_name = self.campus.campus_name if self.campus else "No Campus"
+        return f"{self.name}-{self.shift.title()} ({campus_name})"
     
     @property
     def coordinator(self):
@@ -147,7 +151,8 @@ class Grade(models.Model):
         unique_together = ("level", "name")
     
     def __str__(self):
-        return f"{self.name} ({self.level.campus.campus_name})"
+        campus_name = self.level.campus.campus_name if self.level and self.level.campus else "No Campus"
+        return f"{self.name} ({campus_name})"
 
 # ----------------------
 class ClassRoom(models.Model):

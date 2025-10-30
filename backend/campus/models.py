@@ -62,6 +62,12 @@ class Campus(models.Model):
     total_teachers = models.PositiveIntegerField(default=0)
     male_teachers = models.PositiveIntegerField(default=0)
     female_teachers = models.PositiveIntegerField(default=0)
+    
+    # 🔹 Non-teaching Staff Details
+    total_maids = models.PositiveIntegerField(default=0, help_text="Total maids/cleaning staff")
+    total_coordinators = models.PositiveIntegerField(default=0, help_text="Total coordinators")
+    total_guards = models.PositiveIntegerField(default=0, help_text="Total security guards")
+    other_staff = models.PositiveIntegerField(default=0, help_text="Other non-teaching staff")
 
     # 🔹 Students
     total_students = models.PositiveIntegerField(default=0)

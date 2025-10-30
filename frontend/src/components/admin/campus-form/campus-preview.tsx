@@ -94,6 +94,11 @@ export function CampusPreview({ formData, onBack, onSaved }: CampusPreviewProps)
         afternoon_female_teachers: parseInt(formData.afternoon_female_teachers || "0") || 0,
         total_non_teaching_staff: parseInt(formData.total_non_teaching_staff || "0") || 0,
         total_staff_members: parseInt(formData.total_staff_members || "0") || 0,
+        // Non-teaching staff details
+        total_maids: parseInt(formData.total_maids || "0") || 0,
+        total_coordinators: parseInt(formData.total_coordinators || "0") || 0,
+        total_guards: parseInt(formData.total_guards || "0") || 0,
+        other_staff: parseInt(formData.other_staff || "0") || 0,
         // campus_photo will be handled separately
       }
 
