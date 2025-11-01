@@ -344,7 +344,8 @@ class AuditLog(models.Model):
 
 class Weekend(models.Model):
     """Model to track weekends (Sundays) for each level"""
-    date = models.DateField(unique=True)
+    # Make date non-unique; uniqueness is enforced on (level, date)
+    date = models.DateField()
     level = models.ForeignKey('classes.Level', on_delete=models.CASCADE, related_name='weekends')
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_weekends')
     created_at = models.DateTimeField(auto_now_add=True)

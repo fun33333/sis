@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Attendance, StudentAttendance
+from .models import Attendance, StudentAttendance, Weekend
 
 
 @admin.register(Attendance)
@@ -54,3 +54,13 @@ class StudentAttendanceAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('student', 'attendance', 'attendance__classroom')
+
+
+@admin.register(Weekend)
+class WeekendAdmin(admin.ModelAdmin):
+    list_display = ['date', 'level', 'created_by', 'created_at']
+    list_filter = ['level__campus', 'level', 'date']
+    search_fields = ['level__name']
+    date_hierarchy = 'date'
+    ordering = ['-date', 'level']
+    readonly_fields = ['created_at']

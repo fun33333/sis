@@ -4,7 +4,6 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { 
   Construction, 
   ArrowLeft, 
@@ -89,10 +88,10 @@ function DevelopmentPhaseContent() {
           {/* Message */}
           <div className="mb-6 space-y-3">
             <p className="text-gray-700 leading-relaxed">
-              Ye feature abhi development phase mein hai! 🚧
+              This feature is currently in development. 🚧
             </p>
             <p className="text-sm text-gray-600">
-              Ham is feature ko jald hi launch karne wale hain. Aapke patience ke liye shukriya! 🙏
+              We’ll be launching it soon. Thank you for your patience! 🙏
             </p>
           </div>
 
@@ -117,7 +116,7 @@ function DevelopmentPhaseContent() {
             </div>
             
             <p className="text-xs text-gray-500 mt-2">
-              Aapko automatically previous page par redirect kar diya jayega
+              You will be automatically redirected to the previous page.
             </p>
           </div>
 
@@ -137,7 +136,7 @@ function DevelopmentPhaseContent() {
           <div className="mt-6 pt-4 border-t border-orange-200">
             <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
               <Code className="h-4 w-4" />
-              <span>Development in Progress</span>
+              <span>Development in progress</span>
             </div>
           </div>
         </CardContent>

@@ -380,7 +380,8 @@ function StudentProfileContent() {
 
         const map: Record<string, { start: Date, end: Date, present: number, absent: number, late: number, excused: number, total: number }> = {}
         for (const r of records) {
-          const dt = new Date(r.created_at)
+          const rawDateStr: string = (r as any)?.attendance_date || (r as any)?.date || (r as any)?.attendance?.date || (r as any)?.created_at
+          const dt = new Date(rawDateStr)
           const ws = getWeekStart(dt)
           const key = ws.toISOString().slice(0, 10)
           if (!map[key]) map[key] = { start: ws, end: addDays(ws, 6), present: 0, absent: 0, late: 0, excused: 0, total: 0 }
@@ -417,7 +418,7 @@ function StudentProfileContent() {
     const start = new Date()
     start.setDate(end.getDate() - (donutRange - 1))
 
-    // Build working days and count Sundays
+    // Build working days (exclude Sundays) and count Sundays
     let sundays = 0
     const workingDays: string[] = []
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
@@ -425,26 +426,34 @@ function StudentProfileContent() {
       else workingDays.push(new Date(d).toISOString().slice(0, 10))
     }
 
-    // Map statuses by day
-    const dayToStatus: Record<string, 'present' | 'absent' | 'none'> = {}
+    // Map statuses by day (per selected range) — precedence: present > absent > leave > none
+    const dayToStatus: Record<string, 'present' | 'absent' | 'leave' | 'none'> = {}
     attendanceRaw.forEach(r => {
-      const dt = new Date(r.created_at)
+      const rawDateStr: string = (r as any)?.attendance_date || (r as any)?.date || (r as any)?.attendance?.date || (r as any)?.created_at
+      const dt = new Date(rawDateStr)
       if (dt < start || dt > end) return
       if (dt.getDay() === 0) return
       const key = dt.toISOString().slice(0, 10)
       const status = String(r.status || '').toLowerCase()
-      if (status === 'present' || status === 'late') dayToStatus[key] = 'present'
-      else if (status === 'absent') dayToStatus[key] = 'absent'
+      if (status === 'present' || status === 'late') {
+        dayToStatus[key] = 'present'
+      } else if (status === 'absent') {
+        if (dayToStatus[key] !== 'present') dayToStatus[key] = 'absent'
+      } else if (status === 'leave') {
+        if (!dayToStatus[key]) dayToStatus[key] = 'leave'
+      }
     })
 
-    let p = 0, a = 0, nr = 0, l = 0, e = 0
+    let p = 0, a = 0, nr = 0, l = 0
     for (const key of workingDays) {
-      const st = dayToStatus[key]
+      const st = dayToStatus[key] || 'none'
       if (st === 'present') p++
       else if (st === 'absent') a++
+      else if (st === 'leave') l++
       else nr++
     }
-    const denom = workingDays.length
+    // New rule: denominator is fixed by selected range working days excluding leaves
+    const denom = Math.max(workingDays.length - l, 0)
     const pct = denom ? Math.round((p / denom) * 100) : 0
     const startLabel = start.toLocaleString('en-US', { month: 'short', day: '2-digit' })
     const endLabel = end.toLocaleString('en-US', { month: 'short', day: '2-digit' })
@@ -452,8 +461,8 @@ function StudentProfileContent() {
       cwPresent: p,
       cwAbsent: a,
       cwNoRecord: nr,
-      cwLate: l,
-      cwExcused: e,
+      cwLate: 0,
+      cwExcused: l,
       cwDenom: denom,
       cwPct: pct,
       cwSundays: sundays,
@@ -938,7 +947,7 @@ function StudentProfileContent() {
               <div className="flex items-start justify-between gap-2">
                 <CardTitle className="text-[#013a63]">Attendance</CardTitle>
                 <div className="flex flex-col items-end gap-1">
-                  <Select defaultValue={String(donutRange)} onValueChange={(v) => setDonutRange(parseInt(v))}>
+                  <Select value={String(donutRange)} onValueChange={(v) => setDonutRange(parseInt(v))}>
                     <SelectTrigger className="h-8 w-[150px] rounded-md border bg-white text-sm focus:ring-sky-500">
                       <SelectValue placeholder="Last 7 days" />
                     </SelectTrigger>
@@ -1007,7 +1016,7 @@ function StudentProfileContent() {
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <div className="text-3xl md:text-4xl font-extrabold" style={{ color: themeColors.primary }}>{cwPct}%</div>
-                  <div className="text-xs text-slate-600">{cwPresent} / {cwDenom + (cwSundays || 0)}</div>
+                  <div className="text-xs text-slate-600">{cwPresent} / {cwDenom}</div>
                         </div>
                           </div>
               <div className="mt-4 h-24">
