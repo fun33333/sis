@@ -23,13 +23,13 @@ class TransferRequest(models.Model):
     request_type = models.CharField(max_length=20, choices=REQUEST_TYPES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
-    # Source Information
-    from_campus = models.ForeignKey('campus.Campus', on_delete=models.CASCADE, related_name='transfers_from')
+    # Source Information - set to null if campus is deleted (data preservation)
+    from_campus = models.ForeignKey('campus.Campus', on_delete=models.SET_NULL, null=True, blank=True, related_name='transfers_from')
     from_shift = models.CharField(max_length=1, choices=[('M', 'Morning'), ('A', 'Afternoon')])
     requesting_principal = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transfer_requests_sent')
     
-    # Destination Information
-    to_campus = models.ForeignKey('campus.Campus', on_delete=models.CASCADE, related_name='transfers_to')
+    # Destination Information - set to null if campus is deleted (data preservation)
+    to_campus = models.ForeignKey('campus.Campus', on_delete=models.SET_NULL, null=True, blank=True, related_name='transfers_to')
     to_shift = models.CharField(max_length=1, choices=[('M', 'Morning'), ('A', 'Afternoon')])
     receiving_principal = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transfer_requests_received')
     

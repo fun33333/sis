@@ -2,13 +2,13 @@
 
 import React, { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-import { apiGet, getAllStudents } from "@/lib/api"
+import { apiGet, getAllStudents, getFilteredTeachers, getAllCoordinators } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import { MapPin, Phone, Mail, Users, Building, Calendar, BookOpen, Wifi, GraduationCap, UserCheck, BarChart3, Activity, Target } from "lucide-react"
+import { MapPin, Phone, Mail, Users, Building, BookOpen, Wifi, GraduationCap, UserCheck, BarChart3, Activity, Target } from "lucide-react"
 import { StudentRadialChart } from "@/components/charts/radial-chart"
 
 function CampusProfileContent() {
@@ -17,6 +17,8 @@ function CampusProfileContent() {
 
   const [campus, setCampus] = useState<any | null>(null)
   const [realStudentData, setRealStudentData] = useState<any | null>(null)
+  const [realTeachersCount, setRealTeachersCount] = useState<number | null>(null)
+  const [realCoordinatorsCount, setRealCoordinatorsCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [canEdit, setCanEdit] = useState(false)
@@ -82,20 +84,74 @@ function CampusProfileContent() {
         }
       })
     
+    // Fetch real data from database
+    Promise.all([
     // Fetch real student data
-    getAllStudents()
+      getAllStudents(true) // Force refresh to get latest data
       .then((students) => {
         console.log('Fetched students data:', students)
         if (mounted) {
-          const realStats = calculateRealStudentStats(students, id)
+            const studentsArray = Array.isArray(students) ? students : (students?.results || [])
+            const realStats = calculateRealStudentStats(studentsArray, id)
           console.log('Setting real student data:', realStats)
           setRealStudentData(realStats)
         }
+          return students
       })
       .catch((err) => {
         console.warn('Failed to fetch real student data:', err)
-        // Don't set error, just use campus data
-      })
+          if (mounted) {
+            // Set to empty stats on error so chart knows we attempted to fetch real data
+            setRealStudentData({ total: 0, male: 0, female: 0, morning: 0, afternoon: 0 })
+          }
+          return []
+        }),
+      
+      // Fetch real teachers data filtered by campus
+      getFilteredTeachers({ current_campus: parseInt(id), is_currently_active: true })
+        .then((response) => {
+          console.log('Fetched teachers data:', response)
+          if (mounted) {
+            const teachers = Array.isArray(response) ? response : (response?.results || [])
+            const count = Array.isArray(response) ? response.length : (response?.count || 0)
+            console.log('Setting real teachers count:', count)
+            setRealTeachersCount(count)
+          }
+          return response
+        })
+        .catch((err) => {
+          console.warn('Failed to fetch real teachers data:', err)
+          if (mounted) setRealTeachersCount(null)
+          return null
+        }),
+      
+      // Fetch real coordinators data and filter by campus
+      getAllCoordinators()
+        .then((coordinators: any) => {
+          console.log('Fetched coordinators data:', coordinators)
+          if (mounted) {
+            // Filter coordinators by campus
+            const coordinatorsList = Array.isArray(coordinators) ? coordinators : ((coordinators as any)?.results || [])
+            const campusCoordinators = coordinatorsList.filter((coord: any) => {
+              let coordCampusId = null
+              if (typeof coord.campus === 'object' && coord.campus) {
+                coordCampusId = coord.campus.id || coord.campus.pk || coord.campus.campus_id
+              } else if (coord.campus) {
+                coordCampusId = coord.campus
+              }
+              return coordCampusId == id || coordCampusId === id
+            })
+            console.log('Setting real coordinators count:', campusCoordinators.length)
+            setRealCoordinatorsCount(campusCoordinators.length)
+          }
+          return coordinators
+        })
+        .catch((err) => {
+          console.warn('Failed to fetch real coordinators data:', err)
+          if (mounted) setRealCoordinatorsCount(null)
+          return []
+        })
+    ])
       .finally(() => {
         if (mounted) {
           setLoading(false)
@@ -130,15 +186,6 @@ function CampusProfileContent() {
     return <div className="p-6">No campus selected</div>
   }
 
-  if (loading) return (
-    <div className="p-6 flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Loading campus...</p>
-      </div>
-    </div>
-  )
-
   if (error) return (
     <div className="p-6 text-center">
       <div className="text-red-600 mb-4">Error: {error}</div>
@@ -154,113 +201,153 @@ function CampusProfileContent() {
     return String(v)
   }
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '—'
-    try {
-      return new Date(dateStr).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
-    } catch {
-      return dateStr
+  // const formatDate = (dateStr: string) => {
+  //   if (!dateStr) return '—'
+  //   try {
+  //     return new Date(dateStr).toLocaleDateString('en-US', {
+  //       year: 'numeric',
+  //       month: 'long',
+  //       day: 'numeric'
+  //     })
+  //   } catch {
+  //     return dateStr
+  //   }
+  // }
+
+  // Helper function to get full image URL
+  const getImageUrl = (imagePath: string | null | undefined) => {
+    if (!imagePath) return null
+    // If already a full URL, return as is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath
     }
+    // Otherwise, construct full URL from API base
+    const apiBase = typeof window !== 'undefined' 
+      ? (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000')
+      : 'http://127.0.0.1:8000'
+    return `${apiBase}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`
   }
+
+  const campusImageUrl = getImageUrl(campus?.campus_photo)
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Section */}
-      <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-6">
+      <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
         <div className="max-w-7xl mx-auto">
           <Card className="overflow-hidden shadow-2xl border-0 bg-white">
             <div className="relative">
-              {/* Background Pattern */}
+              {/* Campus Image Background/Header */}
+              {campusImageUrl && (
+                <div className="relative h-48 sm:h-64 lg:h-80 w-full overflow-hidden">
+                  <img 
+                    src={campusImageUrl} 
+                    alt={campus?.campus_name || 'Campus'} 
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Gradient overlay for better text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/40 to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-900/60 to-transparent"></div>
+                </div>
+              )}
               
-              {/* Decorative Elements */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
+              {/* Decorative Elements (only show if no image) */}
+              {!campusImageUrl && (
+                <>
+                  <div className="absolute top-0 right-0 w-16 h-16 sm:w-32 sm:h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8 sm:-translate-y-16 sm:translate-x-16"></div>
+                  <div className="absolute bottom-0 left-0 w-12 h-12 sm:w-24 sm:h-24 bg-white/5 rounded-full translate-y-6 -translate-x-6 sm:translate-y-12 sm:-translate-x-12"></div>
+                </>
+              )}
               
               {/* Content */}
-              <div className="relative p-8">
-                <div className="flex items-start justify-between">
+              <div className={`relative ${campusImageUrl ? 'p-4 sm:p-6 lg:p-8' : 'p-4 sm:p-6 lg:p-8'}`}>
+                <div className={`flex flex-col ${campusImageUrl ? 'lg:flex-row' : 'lg:flex-row'} lg:items-start lg:justify-between gap-6`}>
                   {/* Left Side - Main Info */}
-                  <div className="text-primary flex-1">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-3 bg-primary rounded-xl backdrop-blur-sm">
-                        <Building className="w-8 h-8 text-white" />
+                  <div className="flex-1">
+                    <div className="flex items-start gap-3 sm:gap-4 mb-4">
+                      {/* Campus Image Thumbnail */}
+                      {campusImageUrl ? (
+                        <div className="relative flex-shrink-0">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-xl overflow-hidden border-4 border-white shadow-lg">
+                            <img 
+                              src={campusImageUrl} 
+                              alt={campus?.campus_name || 'Campus'} 
+                              className="w-full h-full object-cover"
+                            />
                       </div>
-                      <div>
-                        <h1 className="text-5xl font-bold mb-1">
+                          <div className="absolute -bottom-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-white rounded-full animate-pulse"></div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-2 sm:p-3 bg-primary rounded-xl backdrop-blur-sm flex-shrink-0">
+                          <Building className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                        </div>
+                      )}
+                      
+                      <div className="flex-1 min-w-0">
+                        <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold mb-1 text-slate-800">
                           {campus?.campus_name || campus?.name || 'Unknown Campus'}
                         </h1>
-                        <div className="flex items-center gap-2 text-xl opacity-90">
-                          <MapPin className="w-5 h-5" />
+                        <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-sm sm:text-base lg:text-lg text-slate-600">
+                          <MapPin className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                           <span>{campus?.campus_type ? campus.campus_type.charAt(0).toUpperCase() + campus.campus_type.slice(1) : 'Campus'}</span>
-                          <span className="text-white/60">•</span>
+                          <span>•</span>
                           <span>{campus?.city || 'Unknown City'}</span>
                         </div>
                       </div>
                     </div>
                     
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-3 gap-6 mt-8">
-                      <div className="bg-primary/15 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                        <div className="flex items-center gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mt-6 sm:mt-8">
+                      <div className="bg-primary/15 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/20">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           <div className="p-2 rounded-lg">
-                            <Users className="w-6 h-6" />
+                            <Users className="w-5 h-5 sm:w-6 sm:h-6" />
                           </div>
                           <div>
-                            <div className="text-3xl font-bold">{realStudentData?.total || campus?.total_students || 0}</div>
-                            <div className="text-sm opacity-80 font-medium">Students</div>
+                            <div className="text-2xl sm:text-3xl font-bold">
+                              {realStudentData?.total !== undefined ? realStudentData.total : (campus?.total_students || 0)}
+                            </div>
+                            <div className="text-xs sm:text-sm opacity-80 font-medium">Students</div>
+                            {realStudentData?.total !== undefined && (
+                              <div className="text-xs opacity-60">Real Count</div>
+                            )}
                           </div>
                         </div>
                       </div>
                       
-                      <div className="bg-primary/15 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                        <div className="flex items-center gap-3">
+                      <div className="bg-primary/15 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/20">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           <div className="p-2 bg-green-500/30 rounded-lg">
-                            <GraduationCap className="w-6 h-6" />
+                            <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
                           </div>
                           <div>
-                            <div className="text-3xl font-bold">{campus?.total_teachers || 0}</div>
-                            <div className="text-sm opacity-80 font-medium">Teachers</div>
+                            <div className="text-2xl sm:text-3xl font-bold">
+                              {realTeachersCount !== null ? realTeachersCount : (campus?.total_teachers || 0)}
+                            </div>
+                            <div className="text-xs sm:text-sm opacity-80 font-medium">Teachers</div>
+                            {realTeachersCount !== null && (
+                              <div className="text-xs opacity-60">Real Count</div>
+                            )}
                           </div>
                         </div>
                       </div>
                       
-                      <div className="bg-primary/15 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                        <div className="flex items-center gap-3">
+                      <div className="bg-primary/15 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/20">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           <div className="p-2 bg-purple-500/30 rounded-lg">
-                            <Building className="w-6 h-6" />
+                            <Building className="w-5 h-5 sm:w-6 sm:h-6" />
                           </div>
                           <div>
-                            <div className="text-3xl font-bold">{campus?.total_classrooms || 0}</div>
-                            <div className="text-sm opacity-80 font-medium">Classrooms</div>
+                            <div className="text-2xl sm:text-3xl font-bold">{campus?.total_classrooms || 0}</div>
+                            <div className="text-xs sm:text-sm opacity-80 font-medium">Classrooms</div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Right Side - Status & Info */}
-                  <div className="text-right text-primary/90 ml-8">
-                    <div className="bg-primary/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                        <span className="text-sm font-medium">Active</span>
                       </div>
-                      <div className="text-lg font-semibold mb-1">
-                        {campus?.campus_name || campus?.name || 'Campus'}
-                      </div>
-                      <div className="text-sm opacity-80">
-                        {campus?.campus_type ? campus.campus_type.charAt(0).toUpperCase() + campus.campus_type.slice(1) : 'Campus'}
-                      </div>
-                      <div className="text-sm opacity-80 mt-1">
-                        {campus?.city || 'Unknown City'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </Card>
@@ -268,26 +355,27 @@ function CampusProfileContent() {
       </div>
 
       {/* Main Content */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="max-w-7xl mx-auto">
           <Tabs defaultValue="analytics" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="analytics" className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Analytics
+            <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6 h-auto">
+              <TabsTrigger value="analytics" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-2.5">
+                <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Analytics</span>
+                <span className="sm:hidden">Stats</span>
               </TabsTrigger>
-              <TabsTrigger value="details" className="flex items-center gap-2">
-                <Building className="w-4 h-4" />
+              <TabsTrigger value="details" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-2.5">
+                <Building className="w-3 h-3 sm:w-4 sm:h-4" />
                 Details
               </TabsTrigger>
             </TabsList>
 
 
             {/* Details Tab */}
-            <TabsContent value="details" className="space-y-8">
+            <TabsContent value="details" className="space-y-4 sm:space-y-8">
 
               {/* Main Content Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
             {/* Basic Information */}
                 <Card className="shadow-lg border-0 overflow-hidden" style={{backgroundColor: '#e7ecef'}}>
                   <CardHeader className="p-0">
@@ -390,39 +478,61 @@ function CampusProfileContent() {
                     </div>
                   </CardHeader>
                   <CardContent className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                       <div className="group text-center">
                         <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: '#a3cef1', borderColor: '#6096ba'}}>
-                          <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.total_teachers)}</div>
+                          <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>
+                            {realTeachersCount !== null ? realTeachersCount : renderValue(campus?.total_teachers)}
+                          </div>
                           <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Total Teachers</div>
+                          {realTeachersCount !== null && (
+                            <div className="text-xs mt-1" style={{color: '#6096ba'}}>Real</div>
+                          )}
                         </div>
                       </div>
                       <div className="group text-center">
                         <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#274c77'}}>
+                          <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.total_non_teaching_staff)}</div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Non-Teaching Staff</div>
+                        </div>
+                      </div>
+                      <div className="group text-center">
+                        <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#8b8c89'}}>
                           <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.total_maids)}</div>
                           <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Total Maids</div>
                         </div>
                       </div>
                       <div className="group text-center">
-                        <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#8b8c89'}}>
-                          <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.total_coordinators)}</div>
+                        <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#6096ba'}}>
+                          <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>
+                            {realCoordinatorsCount !== null ? realCoordinatorsCount : renderValue(campus?.total_coordinators)}
+                          </div>
                           <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Coordinators</div>
+                          {realCoordinatorsCount !== null && (
+                            <div className="text-xs mt-1" style={{color: '#6096ba'}}>Real</div>
+                          )}
                         </div>
                       </div>
                       <div className="group text-center">
-                        <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#6096ba'}}>
+                        <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#274c77'}}>
                           <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.total_guards)}</div>
                           <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Guards</div>
                         </div>
                       </div>
+                      <div className="group text-center">
+                        <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#8b8c89'}}>
+                          <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.other_staff)}</div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Other Staff</div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 mt-4">
-                      <div className="text-center p-2 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#274c77'}}>
-                        <div className="text-sm font-bold" style={{color: '#274c77'}}>{renderValue(campus?.male_teachers)}</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-4">
+                      <div className="text-center p-2 sm:p-3 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#274c77'}}>
+                        <div className="text-sm sm:text-base font-bold" style={{color: '#274c77'}}>{renderValue(campus?.male_teachers)}</div>
                         <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Male Teachers</div>
                       </div>
-                      <div className="text-center p-2 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#8b8c89'}}>
-                        <div className="text-sm font-bold" style={{color: '#274c77'}}>{renderValue(campus?.female_teachers)}</div>
+                      <div className="text-center p-2 sm:p-3 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#8b8c89'}}>
+                        <div className="text-sm sm:text-base font-bold" style={{color: '#274c77'}}>{renderValue(campus?.female_teachers)}</div>
                         <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Female Teachers</div>
                   </div>
                     </div>
@@ -571,15 +681,15 @@ function CampusProfileContent() {
                   <CardContent className="p-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="group">
-                        <label className="text-xs font-semibold uppercase tracking-wide mb-1 block" style={{color: '#8b8c89'}}>Academic Year Start</label>
+                        <label className="text-xs font-semibold uppercase tracking-wide mb-1 block" style={{color: '#8b8c89'}}>Academic Year Start Month</label>
                         <div className="p-2 rounded-lg border transition-all duration-300 group-hover:shadow-sm" style={{backgroundColor: 'white', borderColor: '#6096ba'}}>
-                          <p className="text-sm font-semibold" style={{color: '#274c77'}}>{formatDate(campus?.academic_year_start)}</p>
+                          <p className="text-sm font-semibold" style={{color: '#274c77'}}>{renderValue(campus?.academic_year_start_month)}</p>
               </div>
               </div>
                       <div className="group">
-                        <label className="text-xs font-semibold uppercase tracking-wide mb-1 block" style={{color: '#8b8c89'}}>Academic Year End</label>
+                        <label className="text-xs font-semibold uppercase tracking-wide mb-1 block" style={{color: '#8b8c89'}}>Academic Year End Month</label>
                         <div className="p-2 rounded-lg border transition-all duration-300 group-hover:shadow-sm" style={{backgroundColor: 'white', borderColor: '#8b8c89'}}>
-                          <p className="text-sm font-semibold" style={{color: '#274c77'}}>{formatDate(campus?.academic_year_end)}</p>
+                          <p className="text-sm font-semibold" style={{color: '#274c77'}}>{renderValue(campus?.academic_year_end_month)}</p>
               </div>
             </div>
                       <div className="group">
@@ -597,6 +707,12 @@ function CampusProfileContent() {
                         <label className="text-xs font-semibold uppercase tracking-wide mb-1 block" style={{color: '#8b8c89'}}>Grades Available</label>
                         <div className="p-2 rounded-lg border transition-all duration-300 group-hover:shadow-sm" style={{backgroundColor: '#a3cef1', borderColor: '#6096ba'}}>
                           <p className="text-sm font-semibold" style={{color: '#274c77'}}>{renderValue(campus?.grades_available)}</p>
+              </div>
+            </div>
+                      <div className="group md:col-span-2">
+                        <label className="text-xs font-semibold uppercase tracking-wide mb-1 block" style={{color: '#8b8c89'}}>Grades Offered</label>
+                        <div className="p-2 rounded-lg border transition-all duration-300 group-hover:shadow-sm" style={{backgroundColor: '#a3cef1', borderColor: '#6096ba'}}>
+                          <p className="text-sm font-semibold" style={{color: '#274c77'}}>{renderValue(campus?.grades_offered)}</p>
               </div>
             </div>
           </div>
@@ -619,39 +735,76 @@ function CampusProfileContent() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div className="group text-center">
                         <div className="p-4 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: '#a3cef1', borderColor: '#6096ba'}}>
-                          <div className="text-2xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.total_students)}</div>
+                          <div className="text-2xl font-bold mb-1" style={{color: '#274c77'}}>
+                            {realStudentData?.total !== undefined ? realStudentData.total : renderValue(campus?.total_students)}
+                          </div>
                           <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Total Students</div>
+                          {realStudentData?.total !== undefined && (
+                            <div className="text-xs mt-1" style={{color: '#6096ba'}}>Real Count</div>
+                          )}
                         </div>
                       </div>
                       <div className="group text-center">
                         <div className="p-4 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#274c77'}}>
-                          <div className="text-2xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.student_capacity)}</div>
-                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Student Capacity</div>
+                          <div className="text-2xl font-bold mb-1" style={{color: '#274c77'}}>
+                            {realTeachersCount !== null ? realTeachersCount : renderValue(campus?.total_teachers)}
+                          </div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Total Teachers</div>
+                          {realTeachersCount !== null && (
+                            <div className="text-xs mt-1" style={{color: '#6096ba'}}>Real Count</div>
+                          )}
                         </div>
                       </div>
                       <div className="group text-center">
                         <div className="p-4 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#8b8c89'}}>
-                          <div className="text-2xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.avg_class_size)}</div>
-                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Avg Class Size</div>
+                          <div className="text-2xl font-bold mb-1" style={{color: '#274c77'}}>
+                            {realCoordinatorsCount !== null ? realCoordinatorsCount : renderValue(campus?.total_coordinators)}
                         </div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Coordinators</div>
+                          {realCoordinatorsCount !== null && (
+                            <div className="text-xs mt-1" style={{color: '#6096ba'}}>Real Count</div>
+                          )}
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
-                      <div className="text-center p-2 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#6096ba'}}>
-                        <div className="text-lg font-bold" style={{color: '#274c77'}}>{renderValue(campus?.male_students)}</div>
-                        <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Male</div>
                       </div>
-                      <div className="text-center p-2 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#8b8c89'}}>
-                        <div className="text-lg font-bold" style={{color: '#274c77'}}>{renderValue(campus?.female_students)}</div>
-                        <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Female</div>
+                    
+                    {/* Additional Stats Row */}
+                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-4">
+                      <div className="text-center p-2 sm:p-3 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#6096ba'}}>
+                        <div className="text-base sm:text-lg font-bold" style={{color: '#274c77'}}>
+                          {realStudentData?.male !== undefined ? realStudentData.male : renderValue(campus?.male_students)}
                       </div>
-                      <div className="text-center p-2 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#274c77'}}>
-                        <div className="text-lg font-bold" style={{color: '#274c77'}}>{renderValue(campus?.morning_students)}</div>
-                        <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Morning</div>
+                        <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Male Students</div>
                       </div>
-                      <div className="text-center p-2 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#6096ba'}}>
-                        <div className="text-lg font-bold" style={{color: '#274c77'}}>{renderValue(campus?.afternoon_students)}</div>
-                        <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Afternoon</div>
+                      <div className="text-center p-2 sm:p-3 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#8b8c89'}}>
+                        <div className="text-base sm:text-lg font-bold" style={{color: '#274c77'}}>
+                          {realStudentData?.female !== undefined ? realStudentData.female : renderValue(campus?.female_students)}
+                        </div>
+                        <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Female Students</div>
+                      </div>
+                      <div className="text-center p-2 sm:p-3 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#274c77'}}>
+                        <div className="text-base sm:text-lg font-bold" style={{color: '#274c77'}}>
+                          {realStudentData?.morning !== undefined ? realStudentData.morning : renderValue(campus?.morning_students)}
+                        </div>
+                        <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Morning Shift</div>
+                      </div>
+                      <div className="text-center p-2 sm:p-3 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#6096ba'}}>
+                        <div className="text-base sm:text-lg font-bold" style={{color: '#274c77'}}>
+                          {realStudentData?.afternoon !== undefined ? realStudentData.afternoon : renderValue(campus?.afternoon_students)}
+                        </div>
+                        <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Afternoon Shift</div>
+                      </div>
+                    </div>
+                    
+                    {/* Capacity and Class Size Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                      <div className="text-center p-3 rounded-lg border" style={{backgroundColor: '#f0f0f0', borderColor: '#8b8c89'}}>
+                        <div className="text-lg font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.student_capacity)}</div>
+                        <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Student Capacity</div>
+                      </div>
+                      <div className="text-center p-3 rounded-lg border" style={{backgroundColor: '#f0f0f0', borderColor: '#8b8c89'}}>
+                        <div className="text-lg font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.avg_class_size)}</div>
+                        <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Avg Class Size</div>
                       </div>
                     </div>
                   </CardContent>
@@ -671,7 +824,7 @@ function CampusProfileContent() {
                     </div>
                   </CardHeader>
                   <CardContent className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
                       <div className="group text-center">
                         <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: '#a3cef1', borderColor: '#6096ba'}}>
                           <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.total_rooms)}</div>
@@ -686,54 +839,118 @@ function CampusProfileContent() {
                       </div>
                       <div className="group text-center">
                         <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#8b8c89'}}>
+                          <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.total_offices)}</div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Offices</div>
+                        </div>
+                      </div>
+                      <div className="group text-center">
+                        <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#6096ba'}}>
                           <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.num_computer_labs)}</div>
                           <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Computer Labs</div>
                         </div>
                       </div>
                       <div className="group text-center">
-                        <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#6096ba'}}>
+                        <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#8b8c89'}}>
                           <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.num_science_labs)}</div>
                           <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Science Labs</div>
                     </div>
                   </div>
+                      <div className="group text-center">
+                        <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#274c77'}}>
+                          <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.num_biology_labs)}</div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Biology Labs</div>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      <div className={`p-2 rounded-lg border text-center ${campus?.library_available ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
-                        <div className="text-sm font-bold" style={{color: campus?.library_available ? '#274c77' : '#8b8c89'}}>
+                      </div>
+                      <div className="group text-center">
+                        <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#6096ba'}}>
+                          <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.num_chemistry_labs)}</div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Chemistry Labs</div>
+                        </div>
+                      </div>
+                      <div className="group text-center">
+                        <div className="p-3 rounded-lg border transition-all duration-300 group-hover:shadow-sm group-hover:scale-105" style={{backgroundColor: 'white', borderColor: '#8b8c89'}}>
+                          <div className="text-xl font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.num_physics_labs)}</div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Physics Labs</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Washrooms Section */}
+                    <div className="mb-4">
+                      <label className="text-xs font-semibold uppercase tracking-wide mb-3 block" style={{color: '#8b8c89'}}>Washrooms</label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="text-center p-3 rounded-lg border" style={{backgroundColor: '#a3cef1', borderColor: '#6096ba'}}>
+                          <div className="text-lg font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.total_washrooms)}</div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Total Washrooms</div>
+                        </div>
+                        <div className="text-center p-3 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#274c77'}}>
+                          <div className="text-lg font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.male_teachers_washrooms)}</div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Male Teachers</div>
+                        </div>
+                        <div className="text-center p-3 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#6096ba'}}>
+                          <div className="text-lg font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.female_teachers_washrooms)}</div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Female Teachers</div>
+                        </div>
+                        <div className="text-center p-3 rounded-lg border" style={{backgroundColor: 'white', borderColor: '#8b8c89'}}>
+                          <div className="text-lg font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.male_student_washrooms)}</div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Male Students</div>
+                        </div>
+                        <div className="text-center p-3 rounded-lg border md:col-start-2" style={{backgroundColor: 'white', borderColor: '#274c77'}}>
+                          <div className="text-lg font-bold mb-1" style={{color: '#274c77'}}>{renderValue(campus?.female_student_washrooms)}</div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Female Students</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Facilities */}
+                    <div>
+                      <label className="text-xs font-semibold uppercase tracking-wide mb-3 block" style={{color: '#8b8c89'}}>Facilities</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+                        <div className={`p-2 sm:p-3 rounded-lg border text-center ${campus?.library_available ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
+                          <div className="text-sm sm:text-base font-bold" style={{color: campus?.library_available ? '#274c77' : '#8b8c89'}}>
                           {campus?.library_available ? '✓' : '✗'}
                         </div>
                         <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Library</div>
                       </div>
-                      <div className={`p-2 rounded-lg border text-center ${campus?.power_backup ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
-                        <div className="text-sm font-bold" style={{color: campus?.power_backup ? '#274c77' : '#8b8c89'}}>
+                        <div className={`p-2 sm:p-3 rounded-lg border text-center ${campus?.power_backup ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
+                          <div className="text-sm sm:text-base font-bold" style={{color: campus?.power_backup ? '#274c77' : '#8b8c89'}}>
                           {campus?.power_backup ? '✓' : '✗'}
                         </div>
                         <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Power Backup</div>
                       </div>
-                      <div className={`p-2 rounded-lg border text-center ${campus?.internet_available ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
-                        <div className="text-sm font-bold" style={{color: campus?.internet_available ? '#274c77' : '#8b8c89'}}>
+                        <div className={`p-2 sm:p-3 rounded-lg border text-center ${campus?.internet_available ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
+                          <div className="text-sm sm:text-base font-bold" style={{color: campus?.internet_available ? '#274c77' : '#8b8c89'}}>
                           {campus?.internet_available ? '✓' : '✗'}
                         </div>
                         <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Internet</div>
                       </div>
-                      <div className={`p-2 rounded-lg border text-center ${campus?.sports_facility ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
-                        <div className="text-sm font-bold" style={{color: campus?.sports_facility ? '#274c77' : '#8b8c89'}}>
-                          {campus?.sports_facility ? '✓' : '✗'}
+                        <div className={`p-2 sm:p-3 rounded-lg border text-center ${campus?.teacher_transport ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
+                          <div className="text-sm sm:text-base font-bold" style={{color: campus?.teacher_transport ? '#274c77' : '#8b8c89'}}>
+                            {campus?.teacher_transport ? '✓' : '✗'}
                         </div>
-                        <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Sports</div>
+                          <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Teacher Transport</div>
                       </div>
-                      <div className={`p-2 rounded-lg border text-center ${campus?.canteen_facility ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
-                        <div className="text-sm font-bold" style={{color: campus?.canteen_facility ? '#274c77' : '#8b8c89'}}>
+                        <div className={`p-2 sm:p-3 rounded-lg border text-center ${campus?.canteen_facility ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
+                          <div className="text-sm sm:text-base font-bold" style={{color: campus?.canteen_facility ? '#274c77' : '#8b8c89'}}>
                           {campus?.canteen_facility ? '✓' : '✗'}
                         </div>
                         <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Canteen</div>
                       </div>
-                      <div className={`p-2 rounded-lg border text-center ${campus?.meal_program ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
-                        <div className="text-sm font-bold" style={{color: campus?.meal_program ? '#274c77' : '#8b8c89'}}>
+                        <div className={`p-2 sm:p-3 rounded-lg border text-center ${campus?.meal_program ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
+                          <div className="text-sm sm:text-base font-bold" style={{color: campus?.meal_program ? '#274c77' : '#8b8c89'}}>
                           {campus?.meal_program ? '✓' : '✗'}
                         </div>
                         <div className="text-xs font-bold uppercase tracking-wider" style={{color: '#8b8c89'}}>Meal Program</div>
                       </div>
+                      </div>
+                      {campus?.sports_available && (
+                        <div className="mt-3">
+                          <label className="text-xs font-semibold uppercase tracking-wide mb-1 block" style={{color: '#8b8c89'}}>Sports Available</label>
+                          <div className="p-2 rounded-lg border" style={{backgroundColor: '#a3cef1', borderColor: '#6096ba'}}>
+                            <p className="text-sm font-semibold" style={{color: '#274c77'}}>{renderValue(campus?.sports_available)}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -742,84 +959,96 @@ function CampusProfileContent() {
             </TabsContent>
 
             {/* Analytics Tab */}
-            <TabsContent value="analytics" className="space-y-6">
+            <TabsContent value="analytics" className="space-y-4 sm:space-y-6">
               {/* Key Metrics Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <Card className="text-white border-0" style={{backgroundColor: '#274c77'}}>
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 sm:p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium" style={{color: '#a3cef1'}}>Total Students</p>
-                        <p className="text-3xl font-bold">{renderValue(realStudentData?.total || campus?.total_students)}</p>
+                        <p className="text-xs sm:text-sm font-medium" style={{color: '#a3cef1'}}>Total Students</p>
+                        <p className="text-2xl sm:text-3xl font-bold">
+                          {realStudentData?.total !== undefined ? realStudentData.total : renderValue(campus?.total_students)}
+                        </p>
                         <p className="text-xs" style={{color: '#a3cef1'}}>
-                          {realStudentData?.total ? 'Real Database Count' : 'Campus Record'}
+                          {realStudentData?.total !== undefined ? 'Real Database Count' : 'Campus Record'}
                         </p>
                       </div>
-                      <Users className="w-8 h-8" style={{color: '#a3cef1'}} />
+                      <Users className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0" style={{color: '#a3cef1'}} />
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card className="text-white border-0" style={{backgroundColor: '#6096ba'}}>
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 sm:p-6">
                     <div className="flex items-center justify-between">
               <div>
-                        <p className="text-sm font-medium" style={{color: '#e7ecef'}}>Total Staff</p>
-                        <p className="text-3xl font-bold">{renderValue(campus?.total_staff_members)}</p>
-                        <p className="text-xs" style={{color: '#e7ecef'}}>+5% from last month</p>
+                        <p className="text-xs sm:text-sm font-medium" style={{color: '#e7ecef'}}>Total Staff</p>
+                        <p className="text-2xl sm:text-3xl font-bold">
+                          {(realTeachersCount !== null || realCoordinatorsCount !== null) 
+                            ? ((realTeachersCount || 0) + (realCoordinatorsCount || 0) + (campus?.total_non_teaching_staff || 0))
+                            : renderValue(campus?.total_staff_members)}
+                        </p>
+                        <p className="text-xs" style={{color: '#e7ecef'}}>
+                          {(realTeachersCount !== null || realCoordinatorsCount !== null) 
+                            ? 'Real Count (Teachers + Coordinators + Staff)' 
+                            : 'Campus Record'}
+                        </p>
                       </div>
-                      <GraduationCap className="w-8 h-8" style={{color: '#e7ecef'}} />
+                      <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0" style={{color: '#e7ecef'}} />
               </div>
                   </CardContent>
                 </Card>
 
                 <Card className="text-white border-0" style={{backgroundColor: '#8b8c89'}}>
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 sm:p-6">
                     <div className="flex items-center justify-between">
               <div>
-                        <p className="text-sm font-medium" style={{color: '#a3cef1'}}>Total Rooms</p>
-                        <p className="text-3xl font-bold">{renderValue(campus?.total_rooms)}</p>
+                        <p className="text-xs sm:text-sm font-medium" style={{color: '#a3cef1'}}>Total Rooms</p>
+                        <p className="text-2xl sm:text-3xl font-bold">{renderValue(campus?.total_rooms)}</p>
                         <p className="text-xs" style={{color: '#a3cef1'}}>Capacity: {renderValue(campus?.student_capacity)}</p>
                       </div>
-                      <Building className="w-8 h-8" style={{color: '#a3cef1'}} />
+                      <Building className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0" style={{color: '#a3cef1'}} />
               </div>
                   </CardContent>
                 </Card>
 
                 <Card className="text-white border-0" style={{backgroundColor: '#a3cef1'}}>
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 sm:p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium" style={{color: '#274c77'}}>Avg Class Size</p>
-                        <p className="text-3xl font-bold" style={{color: '#274c77'}}>{renderValue(campus?.avg_class_size)}</p>
+                        <p className="text-xs sm:text-sm font-medium" style={{color: '#274c77'}}>Avg Class Size</p>
+                        <p className="text-2xl sm:text-3xl font-bold" style={{color: '#274c77'}}>{renderValue(campus?.avg_class_size)}</p>
                         <p className="text-xs" style={{color: '#274c77'}}>Optimal range: 25-30</p>
             </div>
-                      <Target className="w-8 h-8" style={{color: '#274c77'}} />
+                      <Target className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0" style={{color: '#274c77'}} />
           </div>
               </CardContent>
             </Card>
           </div>
 
               {/* Charts Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {/* Student Demographics Chart */}
             <div>
               <StudentRadialChart 
                 data={{
-                  male_students: realStudentData?.male || campus?.male_students || (campus?.total_students ? Math.floor(campus.total_students * 0.6) : 0),
-                  female_students: realStudentData?.female || campus?.female_students || (campus?.total_students ? Math.floor(campus.total_students * 0.4) : 0),
-                  morning_students: realStudentData?.morning || campus?.morning_students || (campus?.total_students ? Math.floor(campus.total_students * 0.7) : 0),
-                  afternoon_students: realStudentData?.afternoon || campus?.afternoon_students || (campus?.total_students ? Math.floor(campus.total_students * 0.3) : 0),
-                  total_students: realStudentData?.total || campus?.total_students || 0
+                  // Use real data if available (even if 0), otherwise fallback to campus record
+                  male_students: realStudentData !== null ? (realStudentData.male || 0) : (campus?.male_students || (campus?.total_students ? Math.floor(campus.total_students * 0.6) : 0)),
+                  female_students: realStudentData !== null ? (realStudentData.female || 0) : (campus?.female_students || (campus?.total_students ? Math.floor(campus.total_students * 0.4) : 0)),
+                  morning_students: realStudentData !== null ? (realStudentData.morning || 0) : (campus?.morning_students || (campus?.total_students ? Math.floor(campus.total_students * 0.7) : 0)),
+                  afternoon_students: realStudentData !== null ? (realStudentData.afternoon || 0) : (campus?.afternoon_students || (campus?.total_students ? Math.floor(campus.total_students * 0.3) : 0)),
+                  total_students: realStudentData !== null ? (realStudentData.total || 0) : (campus?.total_students || 0)
                 }}
               />
-              {/* Debug info */}
-              <div className="mt-2 text-xs text-gray-500">
-                Debug: Real Data: {realStudentData ? 'Yes' : 'No'} | 
-                Campus ID: {id} | 
-                Real Total: {realStudentData?.total || 'N/A'} | 
-                Campus Total: {campus?.total_students || 'N/A'}
+              {/* Info badge - Show only if real data was fetched (even if count is 0) */}
+              {realStudentData !== null && (
+                <div className="mt-2 text-xs text-center">
+                  <Badge variant="outline" className="text-blue-600 border-blue-300">
+                    Real Database Count: {realStudentData.total || 0} students
+                  </Badge>
               </div>
+              )}
             </div>
 
                 {/* Staff Distribution Chart */}
@@ -832,25 +1061,36 @@ function CampusProfileContent() {
               </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-4 bg-blue-50 rounded-lg">
-                          <div className="text-2xl font-bold text-blue-600">{renderValue(campus?.total_teachers)}</div>
-                          <div className="text-sm text-gray-600">Teachers</div>
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                        <div className="text-center p-3 sm:p-4 bg-blue-50 rounded-lg">
+                          <div className="text-xl sm:text-2xl font-bold text-blue-600">
+                            {realTeachersCount !== null ? realTeachersCount : renderValue(campus?.total_teachers)}
+                          </div>
+                          <div className="text-xs sm:text-sm text-gray-600">Teachers</div>
+                          {realTeachersCount !== null ? (
+                            <div className="text-xs text-gray-500 mt-1">Real Count</div>
+                          ) : (
                           <div className="text-xs text-gray-500 mt-1">
                             {campus?.male_teachers}M, {campus?.female_teachers}F
                           </div>
+                          )}
                         </div>
-                        <div className="text-center p-4 bg-green-50 rounded-lg">
-                          <div className="text-2xl font-bold text-green-600">{renderValue(campus?.total_maids)}</div>
-                          <div className="text-sm text-gray-600">Maids</div>
+                        <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg">
+                          <div className="text-xl sm:text-2xl font-bold text-green-600">{renderValue(campus?.total_maids)}</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Maids</div>
                 </div>
-                        <div className="text-center p-4 bg-purple-50 rounded-lg">
-                          <div className="text-2xl font-bold text-purple-600">{renderValue(campus?.total_coordinators)}</div>
-                          <div className="text-sm text-gray-600">Coordinators</div>
+                        <div className="text-center p-3 sm:p-4 bg-purple-50 rounded-lg">
+                          <div className="text-xl sm:text-2xl font-bold text-purple-600">
+                            {realCoordinatorsCount !== null ? realCoordinatorsCount : renderValue(campus?.total_coordinators)}
                 </div>
-                        <div className="text-center p-4 bg-red-50 rounded-lg">
-                          <div className="text-2xl font-bold text-red-600">{renderValue(campus?.total_guards)}</div>
-                          <div className="text-sm text-gray-600">Guards</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Coordinators</div>
+                          {realCoordinatorsCount !== null && (
+                            <div className="text-xs text-gray-500 mt-1">Real Count</div>
+                          )}
+                </div>
+                        <div className="text-center p-3 sm:p-4 bg-red-50 rounded-lg">
+                          <div className="text-xl sm:text-2xl font-bold text-red-600">{renderValue(campus?.total_guards)}</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Guards</div>
                 </div>
                 </div>
                 </div>
@@ -867,22 +1107,22 @@ function CampusProfileContent() {
               </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-4 border rounded-lg">
-                          <div className="text-3xl font-bold text-indigo-600">{renderValue(campus?.total_classrooms)}</div>
-                          <div className="text-sm text-gray-600">Classrooms</div>
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                        <div className="text-center p-3 sm:p-4 border rounded-lg">
+                          <div className="text-2xl sm:text-3xl font-bold text-indigo-600">{renderValue(campus?.total_classrooms)}</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Classrooms</div>
                 </div>
-                        <div className="text-center p-4 border rounded-lg">
-                          <div className="text-3xl font-bold text-green-600">{renderValue(campus?.total_offices)}</div>
-                          <div className="text-sm text-gray-600">Offices</div>
+                        <div className="text-center p-3 sm:p-4 border rounded-lg">
+                          <div className="text-2xl sm:text-3xl font-bold text-green-600">{renderValue(campus?.total_offices)}</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Offices</div>
                 </div>
-                        <div className="text-center p-4 border rounded-lg">
-                          <div className="text-3xl font-bold text-purple-600">{renderValue(campus?.num_computer_labs)}</div>
-                          <div className="text-sm text-gray-600">Computer Labs</div>
+                        <div className="text-center p-3 sm:p-4 border rounded-lg">
+                          <div className="text-2xl sm:text-3xl font-bold text-purple-600">{renderValue(campus?.num_computer_labs)}</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Computer Labs</div>
                 </div>
-                        <div className="text-center p-4 border rounded-lg">
-                          <div className="text-3xl font-bold text-orange-600">{renderValue(campus?.num_science_labs)}</div>
-                          <div className="text-sm text-gray-600">Science Labs</div>
+                        <div className="text-center p-3 sm:p-4 border rounded-lg">
+                          <div className="text-2xl sm:text-3xl font-bold text-orange-600">{renderValue(campus?.num_science_labs)}</div>
+                          <div className="text-xs sm:text-sm text-gray-600">Science Labs</div>
                 </div>
                 </div>
                 </div>
@@ -898,40 +1138,43 @@ function CampusProfileContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className={`p-4 rounded-lg border-2 ${campus?.library_available ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div className={`p-3 sm:p-4 rounded-lg border-2 ${campus?.library_available ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Library</span>
+                          <span className="text-xs sm:text-sm font-medium">Library</span>
                           <div className={`w-3 h-3 rounded-full ${campus?.library_available ? 'bg-green-500' : 'bg-red-500'}`}></div>
                         </div>
                       </div>
-                      <div className={`p-4 rounded-lg border-2 ${campus?.power_backup ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                      <div className={`p-3 sm:p-4 rounded-lg border-2 ${campus?.power_backup ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Power Backup</span>
+                          <span className="text-xs sm:text-sm font-medium">Power Backup</span>
                           <div className={`w-3 h-3 rounded-full ${campus?.power_backup ? 'bg-green-500' : 'bg-red-500'}`}></div>
                         </div>
                       </div>
-                      <div className={`p-4 rounded-lg border-2 ${campus?.internet_available ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                      <div className={`p-3 sm:p-4 rounded-lg border-2 ${campus?.internet_available ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Internet</span>
+                          <span className="text-xs sm:text-sm font-medium">Internet</span>
                           <div className={`w-3 h-3 rounded-full ${campus?.internet_available ? 'bg-green-500' : 'bg-red-500'}`}></div>
                         </div>
                       </div>
-                      <div className={`p-4 rounded-lg border-2 ${campus?.sports_facility ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                      {campus?.sports_available && (
+                        <div className={`p-3 sm:p-4 rounded-lg border-2 border-green-200 bg-green-50`}>
                   <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Sports</span>
-                          <div className={`w-3 h-3 rounded-full ${campus?.sports_facility ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                            <span className="text-xs sm:text-sm font-medium">Sports Available</span>
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
                         </div>
+                          <p className="text-xs text-gray-600 mt-1">{renderValue(campus?.sports_available)}</p>
                   </div>
-                      <div className={`p-4 rounded-lg border-2 ${campus?.canteen_facility ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                      )}
+                      <div className={`p-3 sm:p-4 rounded-lg border-2 ${campus?.canteen_facility ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
                   <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Canteen</span>
+                          <span className="text-xs sm:text-sm font-medium">Canteen</span>
                           <div className={`w-3 h-3 rounded-full ${campus?.canteen_facility ? 'bg-green-500' : 'bg-red-500'}`}></div>
                         </div>
                   </div>
-                      <div className={`p-4 rounded-lg border-2 ${campus?.meal_program ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                      <div className={`p-3 sm:p-4 rounded-lg border-2 ${campus?.meal_program ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
                   <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Meal Program</span>
+                          <span className="text-xs sm:text-sm font-medium">Meal Program</span>
                           <div className={`w-3 h-3 rounded-full ${campus?.meal_program ? 'bg-green-500' : 'bg-red-500'}`}></div>
                         </div>
                   </div>
@@ -943,37 +1186,42 @@ function CampusProfileContent() {
               {/* Performance Metrics */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="w-5 h-5" />
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
                     Performance Metrics
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-blue-600 mb-2">
-                        {(realStudentData?.total || campus?.total_students) && campus?.student_capacity ? 
-                          Math.round(((realStudentData?.total || campus?.total_students) / campus.student_capacity) * 100) : 0}%
+                      <div className="text-3xl sm:text-4xl font-bold text-blue-600 mb-2">
+                        {(realStudentData?.total !== undefined ? realStudentData.total : campus?.total_students) && campus?.student_capacity ? 
+                          Math.round(((realStudentData?.total !== undefined ? realStudentData.total : campus?.total_students) / campus.student_capacity) * 100) : 0}%
                       </div>
                       <div className="text-sm text-gray-600">Capacity Utilization</div>
+                      {realStudentData?.total !== undefined && (
+                        <div className="text-xs text-gray-500 mt-1">Using Real Student Count</div>
+                      )}
                       <Progress 
-                        value={(realStudentData?.total || campus?.total_students) && campus?.student_capacity ? 
-                          ((realStudentData?.total || campus?.total_students) / campus.student_capacity) * 100 : 0} 
+                        value={(realStudentData?.total !== undefined ? realStudentData.total : campus?.total_students) && campus?.student_capacity ? 
+                          ((realStudentData?.total !== undefined ? realStudentData.total : campus?.total_students) / campus.student_capacity) * 100 : 0} 
                         className="mt-2" 
                       />
                     </div>
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-green-600 mb-2">
-                        {campus?.total_teachers && (realStudentData?.total || campus?.total_students) ? 
-                          Math.round((realStudentData?.total || campus?.total_students) / campus.total_teachers) : 0}
+                      <div className="text-3xl sm:text-4xl font-bold text-green-600 mb-2">
+                        {(realTeachersCount || campus?.total_teachers) && (realStudentData?.total !== undefined ? realStudentData.total : campus?.total_students) ? 
+                          Math.round((realStudentData?.total !== undefined ? realStudentData.total : campus?.total_students) / (realTeachersCount || campus?.total_teachers || 1)) : 0}
                       </div>
                       <div className="text-sm text-gray-600">Student-Teacher Ratio</div>
-                      <div className="text-xs text-gray-500 mt-1">Ideal: 15-20</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {realTeachersCount !== null ? 'Using Real Count' : ''} Ideal: 15-20
+                      </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-purple-600 mb-2">
-                        {campus?.total_classrooms && (realStudentData?.total || campus?.total_students) ? 
-                          Math.round((realStudentData?.total || campus?.total_students) / campus.total_classrooms) : 0}
+                      <div className="text-3xl sm:text-4xl font-bold text-purple-600 mb-2">
+                        {campus?.total_classrooms && (realStudentData?.total !== undefined ? realStudentData.total : campus?.total_students) ? 
+                          Math.round((realStudentData?.total !== undefined ? realStudentData.total : campus?.total_students) / campus.total_classrooms) : 0}
                       </div>
                       <div className="text-sm text-gray-600">Students per Classroom</div>
                       <div className="text-xs text-gray-500 mt-1">Current avg: {renderValue(campus?.avg_class_size)}</div>

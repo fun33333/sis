@@ -21,7 +21,6 @@ export function UserGreeting({ className }: UserGreetingProps) {
       if (userStr) {
         try {
           const user = JSON.parse(userStr)
-          console.log('User data from localStorage:', user) // Debug log
           
           // Try to get full name first, then fallback to other fields
           let fullName = user.full_name || user.name || user.username || user.email || "User"

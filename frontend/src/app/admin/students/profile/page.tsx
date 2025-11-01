@@ -1,39 +1,19 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import StudentBehaviourModal from "@/components/behaviour/student-behaviour-modal"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { getAllStudents, getStudentById } from "@/lib/api"
+import { getStudentById, apiGet, createBehaviourRecord, getStudentBehaviourRecords, getStudentMonthlyBehaviourLatest } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
 import { 
-  ArrowLeft, 
-  User, 
-  GraduationCap, 
-  Users, 
-  Calendar, 
-  BookOpen, 
-  Download, 
-  Share, 
-  Phone, 
-  MapPin,
-  Mail,
-  Clock,
-  Award,
-  TrendingUp,
-  Activity,
-  FileText,
-  Settings,
-  BarChart3,
-  PieChart as PieChartIcon,
-  LineChart,
-  Target,
-  Star,
-  CheckCircle,
-  AlertCircle,
-  Info
+  ArrowLeft, User, GraduationCap, Users, Calendar, MapPin, Award,
+  TrendingUp, Star, CheckCircle, AlertCircle, Plus
 } from "lucide-react"
+import { getCurrentUserRole } from '@/lib/permissions'
 import { 
   ResponsiveContainer, 
   BarChart, 
@@ -42,36 +22,33 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  LineChart as RechartsLineChart, 
-  Line, 
+  LabelList,
   PieChart as RechartsPieChart, 
   Pie, 
   Cell, 
-  RadarChart, 
-  PolarGrid, 
-  PolarAngleAxis, 
-  PolarRadiusAxis, 
-  Radar,
   AreaChart,
   Area,
-  ComposedChart
+  RadarChart, 
+  Radar,
+  PolarGrid, 
+  PolarAngleAxis, 
+  PolarRadiusAxis
 } from 'recharts'
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
-// Theme colors - Professional SMS Brand Colors
 const themeColors = {
-  primary: '#1e40af',      // Professional Blue
-  secondary: '#3b82f6',    // Medium Blue  
-  accent: '#60a5fa',       // Light Blue
-  success: '#10b981',      // Green
-  warning: '#f59e0b',      // Orange
-  error: '#ef4444',        // Red
-  info: '#06b6d4',         // Cyan
-  purple: '#8b5cf6',       // Purple
-  pink: '#ec4899',         // Pink
-  gray: '#6b7280',         // Gray
-  dark: '#1f2937',         // Dark Gray
-  light: '#f8fafc'         // Light Gray
+  primary: '#013a63',      //
+  secondary: '#3b82f6',    //
+  accent: '#60a5fa',       // 
+  success: '#10b981',      // 
+  warning: '#f59e0b',      // 
+  error: '#ef4444',        //
+  info: '#adb5bd',         // 
+  skyblue: '#61a5c2',      // 
+  pink: '#ec4899',         // 
+  gray: '#6b7280',         //
+  dark: '#1f2937',         //
+  light: '#8da9c4'         //
 }
 
 // Helper functions for data generation
@@ -82,7 +59,7 @@ const generatePerformanceData = (student: any, results: any[]) => {
       { subject: 'English', grade: 92, total: 100, color: themeColors.secondary },
       { subject: 'Mathematics', grade: 78, total: 100, color: themeColors.success },
       { subject: 'Science', grade: 88, total: 100, color: themeColors.warning },
-      { subject: 'Islamiat', grade: 95, total: 100, color: themeColors.purple },
+      { subject: 'Islamiat', grade: 95, total: 100, color: themeColors.skyblue },
       { subject: 'Computer Science', grade: 90, total: 100, color: themeColors.info },
     ]
   }
@@ -135,37 +112,28 @@ const generateAttendanceData = (attendanceRecords: any[]) => {
   }))
 }
 
-const generateBehaviorData = () => {
-  return [
-    { subject: 'Discipline', A: 88, fullMark: 100 },
-    { subject: 'Participation', A: 92, fullMark: 100 },
-    { subject: 'Cooperation', A: 85, fullMark: 100 },
-    { subject: 'Respect', A: 95, fullMark: 100 },
-    { subject: 'Responsibility', A: 87, fullMark: 100 },
-    { subject: 'Leadership', A: 80, fullMark: 100 },
-  ]
-}
 
-const generateGradeDistribution = () => {
-  return [
-    { name: 'A+', value: 35, color: themeColors.success },
-    { name: 'A', value: 25, color: themeColors.info },
-    { name: 'B', value: 20, color: themeColors.warning },
-    { name: 'C', value: 15, color: themeColors.error },
-    { name: 'D', value: 5, color: themeColors.gray },
-  ]
-}
 
 function StudentProfileContent() {
+  const { toast } = useToast()
   const [mounted, setMounted] = useState(false)
   const [student, setStudent] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState("overview")
+  const [weeklyAttendance, setWeeklyAttendance] = useState<Array<{ key: string, start: string, end: string, label: string, present: number, absent: number, late: number, excused: number, total: number }>>([])
+  const [attendanceRaw, setAttendanceRaw] = useState<any[]>([])
+  const [donutRange, setDonutRange] = useState<number>(7)
+  const [behaviourOpen, setBehaviourOpen] = useState<boolean>(false)
+  const [behaviourRecords, setBehaviourRecords] = useState<any[]>([])
+  const [behaviourRange, setBehaviourRange] = useState<'latest' | 7 | 15 | 30>('latest')
+  const [behaviourDelta, setBehaviourDelta] = useState<number | null>(null)
+  const [monthlyMode, setMonthlyMode] = useState<boolean>(false)
+  const [monthlyRecord, setMonthlyRecord] = useState<any | null>(null)
   
   const router = useRouter()
   const params = useSearchParams()
   const studentId = params?.get("id") || ""
+  const userRole = getCurrentUserRole()
   
   // Early return for missing studentId
   if (!studentId) {
@@ -215,6 +183,307 @@ function StudentProfileContent() {
     fetchStudentData()
   }, [mounted, studentId])
 
+  // Load behaviour records from API
+  useEffect(() => {
+    if (!studentId) return
+    const load = async () => {
+      try {
+        const list = await getStudentBehaviourRecords(studentId)
+        setBehaviourRecords(Array.isArray(list) ? list : [])
+        // Detect if current month has no weekly records
+        const now = new Date()
+        const curMonth = now.getMonth()
+        const hasCurrent = (Array.isArray(list) ? list : []).some((r: any) => {
+          const d = new Date(r.week_end || r.weekEnd || r.created_at)
+          return d.getMonth() === curMonth && d.getFullYear() === now.getFullYear()
+        })
+        if (!hasCurrent) {
+          setMonthlyMode(true)
+          try {
+            const m = await getStudentMonthlyBehaviourLatest(studentId)
+            setMonthlyRecord(m)
+          } catch {
+            setMonthlyRecord(null)
+          }
+        } else {
+          setMonthlyMode(false)
+          setMonthlyRecord(null)
+        }
+      } catch (e) {
+        setBehaviourRecords([])
+      }
+    }
+    load()
+  }, [studentId])
+
+  // Helpers for behaviour metrics → percent
+  function scoreToPercent(key: string, score: number, eventsLen: number): number {
+    const base: Record<number, number> = { 1: 25, 2: 50, 3: 75, 4: 100 }
+    if (key === 'participation') {
+      if (eventsLen > 0) return 100
+      if (score === 4) return 90
+    }
+    return base[score] || 0
+  }
+
+  function computeLatestMetrics(records: any[]) {
+    if (!records || records.length === 0) return null
+    // latest by week_start
+    const latest = records.reduce((acc, cur) => {
+      const d1 = new Date(acc.week_start || acc.weekStart || acc.created_at)
+      const d2 = new Date(cur.week_start || cur.weekStart || cur.created_at)
+      return d2 > d1 ? cur : acc
+    }, records[0])
+    const m = latest?.metrics || {}
+    const evsLen = Array.isArray(latest?.events) ? latest.events.length : 0
+    const items = [
+      { label: 'Punctuality', key: 'punctuality', value: scoreToPercent('punctuality', m.punctuality || 0, evsLen) },
+      { label: 'Obedience', key: 'obedience', value: scoreToPercent('obedience', m.obedience || 0, evsLen) },
+      { label: 'Class Behaviour', key: 'classBehaviour', value: scoreToPercent('classBehaviour', m.classBehaviour || 0, evsLen) },
+      { label: 'Event Participation', key: 'participation', value: scoreToPercent('participation', m.participation || 0, evsLen) },
+      { label: 'Homework', key: 'homework', value: scoreToPercent('homework', m.homework || 0, evsLen) },
+      { label: 'Respect', key: 'respect', value: scoreToPercent('respect', m.respect || 0, evsLen) },
+    ]
+    return { items }
+  }
+
+  function computeWindowMetrics(records: any[], days: number) {
+    if (!records || records.length === 0) return null
+    const today = new Date()
+    const start = new Date(today)
+    start.setDate(today.getDate() - (days - 1))
+    const end = today
+    const inRange = records.filter(r => {
+      const we = new Date(r.week_end || r.weekEnd || r.created_at)
+      return we >= start && we <= end
+    })
+    if (inRange.length === 0) return null
+    const sums: Record<string, number> = { punctuality: 0, obedience: 0, classBehaviour: 0, participation: 0, homework: 0, respect: 0 }
+    inRange.forEach(r => {
+      const m = r.metrics || {}
+      const evsLen = Array.isArray(r.events) ? r.events.length : 0
+      sums.punctuality += scoreToPercent('punctuality', m.punctuality || 0, evsLen)
+      sums.obedience += scoreToPercent('obedience', m.obedience || 0, evsLen)
+      sums.classBehaviour += scoreToPercent('classBehaviour', m.classBehaviour || 0, evsLen)
+      sums.participation += scoreToPercent('participation', m.participation || 0, evsLen)
+      sums.homework += scoreToPercent('homework', m.homework || 0, evsLen)
+      sums.respect += scoreToPercent('respect', m.respect || 0, evsLen)
+    })
+    const count = inRange.length
+    const items = [
+      { label: 'Punctuality', key: 'punctuality', value: Math.round(sums.punctuality / count) },
+      { label: 'Obedience', key: 'obedience', value: Math.round(sums.obedience / count) },
+      { label: 'Class Behaviour', key: 'classBehaviour', value: Math.round(sums.classBehaviour / count) },
+      { label: 'Event Participation', key: 'participation', value: Math.round(sums.participation / count) },
+      { label: 'Homework', key: 'homework', value: Math.round(sums.homework / count) },
+      { label: 'Respect', key: 'respect', value: Math.round(sums.respect / count) },
+    ]
+
+    // previous window delta (overall)
+    const prevEnd = new Date(start)
+    prevEnd.setDate(start.getDate() - 1)
+    const prevStart = new Date(prevEnd)
+    prevStart.setDate(prevEnd.getDate() - (days - 1))
+    const prevRange = records.filter(r => {
+      const we = new Date(r.week_end || r.weekEnd || r.created_at)
+      return we >= prevStart && we <= prevEnd
+    })
+    if (prevRange.length > 0) {
+      const sumsPrev: Record<string, number> = { punctuality: 0, obedience: 0, classBehaviour: 0, participation: 0, homework: 0, respect: 0 }
+      prevRange.forEach(r => {
+        const m = r.metrics || {}
+        const evsLen = Array.isArray(r.events) ? r.events.length : 0
+        sumsPrev.punctuality += scoreToPercent('punctuality', m.punctuality || 0, evsLen)
+        sumsPrev.obedience += scoreToPercent('obedience', m.obedience || 0, evsLen)
+        sumsPrev.classBehaviour += scoreToPercent('classBehaviour', m.classBehaviour || 0, evsLen)
+        sumsPrev.participation += scoreToPercent('participation', m.participation || 0, evsLen)
+        sumsPrev.homework += scoreToPercent('homework', m.homework || 0, evsLen)
+        sumsPrev.respect += scoreToPercent('respect', m.respect || 0, evsLen)
+      })
+      const cAvg = items.reduce((s, it) => s + it.value, 0) / items.length
+      const pAvg = (sumsPrev.punctuality + sumsPrev.obedience + sumsPrev.classBehaviour + sumsPrev.participation + sumsPrev.homework + sumsPrev.respect) / (prevRange.length * 6)
+      setBehaviourDelta(Math.round(cAvg - pAvg))
+    } else {
+      setBehaviourDelta(null)
+    }
+
+    return { items }
+  }
+
+  const behaviourComputed = useMemo(() => {
+    if (monthlyMode && monthlyRecord && monthlyRecord.metrics) {
+      const m = monthlyRecord.metrics
+      const items = [
+        { label: 'Punctuality', key: 'punctuality', value: Math.round(m.punctuality || 0) },
+        { label: 'Obedience', key: 'obedience', value: Math.round(m.obedience || 0) },
+        { label: 'Class Behaviour', key: 'classBehaviour', value: Math.round(m.classBehaviour || 0) },
+        { label: 'Event Participation', key: 'participation', value: Math.round(m.participation || 0) },
+        { label: 'Homework', key: 'homework', value: Math.round(m.homework || 0) },
+        { label: 'Respect', key: 'respect', value: Math.round(m.respect || 0) },
+      ]
+      return { items }
+    }
+    if (behaviourRange === 'latest') return computeLatestMetrics(behaviourRecords)
+    return computeWindowMetrics(behaviourRecords, behaviourRange)
+  }, [behaviourRange, behaviourRecords, monthlyMode, monthlyRecord])
+
+  const behaviourImprovements = useMemo((): Array<{ key: string; label: string; value: number; severity: 'critical' | 'warning'; message: string }> => {
+    const out: Array<{ key: string; label: string; value: number; severity: 'critical' | 'warning'; message: string }> = []
+    if (!behaviourComputed || !behaviourComputed.items) return out
+    behaviourComputed.items.forEach((it: any) => {
+      if (it.value <= 50) {
+        const severity: 'critical' | 'warning' = it.value <= 25 ? 'critical' : 'warning'
+        const baseMsg = it.value <= 25
+          ? `${it.label} is critically low (${it.value}%). Immediate attention required.`
+          : `${it.label} needs improvement (${it.value}%).`;
+        const guidance = it.label === 'Punctuality'
+          ? 'Ensure on-time arrival and consistency each day.'
+          : it.label === 'Class Behaviour'
+            ? 'Focus on respectful conduct and active engagement in class.'
+            : it.label === 'Event Participation'
+              ? 'Consider taking part in co‑curricular events to build confidence.'
+              : 'Set clear goals and review progress weekly.'
+        out.push({ key: it.key, label: it.label, value: it.value, severity, message: `${baseMsg} ${guidance}` })
+      }
+    })
+    return out
+  }, [behaviourComputed])
+
+  const [selectedImprovement, setSelectedImprovement] = useState<string | null>(null)
+
+  const selectedImp = useMemo(() => {
+    if (!selectedImprovement) return null
+    const list: any[] = (behaviourImprovements as any) as any[]
+    return list.find((x: any) => x.key === selectedImprovement) || null
+  }, [selectedImprovement, behaviourImprovements])
+
+  // Fetch student attendance (real data) - weekly aggregated
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      if (!student) return
+      try {
+        const today = new Date()
+        const start = new Date(today)
+        start.setDate(today.getDate() - 7 * 12) // last 12 weeks
+        const startStr = start.toISOString().slice(0, 10)
+        const endStr = today.toISOString().slice(0, 10)
+        const path = `/api/attendance/student/${student.id}/?start_date=${startStr}&end_date=${endStr}`
+        const records: any[] = await apiGet(path)
+        setAttendanceRaw(records)
+        const getWeekStart = (d: Date) => {
+          const date = new Date(d)
+          const day = date.getDay() === 0 ? 7 : date.getDay() // Monday=1..Sunday=7
+          const diff = date.getDate() - day + 1
+          const s = new Date(date.getFullYear(), date.getMonth(), diff)
+          s.setHours(0, 0, 0, 0)
+          return s
+        }
+        const addDays = (d: Date, n: number) => { const c = new Date(d); c.setDate(c.getDate() + n); return c }
+
+        const map: Record<string, { start: Date, end: Date, present: number, absent: number, late: number, excused: number, total: number }> = {}
+        for (const r of records) {
+          const rawDateStr: string = (r as any)?.attendance_date || (r as any)?.date || (r as any)?.attendance?.date || (r as any)?.created_at
+          const dt = new Date(rawDateStr)
+          const ws = getWeekStart(dt)
+          const key = ws.toISOString().slice(0, 10)
+          if (!map[key]) map[key] = { start: ws, end: addDays(ws, 6), present: 0, absent: 0, late: 0, excused: 0, total: 0 }
+          const status = String(r.status || '').toLowerCase()
+          if (status === 'present') map[key].present++
+          else if (status === 'absent') map[key].absent++
+          else if (status === 'late') map[key].late++
+          else map[key].excused++
+          map[key].total++
+        }
+        const keys = Object.keys(map).sort()
+        const items = keys.map(k => {
+          const it = map[k]
+          const label = it.start.toLocaleString('en-US', { month: 'short', day: '2-digit' })
+          return { key: k, start: it.start.toISOString().slice(0, 10), end: it.end.toISOString().slice(0, 10), label, present: it.present, absent: it.absent, late: it.late, excused: it.excused, total: it.total }
+        })
+        setWeeklyAttendance(items)
+      } catch (e) {
+        // fail silently; keep placeholder
+      }
+    }
+    fetchAttendance()
+  }, [student])
+
+  // Attendance percentage rule and donut computations placed before any early returns
+  const calculateAttendancePct = (present: number, absent: number, late: number, excused: number) => {
+    const denom = present + absent
+    if (!denom) return 0
+    return Math.round((present / denom) * 100)
+  }
+
+  const { cwPresent, cwAbsent, cwLate, cwExcused, cwDenom, cwPct, cwSundays, cwStartLabel, cwEndLabel, donutData } = useMemo(() => {
+    const end = new Date()
+    const start = new Date()
+    start.setDate(end.getDate() - (donutRange - 1))
+
+    // Build working days (exclude Sundays) and count Sundays
+    let sundays = 0
+    const workingDays: string[] = []
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() === 0) sundays++
+      else workingDays.push(new Date(d).toISOString().slice(0, 10))
+    }
+
+    // Map statuses by day (per selected range) — precedence: present > absent > leave > none
+    const dayToStatus: Record<string, 'present' | 'absent' | 'leave' | 'none'> = {}
+    attendanceRaw.forEach(r => {
+      const rawDateStr: string = (r as any)?.attendance_date || (r as any)?.date || (r as any)?.attendance?.date || (r as any)?.created_at
+      const dt = new Date(rawDateStr)
+      if (dt < start || dt > end) return
+      if (dt.getDay() === 0) return
+      const key = dt.toISOString().slice(0, 10)
+      const status = String(r.status || '').toLowerCase()
+      if (status === 'present' || status === 'late') {
+        dayToStatus[key] = 'present'
+      } else if (status === 'absent') {
+        if (dayToStatus[key] !== 'present') dayToStatus[key] = 'absent'
+      } else if (status === 'leave') {
+        if (!dayToStatus[key]) dayToStatus[key] = 'leave'
+      }
+    })
+
+    let p = 0, a = 0, nr = 0, l = 0
+    for (const key of workingDays) {
+      const st = dayToStatus[key] || 'none'
+      if (st === 'present') p++
+      else if (st === 'absent') a++
+      else if (st === 'leave') l++
+      else nr++
+    }
+    // New rule: denominator is fixed by selected range working days excluding leaves
+    const denom = Math.max(workingDays.length - l, 0)
+    const pct = denom ? Math.round((p / denom) * 100) : 0
+    const startLabel = start.toLocaleString('en-US', { month: 'short', day: '2-digit' })
+    const endLabel = end.toLocaleString('en-US', { month: 'short', day: '2-digit' })
+    return {
+      cwPresent: p,
+      cwAbsent: a,
+      cwNoRecord: nr,
+      cwLate: 0,
+      cwExcused: l,
+      cwDenom: denom,
+      cwPct: pct,
+      cwSundays: sundays,
+      donutData: [
+        { name: 'Present', value: p },
+        { name: 'Absent', value: a },
+        { name: 'No Record', value: nr },
+        { name: 'Sundays', value: sundays }
+      ],
+      cwStartLabel: startLabel,
+      cwEndLabel: endLabel
+    }
+  }, [attendanceRaw, donutRange])
+
+  const sparkData = useMemo(() => weeklyAttendance.slice(-8).map(w => ({
+    label: w.label,
+    percent: calculateAttendancePct(w.present, w.absent, w.late, w.excused)
+  })), [weeklyAttendance])
+
   if (!mounted) {
     return <LoadingSpinner />
   }
@@ -261,17 +530,95 @@ function StudentProfileContent() {
 
   // Generate data for charts
   const performanceData = generatePerformanceData(student, [])
-  const attendanceData = generateAttendanceData([])
-  const behaviorData = generateBehaviorData()
-  const gradeDistribution = generateGradeDistribution()
+  const attendanceData = weeklyAttendance.length > 0
+    ? weeklyAttendance.map(w => ({ ...w, percentage: w.total ? Math.round((w.present / w.total) * 100) : 0 }))
+    : generateAttendanceData([])
+
+  // Tooltip for attendance chart
+  const AttendanceTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const present = payload.find((p: any) => p.dataKey === 'present')?.value || 0
+      const absent = payload.find((p: any) => p.dataKey === 'absent')?.value || 0
+      const total = present + absent
+      const pct = total ? Math.round((present / total) * 100) : 0
+      return (
+        <div className="rounded-lg border bg-white/95 shadow p-3 text-sm">
+          <div className="font-semibold mb-1">{label}</div>
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1 text-emerald-600"><span className="w-2 h-2 rounded-full bg-emerald-500"></span>Present: {present}</span>
+            <span className="inline-flex items-center gap-1 text-rose-600"><span className="w-2 h-2 rounded-full bg-rose-500"></span>Absent: {absent}</span>
+            <span className="text-slate-600 ml-2">{pct}%</span>
+          </div>
+        </div>
+      )
+    }
+    return null
+  }
+  // Tooltip for Donut
+  const DonutTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const item = payload[0]
+      const name = item?.name || ''
+      const value = item?.value || 0
+      const total = donutData?.reduce((s, d) => s + (d?.value || 0), 0) || 0
+      const pct = total ? Math.round((value / total) * 100) : 0
+      const color = name === 'Present' ? '#22c55e' : (name === 'Absent' ? '#ef4444' : (name === 'No Record' ? '#cbd5e1' : '#1d4ed8'))
+      return (
+        <div className="rounded-lg border bg-white/95 shadow p-2 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+            <span className="font-medium text-slate-700">{name === 'Sundays' ? 'Sunday (Holiday)' : name}</span>
+            <span className="ml-2 text-slate-600">{value} ({pct}%)</span>
+          </div>
+        </div>
+      )
+    }
+    return null
+  }
 
   // Calculate metrics
   const overallScore = Math.round(performanceData.reduce((sum: number, item: any) => sum + item.grade, 0) / performanceData.length) || 0
   const attendanceRate = Math.round(attendanceData.reduce((sum: number, item: any) => sum + item.percentage, 0) / attendanceData.length) || 0
-  const profileCompleteness = student ? (() => {
-    const keyFields = ['name', 'father_name', 'father_contact', 'emergency_contact', 'gender', 'dob', 'current_grade', 'section', 'campus']
-    const filledFields = keyFields.filter(field => student[field] !== null && student[field] !== '' && student[field] !== undefined)
-    return Math.round((filledFields.length / keyFields.length) * 100)
+  const detailsCompleteness = student ? (() => {
+    const classTeacher = (student as any)?.classroom?.class_teacher?.full_name
+      || (student as any)?.class_teacher?.full_name
+      || (student as any)?.classroom?.class_teacher_name
+      || (student as any)?.class_teacher_name
+      || ''
+
+    const campusName = (student as any)?.campus_name || (student as any)?.campus?.campus_name || ''
+
+    const values = [
+      // Personal
+      (student as any)?.name,
+      (student as any)?.gender,
+      (student as any)?.dob,
+      (student as any)?.religion,
+      (student as any)?.mother_tongue,
+      (student as any)?.place_of_birth,
+      (student as any)?.zakat_status,
+      // Academic
+      (student as any)?.student_id,
+      (student as any)?.current_grade,
+      (student as any)?.section,
+      classTeacher,
+      campusName,
+      (student as any)?.shift,
+      (student as any)?.enrollment_year,
+      (student as any)?.gr_no,
+      // Contact
+      (student as any)?.father_name,
+      (student as any)?.father_contact,
+      (student as any)?.father_cnic,
+      (student as any)?.father_profession,
+      (student as any)?.mother_name,
+      (student as any)?.mother_contact,
+      (student as any)?.mother_status,
+      (student as any)?.address,
+    ]
+
+    const filled = values.filter(v => v !== null && v !== undefined && String(v).toString().trim() !== '')
+    return Math.round((filled.length / values.length) * 100)
   })() : 0
 
   const getPerformanceStatus = (score: number) => {
@@ -281,570 +628,514 @@ function StudentProfileContent() {
     return { text: 'Needs Improvement', color: themeColors.error, icon: AlertCircle }
   }
 
+  const getBehaviourQuote = (score: number) => {
+    if (score >= 90) return 'Outstanding consistency — keep it up!'
+    if (score >= 80) return 'Very good progress — aim for excellence.'
+    if (score >= 70) return 'Good — small improvements will make it great.'
+    return 'Focus this week — you can turn this around.'
+  }
+
+  const getBehaviourWord = (score: number) => {
+    if (score >= 90) return 'Excellent'
+    if (score >= 80) return 'Great'
+    if (score >= 70) return 'Good'
+    return 'Improve'
+  }
+
   const performanceStatus = getPerformanceStatus(overallScore)
+  const behaviourAvg: number = (() => {
+    const items = behaviourComputed?.items || []
+    if (!items.length) return 0
+    return Math.round(items.reduce((s: number, it: any) => s + (it.value || 0), 0) / items.length)
+  })()
+  const behaviourStatus = getPerformanceStatus(behaviourAvg)
+  const profileStatusAvg = Math.round(((cwPct || 0) + (behaviourAvg || 0) + (detailsCompleteness || 0)) / 3)
+  const overallCombined = Math.round(((cwPct || 0) + (profileStatusAvg || 0) + (behaviourAvg || 0)) / 3)
+
+  // Student photo and initials
+  const studentPhoto: string | undefined = (student as any)?.profile_image || (student as any)?.photo || (student as any)?.image || (student as any)?.student_photo
+  const studentInitials = ((student?.name || 'Student') as string)
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+
+  // Derived details
+  const age = (() => {
+    const dobStr = (student as any)?.dob
+    if (!dobStr) return '—'
+    const dob = new Date(dobStr)
+    if (isNaN(dob.getTime())) return '—'
+    const diff = Date.now() - dob.getTime()
+    const ageDate = new Date(diff)
+    return Math.abs(ageDate.getUTCFullYear() - 1970)
+  })()
+
+
+
+  // Mock subject progress data (0-100)
+  const subjectProgressData = [
+    { subject: 'Urdu', student: 84, classAvg: 76 },
+    { subject: 'English', student: 91, classAvg: 82 },
+    { subject: 'Math', student: 78, classAvg: 74 },
+    { subject: 'Science', student: 86, classAvg: 79 },
+    { subject: 'Islamiat', student: 93, classAvg: 88 },
+  ]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <div className="container mx-auto px-4 py-6">
-        {/* Professional Header */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-6">
+        {/* Header (themed) */}
+        <div className="rounded-xl shadow-lg p-6 mb-6 border" style={{ backgroundColor: themeColors.primary, borderColor: themeColors.primary }}>
           <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-                <Button
-              variant="ghost" 
-              size="sm" 
-                  onClick={() => router.back()}
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+            <div className="flex items-center space-x-5">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColors.skyblue }}>
                   <User className="w-8 h-8 text-white" />
                 </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">{student?.name || 'Student Profile'}</h1>
-                  <p className="text-gray-600 text-lg">Student ID: {student?.gr_no || studentId}</p>
-                  <div className="flex items-center space-x-4 mt-2">
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+              <div className="text-white">
+                <h1 className="text-3xl font-bold">{student?.name || 'Student Profile'}</h1>
+                <p className="text-white/80 text-lg">Student ID: {(student as any)?.student_id || studentId}</p>
+                <div className="flex items-center space-x-3 mt-2">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
                       <GraduationCap className="w-3 h-3 mr-1" />
                       {student?.current_grade || 'N/A'}
-                    </Badge>
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
+                  </span>
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
                       <Users className="w-3 h-3 mr-1" />
                       Section {student?.section || 'N/A'}
-                    </Badge>
-                    <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+                  </span>
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
                       <MapPin className="w-3 h-3 mr-1" />
                       {student?.campus_name || student?.campus?.campus_name || 'N/A'}
-                    </Badge>
+                  </span>
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="flex space-x-3">
-              <Button variant="outline" size="sm" className="hover:bg-blue-50">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-              <Button variant="outline" size="sm" className="hover:bg-green-50">
-              <Share className="w-4 h-4 mr-2" />
-              Share
-            </Button>
-                      </div>
+              {overallCombined < 70 && (
+                <div className="text-sm px-3 py-2 rounded-md border max-w-[520px] text-right" style={{ backgroundColor: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
+                  Overall score is below 70%. Please focus on This Student, 
+                </div>
+              )}
+
                     </div>
                           </div>
 
-        {/* Key Metrics Cards */}
+        {/* KPI Cards Only */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
+          <Card className="text-white border-0 shadow-lg" style={{ backgroundColor: themeColors.primary }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                   <div>
                   <p className="text-blue-100 text-sm font-medium">Overall Score</p>
-                  <p className="text-3xl font-bold">{overallScore}%</p>
+                  <p className="text-3xl font-bold">{overallCombined}%</p>
                 </div>
                 <Award className="w-8 h-8 text-blue-200" />
                   </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
+          <Card className="text-white border-0 shadow-lg" style={{ backgroundColor: themeColors.info }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                   <div>
-                  <p className="text-green-100 text-sm font-medium">Attendance</p>
-                  <p className="text-3xl font-bold">{attendanceRate}%</p>
+                  <p className="text-sm font-medium">Attendance</p>
+                  <p className="text-3xl font-bold">{cwPct}%</p>
                 </div>
-                <Calendar className="w-8 h-8 text-green-200" />
+                <Calendar className="w-8 h-8" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
+          <Card className="text-white border-0 shadow-lg" style={{ backgroundColor: themeColors.skyblue }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100 text-sm font-medium">Profile Status</p>
-                  <p className="text-3xl font-bold">{profileCompleteness}%</p>
+                  <p className="text-3xl font-bold">{profileStatusAvg}%</p>
                 </div>
                 <User className="w-8 h-8 text-purple-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg">
+          <Card className="text-white border-0 shadow-lg" style={{ backgroundColor: themeColors.light }}>
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-100 text-sm font-medium">Performance</p>
-                  <p className="text-lg font-bold">{performanceStatus.text}</p>
+                <p className="text-sm font-medium">Performance / Behaviour</p>
+                <div className="mt-1 flex items-baseline gap-3">
+                  <span className="text-3xl font-extrabold leading-none">{behaviourAvg}%</span>
+                  <span className="text-sm font-semibold">{getBehaviourWord(behaviourAvg)}</span>
                 </div>
-                <performanceStatus.icon className="w-8 h-8 text-orange-200" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Professional Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-white shadow-sm border border-gray-200 rounded-lg p-1">
-            <TabsTrigger value="overview" className="flex items-center space-x-2">
-              <BarChart3 className="w-4 h-4" />
-              <span>Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="academic" className="flex items-center space-x-2">
-              <BookOpen className="w-4 h-4" />
-              <span>Academic</span>
-            </TabsTrigger>
-            <TabsTrigger value="attendance" className="flex items-center space-x-2">
-              <Calendar className="w-4 h-4" />
-              <span>Attendance</span>
-            </TabsTrigger>
-            <TabsTrigger value="behavior" className="flex items-center space-x-2">
-              <Activity className="w-4 h-4" />
-              <span>Behavior</span>
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center space-x-2">
-              <Settings className="w-4 h-4" />
-              <span>Profile</span>
-            </TabsTrigger>
-          </TabsList>
+        
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Performance Chart */}
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center space-x-2">
-                    <TrendingUp className="w-5 h-5" />
-                    <span>Subject Performance</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={performanceData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis dataKey="subject" stroke="#6b7280" fontSize={12} />
-                        <YAxis domain={[0, 100]} stroke="#6b7280" fontSize={12} />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: '#1f2937', 
-                            border: 'none', 
-                            borderRadius: '8px',
-                            color: 'white'
-                          }} 
-                        />
-                        <Bar dataKey="grade" fill={themeColors.primary} radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+
+
+        {/* Responsive two-card section: first normal, second double width */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 items-stretch">
+          {/* First card - same width/height */}
+          <Card className="overflow-hidden h-[360px] md:h-[420px] bg-white border shadow-sm">
+            {studentPhoto ? (
+              <img
+                src={studentPhoto}
+                alt={student?.name || 'Student'}
+                className="w-full h-full object-cover block"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-6xl font-bold text-white" style={{ backgroundColor: '#61a5c2' }}>
+                {studentInitials}
                   </div>
-                </CardContent>
+            )}
               </Card>
 
-              {/* Grade Distribution */}
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center space-x-2">
-                    <PieChartIcon className="w-5 h-5" />
-                    <span>Grade Distribution</span>
-                  </CardTitle>
+          {/* Second card - double width with Tabs (Personal | Academic | Contact) */}
+          <Card className="h-[360px] md:h-[420px] bg-white border shadow-sm md:col-span-2">
+              <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-[#013a63]">Student Information</CardTitle>
+              {userRole === 'teacher' && (
+                <Button onClick={() => setBehaviourOpen(true)} className="h-9 px-3 text-white transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md" style={{ backgroundColor: themeColors.primary }}>
+                  <Plus className="w-4 h-4 mr-1" /> Add Behaviour
+                </Button>
+              )}
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsPieChart>
-                        <Pie
-                          data={gradeDistribution}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={120}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          {gradeDistribution.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: '#1f2937', 
-                            border: 'none', 
-                            borderRadius: '8px',
-                            color: 'white'
-                          }} 
-                        />
-                      </RechartsPieChart>
-                    </ResponsiveContainer>
+            <CardContent className="h-[calc(100%-3.5rem)] flex flex-col min-h-0">
+              <Tabs defaultValue="personal" className="w-full h-full flex flex-col min-h-0">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="personal">Personal</TabsTrigger>
+                  <TabsTrigger value="academic">Academic</TabsTrigger>
+                  <TabsTrigger value="contact">Contact</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="personal" className="flex-1 mt-4 min-h-0 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 content-start">
+                    <div className="w-full rounded-lg border bg-white divide-y">
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Full Name</p>
+                        <div className="col-span-2 font-medium text-gray-800">{student?.name || '—'}</div>
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    {gradeDistribution.map((grade, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: grade.color }}></div>
-                        <span className="text-sm text-gray-600">{grade.name}: {grade.value}%</span>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Gender</p>
+                        <div className="col-span-2 text-gray-800">{student?.gender || '—'}</div>
                       </div>
-                    ))}
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Date of Birth</p>
+                        <div className="col-span-2 text-gray-800">{student?.dob || '—'}</div>
                   </div>
-                </CardContent>
-              </Card>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Age</p>
+                        <div className="col-span-2 text-gray-800">{age}</div>
+            </div>
+
+                          </div>
+                    <div className="w-full rounded-lg border bg-white divide-y">
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Religion</p>
+                        <div className="col-span-2 text-gray-800">{student?.religion || '—'}</div>
+                          </div>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Mother Tongue</p>
+                        <div className="col-span-2 text-gray-800">{student?.mother_tongue || '—'}</div>
+                        </div>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Place of Birth</p>
+                        <div className="col-span-2 text-gray-800">{(student as any)?.place_of_birth || '—'}</div>
+                          </div>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Zakat Status</p>
+                        <div className="col-span-2 text-gray-800 capitalize">{(student as any)?.zakat_status || '—'}</div>
+                        </div>
+                      </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="academic" className="flex-1 mt-4 min-h-0 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 content-start">
+                    <div className="w-full rounded-lg border bg-white divide-y">
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Student ID</p>
+                        <div className="col-span-2 font-medium text-gray-800">{(student as any)?.student_id || '—'}</div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Current Grade</p>
+                        <div className="col-span-2 text-gray-800">{(student as any)?.current_grade || '—'}</div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Section</p>
+                        <div className="col-span-2 text-gray-800">{student?.section || '—'}</div>
+                    </div>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Class Teacher</p>
+                        <div className="col-span-2 text-gray-800">{
+                          (student as any)?.classroom?.class_teacher?.full_name
+                          || (student as any)?.class_teacher?.full_name
+                          || (student as any)?.classroom?.class_teacher_name
+                          || (student as any)?.class_teacher_name
+                          || '—'
+                        }</div>
+                      </div>
+                      </div>
+                    <div className="w-full rounded-lg border bg-white divide-y">
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Campus</p>
+                        <div className="col-span-2 text-gray-800">{student?.campus_name || student?.campus?.campus_name || '—'}</div>
+                    </div>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Shift</p>
+                        <div className="col-span-2 text-gray-800 capitalize">{(student as any)?.shift || '—'}</div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Enrollment Year</p>
+                        <div className="col-span-2 text-gray-800">{(student as any)?.enrollment_year || '—'}</div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">GR No</p>
+                        <div className="col-span-2 text-gray-800">{student?.gr_no || '—'}</div>
+                    </div>
+                  </div>
             </div>
           </TabsContent>
 
-          {/* Academic Tab */}
-          <TabsContent value="academic" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Detailed Performance */}
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center space-x-2">
-                    <BookOpen className="w-5 h-5" />
-                    <span>Subject Details</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {performanceData.map((subject: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <BookOpen className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{subject.subject}</p>
-                            <p className="text-sm text-gray-600">{subject.grade}/{subject.total}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold" style={{ color: subject.color }}>
-                            {subject.grade}%
-                          </p>
-                          <div className="w-20 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="h-2 rounded-full" 
-                              style={{ 
-                                width: `${subject.grade}%`, 
-                                backgroundColor: subject.color 
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Academic Timeline */}
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center space-x-2">
-                    <Clock className="w-5 h-5" />
-                    <span>Academic Timeline</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-4 p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
-                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">Current Grade</p>
-                        <p className="text-sm text-gray-600">{student?.current_grade || 'N/A'}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                        <Info className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">Section</p>
-                        <p className="text-sm text-gray-600">Section {student?.section || 'N/A'}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4 p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-                      <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                        <MapPin className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">Campus</p>
-                        <p className="text-sm text-gray-600">{student?.campus_name || student?.campus?.campus_name || 'N/A'}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Attendance Tab */}
-          <TabsContent value="attendance" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Attendance Trend */}
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center space-x-2">
-                    <LineChart className="w-5 h-5" />
-                    <span>Monthly Attendance Trend</span>
-                  </CardTitle>
-              </CardHeader>
-                <CardContent className="p-6">
-                  <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={attendanceData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
-                        <YAxis domain={[0, 100]} stroke="#6b7280" fontSize={12} />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: '#1f2937', 
-                            border: 'none', 
-                            borderRadius: '8px',
-                            color: 'white'
-                          }} 
-                        />
-                        <Area 
-                          type="monotone" 
-                          dataKey="percentage" 
-                          stroke={themeColors.success} 
-                          fill={themeColors.success}
-                          fillOpacity={0.3}
-                        />
-                      </AreaChart>
-                  </ResponsiveContainer>
+                <TabsContent value="contact" className="flex-1 mt-4 min-h-0 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 content-start">
+                    <div className="w-full rounded-lg border bg-white divide-y">
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Father Name</p>
+                        <div className="col-span-2 text-gray-800">{student?.father_name || '—'}</div>
                 </div>
-              </CardContent>
-            </Card>
-
-              {/* Attendance Summary */}
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center space-x-2">
-                    <Calendar className="w-5 h-5" />
-                    <span>Attendance Summary</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-6">
-                    <div className="text-center">
-                      <div className="text-4xl font-bold text-green-600 mb-2">{attendanceRate}%</div>
-                      <p className="text-gray-600">Overall Attendance Rate</p>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Father Contact</p>
+                        <div className="col-span-2 text-gray-800">{student?.father_contact || '—'}</div>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-600">
-                          {attendanceData.reduce((sum, item) => sum + item.present, 0)}
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Father CNIC</p>
+                        <div className="col-span-2 text-gray-800">{(student as any)?.father_cnic || '—'}</div>
                         </div>
-                        <p className="text-sm text-gray-600">Days Present</p>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Father Profession</p>
+                        <div className="col-span-2 text-gray-800">{(student as any)?.father_profession || '—'}</div>
                       </div>
-                      <div className="text-center p-4 bg-red-50 rounded-lg">
-                        <div className="text-2xl font-bold text-red-600">
-                          {attendanceData.reduce((sum, item) => sum + item.absent, 0)}
                         </div>
-                        <p className="text-sm text-gray-600">Days Absent</p>
+                    <div className="w-full rounded-lg border bg-white divide-y">
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Mother Name</p>
+                        <div className="col-span-2 text-gray-800">{(student as any)?.mother_name || '—'}</div>
                       </div>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Mother Contact</p>
+                        <div className="col-span-2 text-gray-800">{(student as any)?.mother_contact || '—'}</div>
                     </div>
-
-                    <div className="space-y-3">
-                      {attendanceData.map((month, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <span className="font-medium text-gray-900">{month.month}</span>
-                          <div className="flex items-center space-x-3">
-                            <span className="text-sm text-gray-600">{month.present}P / {month.absent}A</span>
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="h-2 rounded-full bg-green-500" 
-                                style={{ width: `${month.percentage}%` }}
-                              ></div>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Mother Status</p>
+                        <div className="col-span-2 text-gray-800 capitalize">{(student as any)?.mother_status || '—'}</div>
                             </div>
-                            <span className="text-sm font-medium text-gray-900">{month.percentage}%</span>
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <p className="text-sm text-gray-500">Address</p>
+                        <div className="col-span-2 text-gray-800">{(student as any)?.address || '—'}</div>
                           </div>
                         </div>
-                      ))}
                     </div>
-                  </div>
+                </TabsContent>
+              </Tabs>
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
 
-          {/* Behavior Tab */}
-          <TabsContent value="behavior" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Behavior Radar Chart */}
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center space-x-2">
-                    <Activity className="w-5 h-5" />
-                    <span>Behavior Assessment</span>
-                  </CardTitle>
-              </CardHeader>
-                <CardContent className="p-6">
-                  <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={behaviorData}>
-                      <PolarGrid />
-                        <PolarAngleAxis dataKey="subject" fontSize={12} />
-                      <PolarRadiusAxis domain={[0, 100]} fontSize={10} />
-                      <Radar
-                        name="Performance"
-                        dataKey="A"
-                          stroke={themeColors.purple}
-                          fill={themeColors.purple}
-                        fillOpacity={0.3}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
+        {/* Donut + Subject Progress (same row, equal width) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 items-stretch">
+          <Card className="bg-white border shadow-sm h-[380px] md:h-[420px] overflow-hidden">
+            <CardHeader>
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="text-[#013a63]">Attendance</CardTitle>
+                <div className="flex flex-col items-end gap-1">
+                  <Select value={String(donutRange)} onValueChange={(v) => setDonutRange(parseInt(v))}>
+                    <SelectTrigger className="h-8 w-[150px] rounded-md border bg-white text-sm focus:ring-sky-500">
+                      <SelectValue placeholder="Last 7 days" />
+                    </SelectTrigger>
+                    <SelectContent className="text-sm">
+                      <SelectItem value="7">Last 7 days</SelectItem>
+                      <SelectItem value="15">Last 15 days</SelectItem>
+                      <SelectItem value="30">Last 30 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-3 text-xs mt-1">
+                    <span className="inline-flex items-center gap-1 text-green-600"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#22c55e' }}></span>Present: {cwPresent}</span>
+                    <span className="inline-flex items-center gap-1 text-rose-600"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#ef4444' }}></span>Absent: {cwAbsent}</span>
+                    <span className="inline-flex items-center gap-1 text-slate-600"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#cbd5e1' }}></span>No record: {(donutData?.find(d => d.name === 'No Record')?.value as number) || 0}</span>
+                    <span className="inline-flex items-center gap-1 text-[#1d4ed8]"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#1d4ed8' }}></span>Sundays: {cwSundays}</span>
                 </div>
-              </CardContent>
-            </Card>
 
-              {/* Behavior Details */}
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center space-x-2">
-                    <Target className="w-5 h-5" />
-                    <span>Behavior Details</span>
-                  </CardTitle>
-              </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {behaviorData.map((behavior, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                            <Star className="w-5 h-5 text-purple-600" />
+                  {/* Behaviour Modal (teachers only) */}
+                  {userRole === 'teacher' && (
+                    <StudentBehaviourModal
+                      open={behaviourOpen}
+                      onOpenChange={setBehaviourOpen}
+                      studentId={studentId}
+                      studentCode={(student as any)?.student_id}
+                      studentName={student?.name as any}
+                      onSubmit={async (payload) => {
+                        try {
+                          await createBehaviourRecord({
+                            student: Number(studentId),
+                            week_start: payload.weekStart,
+                            week_end: payload.weekEnd,
+                            metrics: payload.metrics,
+                            notes: payload.notes,
+                            events: (payload.events || []).map((e: any) => ({ date: e.date, name: e.name, progress: e.progress, award: e.award }))
+                          })
+                          const list = await getStudentBehaviourRecords(studentId)
+                          setBehaviourRecords(Array.isArray(list) ? list : [])
+                          toast({ title: "Behaviour saved", description: "Record stored successfully.", variant: "default" })
+                        } catch (e) {
+                          toast({ title: "Save failed", description: "Could not save behaviour record.", variant: "destructive" })
+                        }
+                      }}
+                    />
+                  )}
+                  <div className="text-[11px] text-slate-500 mt-1">Range: {cwStartLabel} – {cwEndLabel}</div>
                           </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{behavior.subject}</p>
-                            <p className="text-sm text-gray-600">Out of 100</p>
                           </div>
+            </CardHeader>
+            <CardContent className="h-[calc(100%-3.5rem)] pb-2">
+              <div className="relative h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPieChart>
+                    <defs>
+                      <linearGradient id="attBlue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#60a5fa" />
+                        <stop offset="100%" stopColor="#1d4ed8" />
+                      </linearGradient>
+                    </defs>
+                    <Pie data={donutData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="58%" outerRadius="78%" startAngle={90} endAngle={-270} stroke="#ffffff" strokeWidth={2}>
+                      <Cell fill="#22c55e" />
+                      <Cell fill="#ef4444" />
+                      <Cell fill="#cbd5e1" />
+                      <Cell fill="url(#attBlue)" />
+                    </Pie>
+                    {/* thin accent ring */}
+                    <Pie data={[{ value: 100 }]} dataKey="value" cx="50%" cy="50%" innerRadius="81%" outerRadius="83%" startAngle={90} endAngle={-270} fill="none" stroke="#ef4444" strokeWidth={3} />
+                    <Tooltip content={<DonutTooltip />} />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <div className="text-3xl md:text-4xl font-extrabold" style={{ color: themeColors.primary }}>{cwPct}%</div>
+                  <div className="text-xs text-slate-600">{cwPresent} / {cwDenom}</div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-purple-600">{behavior.A}%</p>
-                          <div className="w-20 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="h-2 rounded-full bg-purple-500" 
-                              style={{ width: `${behavior.A}%` }}
-                            ></div>
                           </div>
+              <div className="mt-4 h-24">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={sparkData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+                    <defs>
+                      <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.05} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="label" hide />
+                    <YAxis domain={[0, 100]} hide />
+                    <Tooltip formatter={(v: any) => [`${v}%`, 'Attendance']} />
+                    <Area type="monotone" dataKey="percent" stroke="#3b82f6" strokeWidth={2} fill="url(#spark)" dot={false} activeDot={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
 
-          {/* Profile Tab */}
-          <TabsContent value="profile" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Personal Information */}
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center space-x-2">
-                    <User className="w-5 h-5" />
-                    <span>Personal Information</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <User className="w-5 h-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium text-gray-900">{student?.name || 'N/A'}</p>
-                        <p className="text-sm text-gray-600">Full Name</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <Phone className="w-5 h-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium text-gray-900">{student?.father_contact || student?.emergency_contact || 'N/A'}</p>
-                        <p className="text-sm text-gray-600">Contact Number</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <Mail className="w-5 h-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium text-gray-900">{student?.email || 'N/A'}</p>
-                        <p className="text-sm text-gray-600">Email Address</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <Calendar className="w-5 h-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium text-gray-900">{student?.dob || 'N/A'}</p>
-                        <p className="text-sm text-gray-600">Date of Birth</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <MapPin className="w-5 h-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium text-gray-900">{student?.address || 'N/A'}</p>
-                        <p className="text-sm text-gray-600">Address</p>
-                      </div>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
 
-              {/* Academic Information */}
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center space-x-2">
-                    <GraduationCap className="w-5 h-5" />
-                    <span>Academic Information</span>
-                  </CardTitle>
+          <Card className="bg-white border shadow-sm h-[380px] md:h-[420px]">
+            <CardHeader>
+              <CardTitle className="text-[#013a63]">Subject Progress</CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <GraduationCap className="w-5 h-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium text-gray-900">{student?.current_grade || 'N/A'}</p>
-                        <p className="text-sm text-gray-600">Current Grade</p>
+            <CardContent className="h-[calc(100%-3.5rem)]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={subjectProgressData} margin={{ top: 12, right: 12, left: 0, bottom: 6 }}>
+                  <CartesianGrid stroke="#e5e7eb" vertical={false} />
+                  <XAxis dataKey="subject" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                  <YAxis domain={[0, 100]} tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                  <Tooltip cursor={{ fill: 'rgba(2,132,199,0.06)' }} formatter={(value: any, name: string) => [`${value}%`, name === 'student' ? 'Student' : 'Class Avg']} />
+                  <defs>
+                    <linearGradient id="gradStudent" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#34d399" />
+                      <stop offset="100%" stopColor="#10b981" />
+                    </linearGradient>
+                    <linearGradient id="gradClass" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#93c5fd" />
+                      <stop offset="100%" stopColor="#3b82f6" />
+                    </linearGradient>
+                  </defs>
+                  <Bar dataKey="student" name="Student" fill="url(#gradStudent)" radius={[6, 6, 0, 0]}>
+                    <LabelList dataKey="student" position="top" className="fill-slate-700 text-[10px]" />
+                  </Bar>
+                  <Bar dataKey="classAvg" name="Class Avg" fill="url(#gradClass)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+                </CardContent>
+              </Card>
                       </div>
+        {/* Behaviour Snapshot - Student's Behaviour Snapshot*/}
+        <div className="grid grid-cols-1 gap-6 mb-8">
+          <Card className="bg-white border shadow-sm h-[380px] md:h-[420px]">
+            <CardHeader>
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-[#013a63]">Student's Behaviour Snapshot</CardTitle>
+                {selectedImp && (
+                  <div className={`text-xs px-3 py-2 rounded-md border max-w-[60%] ${selectedImp.severity === 'critical' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                    {selectedImp.message}
                     </div>
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <Users className="w-5 h-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium text-gray-900">Section {student?.section || 'N/A'}</p>
-                        <p className="text-sm text-gray-600">Section</p>
+                )}
                       </div>
+            </CardHeader>
+            <CardContent className="h-[calc(100%-3.5rem)]">
+              {behaviourComputed && behaviourComputed.items ? (
+                <div className="grid grid-cols-1 md:grid-cols-10 gap-6 h-full">
+                  {/* Left: Detail list (30%) with clickable improvement indicators */}
+                  <div className="md:col-span-3 flex flex-col h-full">
+                    <div className="w-full rounded-lg border bg-white divide-y overflow-y-auto">
+                      {behaviourComputed.items.map((it: any) => {
+                        const imp = (behaviourImprovements as any[]).find((x: any) => x.key === it.key)
+                        const severityClass = imp ? (imp.severity === 'critical' ? 'text-rose-600' : 'text-amber-600') : 'text-green-600'
+                        const showPulse = !!imp
+                        return (
+                          <button key={it.key} type="button" className="w-full text-left flex items-center justify-between p-3 hover:bg-slate-50" onClick={() => showPulse ? setSelectedImprovement(it.key) : setSelectedImprovement(null)}>
+                            <span className="text-sm text-gray-600 flex items-center gap-2">
+                              {it.label}
+                              {showPulse && (
+                                <span className="relative inline-flex h-2 w-2">
+                                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${imp?.severity === 'critical' ? 'bg-rose-400' : 'bg-amber-400'} opacity-75`}></span>
+                                  <span className={`relative inline-flex rounded-full h-2 w-2 ${imp?.severity === 'critical' ? 'bg-rose-500' : 'bg-amber-500'}`}></span>
+                                </span>
+                              )}
+                            </span>
+                            <span className={`text-sm font-semibold ${severityClass}`}>{it.value}%</span>
+                          </button>
+                        )
+                      })}
                     </div>
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <MapPin className="w-5 h-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium text-gray-900">{student?.campus_name || student?.campus?.campus_name || 'N/A'}</p>
-                        <p className="text-sm text-gray-600">Campus</p>
+                    {/* Inline message area removed as requested */}
                       </div>
+
+                  {/* Right: Radar chart (70%) */}
+                  <div className="md:col-span-7">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={behaviourComputed.items.map((it: any) => ({ metric: it.label, value: it.value, full: 100 }))}>
+                        <PolarGrid stroke="#e5e7eb" />
+                        <PolarAngleAxis dataKey="metric" tick={{ fill: '#64748b', fontSize: 12 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                        <Radar name="Score" dataKey="value" stroke="#013a63" fill="#60a5fa" fillOpacity={0.7} />
+                      </RadarChart>
+                    </ResponsiveContainer>
                     </div>
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <FileText className="w-5 h-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium text-gray-900">{student?.gr_no || studentId}</p>
-                        <p className="text-sm text-gray-600">Student ID</p>
                       </div>
-                  </div>
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <Calendar className="w-5 h-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium text-gray-900">{student?.admission_date || 'N/A'}</p>
-                        <p className="text-sm text-gray-600">Admission Date</p>
-                  </div>
-                </div>
-                </div>
+              ) : (
+                <div className="h-full flex items-center justify-center text-slate-500">No behaviour data yet. Add first record.</div>
+              )}
+              {/* Removed bottom messages block; now handled inline per-row */}
               </CardContent>
             </Card>
           </div>
-          </TabsContent>
-        </Tabs>
       </div>
     </div>
   )

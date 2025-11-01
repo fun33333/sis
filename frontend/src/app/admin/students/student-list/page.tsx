@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions";
-import { getFilteredStudents, getAllCampuses } from "@/lib/api";
+import { getFilteredStudents, getAllCampuses, getGrades, getClassrooms } from "@/lib/api";
 import { DataTable, PaginationControls } from "@/components/shared";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { User, Mail, GraduationCap, MapPin } from 'lucide-react';
+import { User, Search, RefreshCcw, Mail, GraduationCap, MapPin } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,12 +67,14 @@ export default function StudentListPage() {
   const [userRole, setUserRole] = useState<string>("");
   const [userCampus, setUserCampus] = useState<string>("");
   const [campuses, setCampuses] = useState<any[]>([]);
+  const [grades, setGrades] = useState<any[]>([]);
   
   // Edit functionality
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editFormData, setEditFormData] = useState<any>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   
   // Debounced search
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -80,6 +82,18 @@ export default function StudentListPage() {
   useEffect(() => {
     initializeUserData();
   }, []);
+
+  // Fetch grades when campus or shift changes
+  useEffect(() => {
+    fetchGrades();
+  }, [filters.campus, filters.shift]);
+
+  // When shift cleared, also clear selected grade
+  useEffect(() => {
+    if (!filters.shift && filters.current_grade) {
+      setFilters(prev => ({ ...prev, current_grade: "" }));
+    }
+  }, [filters.shift]);
 
   useEffect(() => {
     fetchStudents();
@@ -104,6 +118,53 @@ export default function StudentListPage() {
     }
   };
 
+  const fetchGrades = async () => {
+    try {
+      const campusId = filters.campus ? parseInt(filters.campus) : undefined;
+      const gradesData: any = await getGrades(undefined, campusId);
+      const gradesArray: any[] = gradesData?.results || (Array.isArray(gradesData) ? gradesData : []);
+
+      let filtered: any[] = gradesArray;
+      if (filters.shift) {
+        // Use classrooms API to determine which grades are available for selected shift
+        const classroomsData: any = await getClassrooms(undefined, undefined, campusId, filters.shift);
+        const classrooms: any[] = Array.isArray(classroomsData)
+          ? classroomsData
+          : Array.isArray(classroomsData?.results)
+            ? classroomsData.results
+            : [];
+        const gradeIds = new Set(
+          classrooms.map((c: any) => c.grade || c.grade_id || c.gradeId).filter(Boolean)
+        );
+        const gradeNamesFromRooms = new Set(
+          classrooms.map((c: any) => c.grade_name || c.gradeName).filter(Boolean)
+        );
+        filtered = gradesArray.filter((g: any) =>
+          gradeIds.size > 0
+            ? gradeIds.has(g.id)
+            : gradeNamesFromRooms.size > 0
+              ? gradeNamesFromRooms.has(g.name)
+              : true
+        );
+      }
+
+      // De-duplicate by name to avoid repeated entries
+      const seen = new Set<string>();
+      const deduped = filtered.filter((g: any) => {
+        const key = (g.name || '').toString().trim().toLowerCase();
+        if (!key) return false;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      setGrades(deduped);
+    } catch (error) {
+      console.error('Error fetching grades:', error);
+      setGrades([]);
+    }
+  };
+
   const fetchStudents = async () => {
     setLoading(true);
     setError(null);
@@ -114,7 +175,8 @@ export default function StudentListPage() {
         page_size: pageSize,
         search: searchQuery || undefined,
         campus: filters.campus ? parseInt(filters.campus) : undefined,
-        current_grade: filters.current_grade || undefined,
+        // Do NOT send grade to backend; we'll normalize locally (Grade 1 vs Grade I etc.)
+        current_grade: undefined,
         section: filters.section || undefined,
         current_state: filters.current_state || undefined,
         gender: filters.gender || undefined,
@@ -123,12 +185,58 @@ export default function StudentListPage() {
       };
 
       const response: PaginationInfo = await getFilteredStudents(params);
+      // Fallback: if backend ignores page_size and returns more, slice locally
+      let pageResults = (response.results || []);
+      if (Array.isArray(pageResults) && pageResults.length > pageSize) {
+        pageResults = pageResults.slice(0, pageSize);
+      }
+      // Client-side normalization for grade names (Grade 1, Grade I, Grade-1 etc.)
+      const normalizeGradeName = (value: string | null | undefined): string => {
+        if (!value) return '';
+        const s = value.toString().trim().toLowerCase();
+        // extract number or roman
+        // map roman numerals up to 12
+        const romanMap: Record<string, string> = {
+          'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5', 'vi': '6', 'vii': '7', 'viii': '8', 'ix': '9', 'x': '10', 'xi': '11', 'xii': '12'
+        };
+        const cleaned = s.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
+        // try to find digits
+        const digitMatch = cleaned.match(/\b(\d{1,2})\b/);
+        let num = digitMatch ? digitMatch[1] : '';
+        if (!num) {
+          // try roman tokens
+          const tokens = cleaned.split(' ');
+          for (const t of tokens) {
+            if (romanMap[t]) { num = romanMap[t]; break; }
+          }
+        }
+        if (!num) return cleaned; // fallback
+        return `grade ${num}`; // canonical form
+      };
+
+      let results = pageResults;
+      if (filters.current_grade) {
+        const selectedNorm = normalizeGradeName(filters.current_grade);
+        results = results.filter((stu: any) => normalizeGradeName(stu.current_grade) === selectedNorm);
+      }
+
+      setStudents(results);
+      // Adjust counts if we applied client filter; otherwise keep backend count
+      const countBase = filters.current_grade ? results.length : (response.count || results.length || 0);
+      setTotalCount(countBase);
+      const computedTotalPages = Math.ceil(countBase / pageSize) || 1;
+      setTotalPages(computedTotalPages);
+      if (currentPage > computedTotalPages) {
+        setCurrentPage(computedTotalPages);
+        return; // trigger refetch with clamped page
+      }
       
-      setStudents(response.results || []);
-      setTotalCount(response.count || 0);
-      setTotalPages(Math.ceil((response.count || 0) / pageSize));
-      
-      } catch (err: any) {
+    } catch (err: any) {
+      // Handle invalid page gracefully by stepping back one page (or to 1)
+      if (err?.status === 404 || /invalid page/i.test(err?.message || '')) {
+        setCurrentPage(prev => Math.max(1, prev - 1));
+        return;
+      }
       console.error("Error fetching students:", err);
       setError(err.message || "Failed to load students");
       } finally {
@@ -170,6 +278,16 @@ export default function StudentListPage() {
     });
     setSearchQuery("");
     setCurrentPage(1);
+  };
+
+  const handleClearFiltersClick = () => {
+    setIsClearing(true);
+    try {
+      clearFilters();
+    } finally {
+      // brief rotation cycle
+      setTimeout(() => setIsClearing(false), 700);
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -320,17 +438,21 @@ export default function StudentListPage() {
       render: (student: Student) => (
         <div className="flex items-center space-x-2 sm:space-x-3">
           <div className="flex-shrink-0">
-            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center bg-[#6096ba]">
-              <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center bg-[#6096ba]">
+              <User className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs sm:text-sm font-semibold text-gray-900">
+            <div className="text-sm sm:text-base font-bold text-gray-900 mb-0.5">
               {student.name}
             </div>
-            <div className="text-xs text-gray-500 flex items-center space-x-1">
-              <Mail className="h-3 w-3" />
-              <span className="truncate max-w-[100px] sm:max-w-[150px]">
+            <div className="text-xs sm:text-sm text-gray-600 flex items-center space-x-1.5">
+              <div className="flex-shrink-0">
+                <div className="h-5 w-5 rounded bg-gray-100 flex items-center justify-center">
+                  <Mail className="h-3 w-3 text-gray-600" />
+                </div>
+              </div>
+              <span className="font-mono text-xs sm:text-sm break-all">
                 {student.student_id || student.student_code || 'N/A'}
               </span>
             </div>
@@ -343,16 +465,20 @@ export default function StudentListPage() {
       label: 'Grade/Section',
       icon: <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4" />,
       render: (student: Student) => (
-        <div className="space-y-1">
-          <div className="flex items-center space-x-1 sm:space-x-2">
-            <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4 text-[#6096ba]" />
-            <span className="text-xs sm:text-sm font-medium text-gray-900">Grade:</span>
-            <span className="text-xs sm:text-sm text-gray-600">{student.current_grade || 'N/A'}</span>
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5 text-[#6096ba] flex-shrink-0" />
+            <div>
+              <span className="text-xs font-semibold text-gray-600 uppercase">Grade: </span>
+              <span className="text-sm sm:text-base font-medium text-gray-900">{student.current_grade || 'N/A'}</span>
+            </div>
           </div>
-          <div className="flex items-center space-x-1 sm:space-x-2">
-            <User className="h-3 w-3 sm:h-4 sm:w-4 text-[#6096ba]" />
-            <span className="text-xs sm:text-sm font-medium text-gray-900">Section:</span>
-            <span className="text-xs sm:text-sm text-gray-600">{student.section || 'N/A'}</span>
+          <div className="flex items-center space-x-2">
+            <User className="h-4 w-4 sm:h-5 sm:w-5 text-[#6096ba] flex-shrink-0" />
+            <div>
+              <span className="text-xs font-semibold text-gray-600 uppercase">Section: </span>
+              <span className="text-sm sm:text-base font-medium text-gray-900">{student.section || 'N/A'}</span>
+            </div>
           </div>
         </div>
       )
@@ -362,14 +488,14 @@ export default function StudentListPage() {
       label: 'Campus',
       icon: <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />,
       render: (student: Student) => (
-        <div className="flex items-center space-x-1 sm:space-x-2">
-          <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-[#6096ba]" />
+        <div className="flex items-start space-x-2">
+          <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-[#6096ba] flex-shrink-0 mt-0.5" />
           <div className="min-w-0 flex-1">
-            <div className="text-xs sm:text-sm font-bold text-gray-900 truncate">
+            <div className="text-sm sm:text-base font-bold text-gray-900">
               {student.campus_name || 'N/A'}
             </div>
             {student.coordinator_names && student.coordinator_names.length > 0 && (
-              <div className="text-xs text-gray-600 truncate">
+              <div className="text-xs text-gray-600 mt-0.5">
                 Coord: {student.coordinator_names[0]}
               </div>
             )}
@@ -384,30 +510,42 @@ export default function StudentListPage() {
   }
 
   return (
-    <div className="p-2 sm:p-3 w-full max-w-full overflow-hidden">
+    <div className="p-2 sm:p-3 md:p-4 w-full max-w-full overflow-x-hidden">
       <div className="mb-3 sm:mb-4">
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2" style={{ color: '#274c77' }}>
+        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2" style={{ color: '#274c77' }}>
           Students List
         </h1>
-        <p className="text-sm sm:text-base text-gray-600">
+        <p className="text-xs sm:text-sm md:text-base text-gray-600">
           Showing {students.length} of {totalCount} students
         </p>
       </div>
 
        {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow p-2 sm:p-3 mb-3 w-full" style={{ borderColor: '#a3cef1' }}>
-        <div className="mb-3 sm:mb-4">
-          <h3 className="text-base sm:text-lg font-semibold mb-2 flex items-center space-x-2" style={{ color: '#274c77' }}>
-            <div className="h-5 w-5 sm:h-6 sm:w-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6096ba' }}>
-              <span className="text-white text-xs font-bold">🔍</span>
+      <div className="bg-white rounded-lg shadow p-2.5 sm:p-3 md:p-4 mb-3 w-full overflow-x-hidden" style={{ borderColor: '#a3cef1' }}>
+        <div className="mb-2 sm:mb-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2" style={{ color: '#274c77' }}>
+              <div className="h-5 w-5 sm:h-6 sm:w-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#6096ba' }}>
+                <span className="text-white text-xs font-bold"><Search className="h-4 w-4" /></span>
+              </div>
+              <h3 className="text-sm sm:text-base md:text-lg font-semibold">Search & Filters</h3>
             </div>
-            <span>Search & Filters</span>
-          </h3>
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={handleClearFiltersClick}
+                className="inline-flex items-center justify-center px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 transition-all duration-150 ease-in-out transform shadow-sm hover:shadow-lg active:scale-95 active:shadow-md touch-manipulation"
+                style={{ backgroundColor: '#6096ba', minHeight: '38px' }}
+              >
+                <span className="mr-1.5"><RefreshCcw className={`h-4 w-4 transition-transform duration-500 ${isClearing ? 'rotate-[360deg]' : 'rotate-0'}`} /></span>
+                <span>Clear Filters</span>
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
           {/* Search */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
               Search
             </label>
             <input
@@ -415,21 +553,21 @@ export default function StudentListPage() {
               placeholder="Search by name, code, GR number..."
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2"
-              style={{ borderColor: '#a3cef1' }}
+              className="w-full px-2.5 sm:px-3 py-2.5 sm:py-2 text-sm sm:text-base border rounded-lg focus:outline-none focus:ring-2 touch-manipulation"
+              style={{ borderColor: '#a3cef1', minHeight: '44px', maxWidth: '100%' }}
                />
              </div>
              
           {/* Campus Filter */}
                <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
               Campus
             </label>
                  <select
               value={filters.campus}
               onChange={(e) => handleFilterChange('campus', e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2"
-              style={{ borderColor: '#a3cef1' }}
+              className="w-full px-2.5 sm:px-3 py-2.5 sm:py-2 text-sm sm:text-base border rounded-lg focus:outline-none focus:ring-2 touch-manipulation"
+              style={{ borderColor: '#a3cef1', minHeight: '44px', maxWidth: '100%' }}
             >
               <option value="">All Campuses</option>
               {campuses.map((campus) => (
@@ -442,42 +580,35 @@ export default function StudentListPage() {
                
           {/* Grade Filter */}
                <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
               Grade
             </label>
                  <select
               value={filters.current_grade}
               onChange={(e) => handleFilterChange('current_grade', e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2"
-              style={{ borderColor: '#a3cef1' }}
+              className="w-full px-2.5 sm:px-3 py-2.5 sm:py-2 text-sm sm:text-base border rounded-lg focus:outline-none focus:ring-2 touch-manipulation"
+              disabled={!filters.shift}
+              style={{ borderColor: '#a3cef1', minHeight: '44px', maxWidth: '100%' }}
             >
-              <option value="">All Grades</option>
-              <option value="Grade-1">Grade-1</option>
-              <option value="Grade-2">Grade-2</option>
-              <option value="Grade-3">Grade-3</option>
-              <option value="Grade-4">Grade-4</option>
-              <option value="Grade-5">Grade-5</option>
-              <option value="Grade-6">Grade-6</option>
-              <option value="Grade-7">Grade-7</option>
-              <option value="Grade-8">Grade-8</option>
-              <option value="Grade-9">Grade-9</option>
-              <option value="Grade-10">Grade-10</option>
-              <option value="KG-I">KG-I</option>
-              <option value="KG-II">KG-II</option>
-              <option value="Nursery">Nursery</option>
+              <option value="" disabled={!filters.shift}>
+                {filters.shift ? 'All Grades' : 'Select shift first'}
+              </option>
+              {grades.map((g: any) => (
+                <option key={g.id} value={g.name}>{g.name}</option>
+              ))}
                  </select>
                </div>
                
           {/* Status Filter */}
                <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
               Status
             </label>
                  <select
               value={filters.current_state}
               onChange={(e) => handleFilterChange('current_state', e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2"
-              style={{ borderColor: '#a3cef1' }}
+              className="w-full px-2.5 sm:px-3 py-2.5 sm:py-2 text-sm sm:text-base border rounded-lg focus:outline-none focus:ring-2 touch-manipulation"
+              style={{ borderColor: '#a3cef1', minHeight: '44px', maxWidth: '100%' }}
             >
               <option value="">All Status</option>
               <option value="active">Active</option>
@@ -488,14 +619,14 @@ export default function StudentListPage() {
                
           {/* Shift Filter */}
                <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
               Shift
             </label>
                  <select
               value={filters.shift}
               onChange={(e) => handleFilterChange('shift', e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2"
-              style={{ borderColor: '#a3cef1' }}
+              className="w-full px-2.5 sm:px-3 py-2.5 sm:py-2 text-sm sm:text-base border rounded-lg focus:outline-none focus:ring-2 touch-manipulation"
+              style={{ borderColor: '#a3cef1', minHeight: '44px', maxWidth: '100%' }}
             >
               <option value="">All Shifts</option>
               <option value="morning">Morning</option>
@@ -503,32 +634,7 @@ export default function StudentListPage() {
                  </select>
                </div>
              </div>
-
-        <div className="flex justify-between items-center">
-          <button
-            onClick={clearFilters}
-            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 transition-all duration-200 shadow-sm hover:shadow-md"
-            style={{ backgroundColor: '#6096ba' }}
-          >
-            <span className="mr-1">🔄</span>
-            Clear Filters
-          </button>
-
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-700">Per page:</label>
-            <select
-              value={pageSize}
-              onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
-              className="px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 bg-white shadow-sm"
-              style={{ borderColor: '#a3cef1' }}
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
-        </div>
-                           </div>
+             </div>
 
       {/* Students Table - USING REUSABLE COMPONENT */}
       <DataTable
@@ -562,7 +668,7 @@ export default function StudentListPage() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold" style={{ color: '#274c77' }}>
+            <DialogTitle className="text-2xl font-bold transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md" style={{ color: '#274c77' }}>
               Edit Student - {editingStudent?.name}
             </DialogTitle>
           </DialogHeader>
@@ -884,7 +990,7 @@ export default function StudentListPage() {
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 mt-6">
+          <div className="flex justify-end space-x-3 mt-6 transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md">
             <Button
               onClick={handleEditClose}
               variant="outline"

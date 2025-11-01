@@ -6,7 +6,7 @@ import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions";
 import { getFilteredTeachers, getAllCampuses } from "@/lib/api";
 import { DataTable, PaginationControls } from "@/components/shared";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { User, Mail, GraduationCap, MapPin, Award } from 'lucide-react';
+import { User, Mail, GraduationCap, MapPin, Award, RefreshCcw, Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,6 +73,7 @@ export default function TeacherListPage() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editFormData, setEditFormData] = useState<any>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   
   // Debounced search
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -168,6 +169,15 @@ export default function TeacherListPage() {
     });
     setSearchQuery("");
     setCurrentPage(1);
+  };
+
+  const handleClearFiltersClick = () => {
+    setIsClearing(true);
+    try {
+      clearFilters();
+    } finally {
+      setTimeout(() => setIsClearing(false), 700);
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -437,12 +447,26 @@ export default function TeacherListPage() {
        {/* Search and Filters */}
       <div className="bg-white rounded-lg shadow p-2 sm:p-3 mb-3 w-full" style={{ borderColor: '#a3cef1' }}>
         <div className="mb-3 sm:mb-4">
-          <h3 className="text-base sm:text-lg font-semibold mb-2 flex items-center space-x-2" style={{ color: '#274c77' }}>
-            <div className="h-5 w-5 sm:h-6 sm:w-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6096ba' }}>
-              <span className="text-white text-xs font-bold">🔍</span>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-base sm:text-lg font-semibold flex items-center space-x-2" style={{ color: '#274c77' }}>
+              <div className="h-5 w-5 sm:h-6 sm:w-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6096ba' }}>
+                <span className="text-white text-xs font-bold"><Search className="h-4 w-4" /></span>
+              </div>
+              <span>Search & Filters</span>
+            </h3>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={handleClearFiltersClick}
+                className="inline-flex items-center justify-center px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 transition-all duration-150 ease-in-out transform shadow-sm hover:shadow-lg active:scale-95 active:shadow-md"
+                style={{ backgroundColor: '#6096ba', minHeight: '36px' }}
+              >
+                <span className="mr-1.5">
+                  <RefreshCcw className={`h-4 w-4 transition-transform duration-500 ${isClearing ? 'rotate-[360deg]' : 'rotate-0'}`} />
+                </span>
+                <span>Clear Filters</span>
+              </button>
             </div>
-            <span>Search & Filters</span>
-          </h3>
+          </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
           {/* Search */}
@@ -517,30 +541,7 @@ export default function TeacherListPage() {
              </div>
 
 
-        <div className="flex justify-between items-center">
-          <button
-            onClick={clearFilters}
-            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 transition-all duration-200 shadow-sm hover:shadow-md"
-            style={{ backgroundColor: '#6096ba' }}
-          >
-            <span className="mr-1">🔄</span>
-            Clear Filters
-          </button>
-
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-700">Per page:</label>
-            <select
-              value={pageSize}
-              onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
-              className="px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 bg-white shadow-sm"
-              style={{ borderColor: '#a3cef1' }}
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
-        </div>
+        {/* Bottom controls removed (moved Clear Filters to header, removed per-page selector) */}
       </div>
 
       {/* Teachers Table - USING REUSABLE COMPONENT */}

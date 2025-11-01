@@ -143,8 +143,8 @@ class Student(models.Model):
     terminated_on = models.DateTimeField(null=True, blank=True)
     termination_reason = models.TextField(null=True, blank=True)
 
-    # Campus is required; protect to avoid accidental nulling on campus delete
-    campus = models.ForeignKey("campus.Campus", on_delete=models.PROTECT, null=False, blank=False)
+    # Campus reference - set to null if campus is deleted (data preservation)
+    campus = models.ForeignKey("campus.Campus", on_delete=models.SET_NULL, null=True, blank=True)
     current_grade = models.CharField(max_length=50, null=True, blank=True)
     section = models.CharField(max_length=10, null=True, blank=True)
     last_class_passed = models.CharField(max_length=50, null=True, blank=True)

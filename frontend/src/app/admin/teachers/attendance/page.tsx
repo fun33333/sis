@@ -97,6 +97,7 @@ function TeacherAttendanceContent() {
 
   const userRole = getCurrentUserRole();
   const classroomId = searchParams.get('classroom');
+  const isWeekend = new Date(selectedDate).getDay() === 0; // Sunday
 
   useEffect(() => {
     if (userRole === 'teacher') {
@@ -261,6 +262,11 @@ function TeacherAttendanceContent() {
   };
 
   const handleSubmit = () => {
+    // Block Sunday marking entirely
+    if (isWeekend) {
+      alert('Weekend (Sunday) — Attendance marking disabled. System will auto-record as Weekend/Holiday.');
+      return;
+    }
     // Check if attendance already exists for this date
     if (!isEditMode && existingAttendanceId) {
       alert('⚠️ Attendance Already Marked!\n\nYou have already marked attendance for this date.\n\nTo edit previous attendance, please click "Load Saved Attendance" button first.');
@@ -773,6 +779,8 @@ function TeacherAttendanceContent() {
     
     // Check if date is within 7 days
     if (diffDays > 7) return false;
+    // Block weekends (Sunday)
+    if (isWeekend) return false;
     
     // Check if attendance is approved (prevent editing approved attendance)
     // This will be checked in the component when needed
@@ -1120,19 +1128,12 @@ function TeacherAttendanceContent() {
                   max={new Date().toISOString().split('T')[0]}
                   className="bg-white/20 border border-white/30 rounded-lg px-2 sm:px-3 py-1 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 text-xs sm:text-sm"
                 />
-                {new Date(selectedDate).getDay() === 0 && (
-                  <span className="text-orange-300 font-medium text-xs sm:text-sm">(Weekend)</span>
-                )}
               </div>
               <div className="flex items-center space-x-2">
                 <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span className="text-xs sm:text-sm">
                   {Object.keys(attendance).length} / {students.length} students marked
                 </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
-                <span className="text-xs sm:text-sm">{new Date().toLocaleTimeString()}</span>
               </div>
             </div>
           </div>
@@ -1152,21 +1153,23 @@ function TeacherAttendanceContent() {
               </div>
             )}
             {/* Backfill Permissions Icon */}
-            <div className="relative">
-              <Button
-                onClick={handleBackfillIconClick}
-                className="bg-white/20 hover:bg-white/30 text-white border border-white/30 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                size="sm"
-              >
-                <Clock3 className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">Backfill</span>
-              </Button>
-              {hasNewPermissions && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full flex items-center justify-center">
-                  <Bell className="h-1 w-1 sm:h-2 sm:w-2 text-white" />
-                </div>
-              )}
-            </div>
+            {!isWeekend && (
+              <div className="relative">
+                <Button
+                  onClick={handleBackfillIconClick}
+                  className="bg-white/20 hover:bg-white/30 text-white border border-white/30 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                  size="sm"
+                >
+                  <Clock3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Backfill</span>
+                </Button>
+                {hasNewPermissions && (
+                  <div className="absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full flex items-center justify-center">
+                    <Bell className="h-1 w-1 sm:h-2 sm:w-2 text-white" />
+                  </div>
+                )}
+              </div>
+            )}
             
             {isEditMode && (
               <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
@@ -1178,15 +1181,8 @@ function TeacherAttendanceContent() {
             {!isDateEditable() && (
               <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300 text-xs">
                 <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                <span className="hidden sm:inline">Read Only (Older than 7 days)</span>
+                <span className="hidden sm:inline">Read Only {isWeekend ? '(Weekend/Sunday)' : '(Older than 7 days)'}</span>
                 <span className="sm:hidden">Read Only</span>
-              </Badge>
-            )}
-            {new Date(selectedDate).getDay() === 0 && (
-              <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300 text-xs">
-                <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                <span className="hidden sm:inline">Weekend (Sunday)</span>
-                <span className="sm:hidden">Weekend</span>
               </Badge>
             )}
           </div>

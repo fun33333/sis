@@ -10,6 +10,7 @@ class StudentAttendanceSerializer(serializers.ModelSerializer):
     student_code = serializers.SerializerMethodField()  # Use method to get the best available ID
     student_gender = serializers.CharField(source='student.gender', read_only=True)
     student_photo = serializers.ImageField(source='student.photo', read_only=True)
+    attendance_date = serializers.DateField(source='attendance.date', read_only=True)
     
     def get_student_code(self, obj):
         # Return the best available student identifier
@@ -19,7 +20,7 @@ class StudentAttendanceSerializer(serializers.ModelSerializer):
         model = StudentAttendance
         fields = [
             'id', 'student', 'student_name', 'student_code', 'student_gender', 'student_photo',
-            'status', 'remarks', 'created_at', 'updated_at'
+            'status', 'remarks', 'attendance_date', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 

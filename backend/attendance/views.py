@@ -112,15 +112,24 @@ def mark_bulk_attendance(request):
         
         classroom = get_object_or_404(ClassRoom, id=classroom_id)
         
-        # Check if it's a Sunday and auto-create weekend entry
+        # Check if it's a Sunday and auto-create weekend entry, and block teacher marking
         if date_obj.weekday() == 6:  # Sunday is 6 in Python's weekday()
-            from classes.models import Level
             level = classroom.grade.level
             Weekend.objects.get_or_create(
                 date=date_obj,
                 level=level,
                 defaults={'created_by': request.user}
             )
+            # Teachers should not be able to mark Sunday attendance
+            try:
+                is_teacher = request.user.is_teacher()
+            except Exception:
+                is_teacher = False
+            if is_teacher and not request.user.is_superuser:
+                return Response({
+                    'error': 'Weekend (Sunday): attendance marking is disabled',
+                    'is_weekend': True
+                }, status=status.HTTP_400_BAD_REQUEST)
         
         # Get all students in this class
         all_students = Student.objects.filter(classroom=classroom)
@@ -578,6 +587,19 @@ def get_attendance_for_date(request, classroom_id, date):
                 print(f"   - ❌ Coordinator profile not found")
                 return Response({'error': 'Coordinator profile not found'}, status=status.HTTP_404_NOT_FOUND)
         
+        # Auto-create weekend entry for Sundays (no attendance records should be created)
+        try:
+            from datetime import datetime as _dt
+            date_obj = _dt.strptime(date, '%Y-%m-%d').date()
+            if date_obj.weekday() == 6:  # Sunday
+                Weekend.objects.get_or_create(
+                    date=date_obj,
+                    level=classroom.grade.level,
+                    defaults={'created_by': request.user}
+                )
+        except Exception:
+            pass
+
         # Get attendance for the date
         try:
             print(f"🔍 DEBUG: Looking for attendance data")
@@ -639,10 +661,19 @@ def get_attendance_for_date(request, classroom_id, date):
             print(f"🔍 DEBUG: No attendance found for this date")
             print(f"   - classroom: {classroom}")
             print(f"   - date: {date}")
+            # Also tell client if the date is a weekend
+            from datetime import datetime as _dt
+            is_weekend = False
+            try:
+                _d = _dt.strptime(date, '%Y-%m-%d').date()
+                is_weekend = (_d.weekday() == 6)
+            except Exception:
+                pass
             return Response({
                 'message': 'No attendance found for this date',
                 'date': date,
-                'classroom_id': classroom_id
+                'classroom_id': classroom_id,
+                'is_weekend': is_weekend
             })
             
     except Exception as e:

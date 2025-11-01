@@ -28,13 +28,13 @@ export function EnrollmentTrendChart({ data }: EnrollmentTrendChartProps) {
   const yMax = maxValue === 0 ? 100 : Math.ceil(maxValue * 1.2 / 100) * 100
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <Card className="h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50">
         <CardTitle className="text-xl font-bold text-[#274c77]">Enrollment Trends</CardTitle>
         <CardDescription className="text-gray-600">Student enrollment by year</CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
-        <div className="h-80">
+        <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <defs>
@@ -55,10 +55,6 @@ export function EnrollmentTrendChart({ data }: EnrollmentTrendChartProps) {
                 domain={[0, yMax]}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Legend 
-                wrapperStyle={{ paddingTop: '20px' }}
-                formatter={() => <span style={{ color: '#274C77', fontWeight: 500 }}>Enrollments</span>}
-              />
               <Line 
                 type="monotone" 
                 dataKey="value" 

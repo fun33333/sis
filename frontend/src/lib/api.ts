@@ -16,44 +16,58 @@ export function getApiBaseUrl(): string {
         || (isProd ? 'https://sms.idaraalkhair.sbs:8002' : 'http://backend:8000')
       );
 
-  if (!isProd) {
-    console.log('🌐 API Base URL:', baseUrl);
-  }
   return baseUrl;
 }
 
-// API endpoints
-export const API_ENDPOINTS = {
-  STUDENTS: "/api/students/",
-  STUDENTS_TOTAL: "/api/students/total/",
-  STUDENTS_GENDER_STATS: "/api/students/gender_stats/",
-  STUDENTS_CAMPUS_STATS: "/api/students/campus_stats/",
-  STUDENTS_GRADE_DISTRIBUTION: "/api/students/grade_distribution/",
-  STUDENTS_ENROLLMENT_TREND: "/api/students/enrollment_trend/",
-  STUDENTS_MOTHER_TONGUE_DISTRIBUTION: "/api/students/mother_tongue_distribution/",
-  STUDENTS_RELIGION_DISTRIBUTION: "/api/students/religion_distribution/",
-  STUDENTS_AGE_DISTRIBUTION: "/api/students/age_distribution/",
-  STUDENTS_ZAKAT_STATUS: "/api/students/zakat_status/",
-  STUDENTS_HOUSE_OWNERSHIP: "/api/students/house_ownership/",
-  TEACHERS: "/api/teachers/",
-  CAMPUS: "/api/campus/",
-  CAMPUS_ACTIVE: "/api/campus/active/",
-  USERS: "/api/users/",
-  AUTH_LOGIN: "/api/auth/login/",
-  AUTH_REFRESH: "/api/auth/refresh/",
-  COORDINATORS: "/api/coordinators/",
-  PRINCIPALS: "/api/principals/",
-  LEVELS: "/api/levels/",
-  GRADES: "/api/grades/",
-  CLASSROOMS: "/api/classrooms/",
-  LEVEL_CHOICES: "/api/levels/choices/",
-  GRADE_CHOICES: "/api/grades/choices/",
-  CLASSROOM_CHOICES: "/api/classrooms/choices/",
-  CLASSROOM_SECTIONS: "/api/classrooms/sections/",
-  CLASSROOM_STUDENTS: "/api/attendance/class/{id}/students/",
-  AVAILABLE_STUDENTS: "/api/attendance/class/{id}/available-students/",
-  CURRENT_USER_PROFILE: "/api/current-user/",
-} as const;
+// API endpoints - obfuscated to reduce visibility in bundled code
+const _a = '/api', _s = 'students', _t = 'teachers', _c = 'campus', _u = 'users';
+const _at = 'attendance', _co = 'coordinators', _p = 'principals';
+const _l = 'levels', _g = 'grades', _cr = 'classrooms', _au = 'auth';
+const _cu = 'current-user', _tc = 'total', _gs = 'gender_stats';
+const _cs = 'campus_stats', _gd = 'grade_distribution', _et = 'enrollment_trend';
+const _mt = 'mother_tongue_distribution', _rd = 'religion_distribution';
+const _ad = 'age_distribution', _zs = 'zakat_status', _ho = 'house_ownership';
+const _lo = 'login', _rf = 'refresh', _ch = 'choices', _sec = 'sections';
+const _av = 'available', _id = '{id}';
+
+const getEndpoints = () => ({
+  STUDENTS: `${_a}/${_s}/`,
+  STUDENTS_TOTAL: `${_a}/${_s}/${_tc}/`,
+  STUDENTS_GENDER_STATS: `${_a}/${_s}/${_gs}/`,
+  STUDENTS_CAMPUS_STATS: `${_a}/${_s}/${_cs}/`,
+  STUDENTS_GRADE_DISTRIBUTION: `${_a}/${_s}/${_gd}/`,
+  STUDENTS_ENROLLMENT_TREND: `${_a}/${_s}/${_et}/`,
+  STUDENTS_MOTHER_TONGUE_DISTRIBUTION: `${_a}/${_s}/${_mt}/`,
+  STUDENTS_RELIGION_DISTRIBUTION: `${_a}/${_s}/${_rd}/`,
+  STUDENTS_AGE_DISTRIBUTION: `${_a}/${_s}/${_ad}/`,
+  STUDENTS_ZAKAT_STATUS: `${_a}/${_s}/${_zs}/`,
+  STUDENTS_HOUSE_OWNERSHIP: `${_a}/${_s}/${_ho}/`,
+  TEACHERS: `${_a}/${_t}/`,
+  CAMPUS: `${_a}/${_c}/`,
+  CAMPUS_ACTIVE: `${_a}/${_c}/active/`,
+  USERS: `${_a}/${_u}/`,
+  AUTH_LOGIN: `${_a}/${_au}/${_lo}/`,
+  AUTH_REFRESH: `${_a}/${_au}/${_rf}/`,
+  COORDINATORS: `${_a}/${_co}/`,
+  PRINCIPALS: `${_a}/${_p}/`,
+  LEVELS: `${_a}/${_l}/`,
+  GRADES: `${_a}/${_g}/`,
+  CLASSROOMS: `${_a}/${_cr}/`,
+  LEVEL_CHOICES: `${_a}/${_l}/${_ch}/`,
+  GRADE_CHOICES: `${_a}/${_g}/${_ch}/`,
+  CLASSROOM_CHOICES: `${_a}/${_cr}/${_ch}/`,
+  CLASSROOM_SECTIONS: `${_a}/${_cr}/${_sec}/`,
+  CLASSROOM_STUDENTS: `${_a}/${_at}/class/${_id}/${_s}/`,
+  AVAILABLE_STUDENTS: `${_a}/${_at}/class/${_id}/${_av}-${_s}/`,
+  CURRENT_USER_PROFILE: `${_a}/${_cu}/`,
+  // Behaviour
+  BEHAVIOUR_CREATE: `/api/behaviour/record/`,
+  BEHAVIOUR_STUDENT: (id: number | string) => `/api/behaviour/student/${id}/`,
+  BEHAVIOUR_MONTHLY_STUDENT: (id: number | string) => `/api/behaviour/monthly/student/${id}/`,
+  BEHAVIOUR_MONTHLY_COMPUTE: `/api/behaviour/monthly/compute/`,
+});
+
+export const API_ENDPOINTS = getEndpoints() as ReturnType<typeof getEndpoints>;
 
 
 // Enhanced error handling
@@ -157,24 +171,13 @@ export async function authorizedFetch(path: string, init: RequestInit = {}, alre
 
   const headers = new Headers(init.headers || {});
   const token = getAccessToken();
-  console.log('🔑 Token check:', token ? 'Token exists' : 'No token');
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
-    console.log('🔑 Authorization header set');
-  } else {
-    console.log('❌ No token available for authorization');
   }
-
-  console.log('🌐 Making fetch request to:', url);
-  console.log('🌐 Headers:', Object.fromEntries(headers.entries()));
   
   const res = await fetch(url, { ...init, headers, credentials: 'omit' });
-  
-  console.log('📡 Fetch response status:', res.status, res.statusText);
 
   if (res.status !== 401) return res;
-  
-  console.log('🔄 Got 401, attempting token refresh...');
 
   // Attempt token refresh once
   if (!alreadyRetried) {
@@ -199,7 +202,6 @@ export async function authorizedFetch(path: string, init: RequestInit = {}, alre
   }
 
   // If refresh failed or no refresh token, clear everything and redirect
-  console.log('❌ Token refresh failed, clearing session...');
   if (typeof window !== 'undefined') {
     window.localStorage.clear();
     // Also clear cookies
@@ -299,28 +301,21 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
 // simple GET helper 
 export async function apiGet<T>(path: string): Promise<T> {
   try {
-    console.log('🌐 apiGet called with path:', path);
     const fullUrl = `${getApiBaseUrl()}${path}`;
-    console.log('🔗 Full URL:', fullUrl);
     
     const res = await authorizedFetch(path, {
       method: "GET",
       headers: { "Accept": "application/json" },
     });
     
-    console.log('📡 Response status:', res.status, res.statusText);
-    
     if (!res.ok) {
       const text = await res.text();
-      console.error('❌ API Error:', res.status, text);
       handleApiError(res, text);
     }
     
     const data = await res.json();
-    console.log('✅ API Response data:', data);
     return data as T;
   } catch (error) {
-    console.error('❌ apiGet error:', error);
     if (error instanceof ApiError) throw error;
     throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
   }
@@ -654,8 +649,13 @@ export async function getFilteredStudents(params: {
       previous: string | null;
       results: any[];
     };
-  } catch (error) {
-    console.error('Failed to fetch filtered students:', error);
+  } catch (error: any) {
+    // Avoid noisy console for expected pagination boundary (Invalid page / 404)
+    const status = error?.status || error?.response?.status;
+    const msg = (error?.message || '').toString().toLowerCase();
+    if (!(status === 404 || msg.includes('invalid page'))) {
+      console.error('Failed to fetch filtered students:', error);
+    }
     return { results: [], count: 0, next: null, previous: null };
   }
 }
@@ -665,31 +665,22 @@ export async function getAllCampuses() {
     // Try to get from cache first
     const cached = CacheManager.get(CacheManager.KEYS.CAMPUSES);
     if (cached) {
-      console.log('Using cached campuses:', cached);
       return cached;
     }
 
-    console.log('Fetching campuses from API...');
     const data = await apiGet(API_ENDPOINTS.CAMPUS);
-    console.log('Raw campus API response:', data);
     
     // Handle different response formats
     let campuses = [];
     if (Array.isArray(data)) {
       campuses = data;
-      console.log('Data is direct array:', campuses);
     } else if (data && Array.isArray((data as any).results)) {
       campuses = (data as any).results;
-      console.log('Data has results array:', campuses);
     } else if (data && Array.isArray((data as any).data)) {
       campuses = (data as any).data;
-      console.log('Data has data array:', campuses);
     } else {
-      console.warn('Unexpected campus data format:', data);
       campuses = [];
     }
-    
-    console.log('Final campuses array:', campuses);
     
     // Only cache if we got valid data
     if (campuses.length > 0) {
@@ -822,22 +813,14 @@ export async function getTeacherById(teacherId: string | number) {
 
 export async function getStudentById(studentId: string | number) {
   try {
-    console.log('🔍 getStudentById called with ID:', studentId);
-    
     // Try to get from cache first
     const cached = CacheManager.get(CacheManager.KEYS.STUDENT_PROFILE(Number(studentId)));
     if (cached) {
-      console.log('✅ Found student in cache:', cached);
       return cached;
     }
 
-    console.log('🌐 Fetching student from API...');
     const url = `${API_ENDPOINTS.STUDENTS}${studentId}/`;
-    console.log('🔗 API URL:', url);
-    
     const student = await apiGet(url);
-    
-    console.log('📊 Student data from API:', student);
     
     // Cache the student profile for 15 minutes
     CacheManager.set(CacheManager.KEYS.STUDENT_PROFILE(Number(studentId)), student, 15 * 60 * 1000);
@@ -975,6 +958,42 @@ export async function getCurrentUserProfile() {
     console.error('Failed to fetch current user profile:', error);
     return null;
   }
+}
+
+// Behaviour API helpers
+export async function createBehaviourRecord(data: {
+  student: number;
+  week_start: string;
+  week_end: string;
+  metrics: Record<string, number>;
+  notes?: string;
+  events?: Array<{ date: string; name: string; progress: string; award?: string }>;
+}) {
+  return await apiPost(API_ENDPOINTS.BEHAVIOUR_CREATE, data);
+}
+
+export async function getStudentBehaviourRecords(studentId: number | string, opts?: { start_date?: string; end_date?: string }) {
+  const params = new URLSearchParams();
+  if (opts?.start_date) params.append('start_date', opts.start_date);
+  if (opts?.end_date) params.append('end_date', opts.end_date);
+  const base = typeof API_ENDPOINTS.BEHAVIOUR_STUDENT === 'function' ? API_ENDPOINTS.BEHAVIOUR_STUDENT(studentId) : `/api/behaviour/student/${studentId}/`;
+  const url = params.toString() ? `${base}?${params.toString()}` : base;
+  return await apiGet(url);
+}
+
+export async function getStudentMonthlyBehaviourLatest(studentId: number | string) {
+  const base = typeof API_ENDPOINTS.BEHAVIOUR_MONTHLY_STUDENT === 'function' ? API_ENDPOINTS.BEHAVIOUR_MONTHLY_STUDENT(studentId) : `/api/behaviour/monthly/student/${studentId}/`;
+  return await apiGet(base);
+}
+
+export async function getStudentMonthlyBehaviour(studentId: number | string, monthYYYYMM: string) {
+  const base = typeof API_ENDPOINTS.BEHAVIOUR_MONTHLY_STUDENT === 'function' ? API_ENDPOINTS.BEHAVIOUR_MONTHLY_STUDENT(studentId) : `/api/behaviour/monthly/student/${studentId}/`;
+  const url = `${base}?month=${encodeURIComponent(monthYYYYMM)}`;
+  return await apiGet(url);
+}
+
+export async function computeMonthlyBehaviour(payload: { student: number; month: string }) {
+  return await apiPost(API_ENDPOINTS.BEHAVIOUR_MONTHLY_COMPUTE, payload);
 }
 
 export async function getAllCoordinators(shift?: string) {
@@ -1176,7 +1195,6 @@ export async function getAvailableCoordinators(campusId?: number) {
     } else if (Array.isArray(response)) {
       return response;
     } else {
-      console.warn('Unexpected response format from getAvailableCoordinators:', response);
       return [];
     }
   } catch (error) {
@@ -1229,8 +1247,12 @@ export async function getTeacherClasses() {
   try {
     return await apiGet('/api/attendance/teacher/classes/');
   } catch (error) {
+    // Swallow 404 (e.g., teacher profile not found for attendance yet)
+    if (error instanceof ApiError && (error.status === 404 || /not found/i.test(error.message))) {
+      return [] as any[];
+    }
     console.error('Failed to fetch teacher classes:', error);
-    return [];
+    return [] as any[];
   }
 }
 
@@ -1303,9 +1325,7 @@ export async function editAttendance(attendanceId: number, data: {
 
 export async function getCoordinatorClasses() {
   try {
-    console.log('API: Fetching coordinator classes...');
     const response = await apiGet('/api/attendance/coordinator/classes/');
-    console.log('API: Coordinator classes response:', response);
     return response;
   } catch (error) {
     console.error('API: Failed to fetch coordinator classes:', error);
@@ -1504,38 +1524,23 @@ export async function createResult(data: ResultData) {
 // Coordinator Result Functions
 export async function getCoordinatorResults() {
   try {
-    console.log('🌐 Making API call to /api/result/coordinator/results/');
-    console.log('🔑 Current token:', localStorage.getItem('sis_access_token') ? 'Token exists' : 'No token');
-    
     const response = await apiGet('/api/result/coordinator/results/');
-    console.log('🌐 API response received:', response);
-    console.log('🌐 Response type:', typeof response);
-    console.log('🌐 Is array?', Array.isArray(response));
     
     // Handle paginated response
     if (response && typeof response === 'object' && 'results' in response) {
-      console.log('📄 Paginated response detected, returning results array');
       return response.results;
     }
     
     // Handle direct array response
     if (Array.isArray(response)) {
-      console.log('📄 Direct array response detected');
       return response;
     }
     
-    console.log('⚠️ Unexpected response format:', response);
     return [];
     
   } catch (error: any) {
-    console.error('❌ Failed to fetch coordinator results:', error);
-    console.error('❌ Error details:', error?.message);
-    console.error('❌ Error status:', error?.status);
-    console.error('❌ Error response:', error?.response);
-    
     // If it's an authentication error, clear tokens and redirect
     if (error?.status === 401) {
-      console.log('🔐 Authentication error detected, clearing tokens');
       localStorage.removeItem('sis_access_token');
       localStorage.removeItem('sis_refresh_token');
       localStorage.removeItem('sis_user');
@@ -2262,4 +2267,3 @@ export async function resetPasswordWithOTP(sessionToken: string, newPassword: st
     throw new ApiError(`Network error: ${error}`, 0, 'Network Error');
   }
 }
-

@@ -71,42 +71,76 @@ export function DataTable<T extends { id: number }>({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden w-full border border-[#a3cef1]">
+    <div className="bg-white rounded-lg shadow overflow-hidden w-full max-w-full border border-[#a3cef1]">
       {/* Mobile Card View */}
-      <div className="block sm:hidden">
+      <div className="block sm:hidden space-y-2.5 sm:space-y-3 p-2 sm:p-3">
         {data.map((item) => (
-          <div key={item.id} className="border-b border-gray-200 p-3 space-y-2 hover:bg-gray-50">
-            {columns.slice(0, 3).map((column) => (
-              <div key={column.key} className="flex justify-between items-start">
-                <span className="text-xs font-semibold text-gray-500 uppercase">
-                  {column.label}:
-                </span>
-                <span className="text-sm text-gray-900 text-right flex-1 ml-2">
-                  {column.render
-                    ? column.render(item)
-                    : String(item[column.key as keyof T] || '-')
-                  }
-                </span>
+          <div 
+            key={item.id} 
+            className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow mx-auto flex flex-col"
+            style={{ 
+              maxWidth: 'calc(100vw - 1rem)', 
+              width: '100%',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Horizontal Scrollable Content - All Columns in One Row */}
+            <div 
+              className="overflow-x-auto relative"
+              style={{ 
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#cbd5e1 transparent'
+              }}
+            >
+              <div className="flex" style={{ minWidth: 'max-content' }}>
+                {columns.map((column) => (
+                  <div 
+                    key={column.key} 
+                    className="flex-shrink-0 border-r border-gray-100 last:border-r-0"
+                    style={{ 
+                      minWidth: 'calc(100vw - 1rem)', 
+                      width: 'calc(100vw - 1rem)',
+                      padding: '1rem 0.875rem'
+                    }}
+                  >
+                    <div className="space-y-2">
+                      <div className="text-xs sm:text-sm font-bold text-gray-600 uppercase tracking-wide mb-1.5">
+                        {column.label}:
+                      </div>
+                      <div className="text-sm sm:text-base text-gray-900 break-words leading-relaxed" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                        {column.render
+                          ? column.render(item)
+                          : String(item[column.key as keyof T] || '-')
+                        }
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Fixed Action Buttons */}
             {(onView || onEdit || onDelete) && (
-              <div className="pt-2 flex gap-2">
+              <div className="pt-2.5 px-3 sm:px-4 pb-3 sm:pb-4 border-t border-gray-200 flex gap-2 flex-shrink-0">
                 {onView && (
                   <button
                     onClick={() => onView(item)}
-                    className="flex-1 inline-flex justify-center items-center px-2 py-1.5 border border-transparent text-xs font-medium rounded-md text-white transition-all bg-[#6096ba] hover:bg-[#274c77]"
+                    className="flex-1 inline-flex justify-center items-center px-3 sm:px-4 py-2.5 sm:py-3 border border-transparent text-xs sm:text-sm font-semibold rounded-lg text-white transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md bg-[#6096ba] hover:bg-[#274c77] touch-manipulation"
+                    style={{ minHeight: '44px' }}
                   >
-                    <Eye className="h-3 w-3 mr-1" />
-                    View
+                    <Eye className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 flex-shrink-0" />
+                    <span className="whitespace-nowrap">View</span>
                   </button>
                 )}
                 {(allowEdit && onEdit) && (
                   <button
                     onClick={() => onEdit(item)}
-                    className="flex-1 inline-flex justify-center items-center px-2 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 transition-all hover:bg-gray-50"
+                    className="flex-1 inline-flex justify-center items-center px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-300 text-xs sm:text-sm font-semibold rounded-lg text-gray-700 transition-all hover:bg-gray-50 active:scale-95 touch-manipulation"
+                    style={{ minHeight: '44px' }}
                   >
-                    <Edit className="h-3 w-3 mr-1" />
-                    Edit
+                    <Edit className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Edit</span>
                   </button>
                 )}
               </div>
@@ -162,7 +196,7 @@ export function DataTable<T extends { id: number }>({
                       {onView && (
                         <button
                           onClick={() => onView(item)}
-                          className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md text-white transition-all duration-200 shadow-sm hover:shadow-md bg-[#6096ba]"
+                          className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md text-white transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md bg-[#6096ba]"
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           View
