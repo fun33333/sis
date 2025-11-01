@@ -42,7 +42,7 @@ export function GenderDistributionChart({ data }: GenderDistributionChartProps) 
   }))
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <Card className="h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
         <CardTitle className="text-xl font-bold text-[#274c77]">Gender Distribution</CardTitle>
         <CardDescription className="text-gray-600">Student enrollment by gender</CardDescription>

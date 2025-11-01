@@ -381,7 +381,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
       {isMobile && !sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
-          className="fixed top-4 left-4 z-30 p-3 bg-white rounded-xl shadow-lg border border-gray-200 hover:scale-105 transition-transform duration-300"
+          className="fixed top-4 left-4 z-30 p-3 bg-white rounded-xl shadow-lg border border-gray-200 transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md hover:scale-105"
           aria-label="Open sidebar"
           style={{ boxShadow: "0 4px 12px 0 #6096ba33" }}
         >
@@ -411,7 +411,7 @@ export function AdminSidebar({ sidebarOpen, setSidebarOpen }: AdminSidebarProps)
       <div className="flex h-full flex-col">
         <div className="flex items-center gap-3 mb-10">
           <div
-            className="p-2 rounded-xl cursor-pointer hover:scale-105 transition-transform duration-300"
+            className="p-2 rounded-xl cursor-pointer transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md hover:scale-105"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
             style={{ boxShadow: sidebarOpen ? "0 2px 8px 0 #6096ba33" : "0 2px 8px 0 #a3cef133" }}

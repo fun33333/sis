@@ -35,6 +35,7 @@ urlpatterns = [
     path("api/result/", include("result.urls")),
     path('api/', include('classes.urls')),
     path("api/transfers/", include("transfers.urls")),
+    path("api/behaviour/", include("behaviour.urls")),
     # GraphQL endpoint (enable GraphiQL only in DEBUG)
     path("graphql/", csrf_exempt(GraphQLView.as_view(graphiql=settings.DEBUG))),
     # Removed services.urls - not needed for utility apps

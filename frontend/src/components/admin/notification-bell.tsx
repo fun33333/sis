@@ -64,10 +64,13 @@ export function NotificationBell() {
         className="relative rounded-full transition-all hover:scale-110 p-1 sm:p-0"
         aria-label="Notifications"
       >
-        <Bell className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-gray-700 ${unreadCount > 0 ? 'animate-shake' : ''}`} />
-        {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full border border-white sm:border-2 border-white animate-pulse" />
-        )}
+        <Bell className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-gray-700 animate-shake-interval`} />
+
+        {/* Continuous pulsing red dot */}
+        <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 inline-flex items-center justify-center">
+          <span className="absolute inline-flex w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500/70 animate-ping"></span>
+          <span className="relative inline-flex w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500 border border-white sm:border-2"></span>
+        </span>
       </button>
 
       {/* Notification Popup */}

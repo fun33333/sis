@@ -32,14 +32,14 @@ export function PaginationControls({
   const endItem = Math.min(currentPage * pageSize, totalCount);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 px-2">
-      <div className="text-sm text-gray-600">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 mt-4 px-2">
+      <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
         Showing {startItem} to {endItem} of {totalCount} results
       </div>
       
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
         <Select value={pageSize.toString()} onValueChange={(value) => onPageSizeChange(Number(value))}>
-          <SelectTrigger className="w-[100px]">
+          <SelectTrigger className="w-full sm:w-[100px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -51,12 +51,13 @@ export function PaginationControls({
           </SelectContent>
         </Select>
 
-        <div className="flex gap-1">
+        <div className="flex gap-1 justify-center sm:justify-start">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onPageChange(1)}
             disabled={currentPage === 1}
+            className="hidden min-[400px]:inline-flex transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md"
           >
             First
           </Button>
@@ -65,11 +66,12 @@ export function PaginationControls({
             size="sm"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
+            className="px-3 transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           
-          <div className="flex items-center px-3 text-sm">
+          <div className="flex items-center px-2 sm:px-3 text-xs sm:text-sm">
             Page {currentPage} of {totalPages}
           </div>
           
@@ -78,17 +80,11 @@ export function PaginationControls({
             size="sm"
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
+            className="px-3 transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(totalPages)}
-            disabled={currentPage === totalPages}
-          >
-            Last
-          </Button>
+          {/* Last button removed per UX request */}
         </div>
       </div>
     </div>

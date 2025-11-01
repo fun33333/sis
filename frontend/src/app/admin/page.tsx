@@ -14,7 +14,8 @@ import { WeeklyAttendanceChart } from "@/components/dashboard/weekly-attendance-
 import { ZakatStatusChart } from "@/components/dashboard/zakat-status-chart"
 import { HouseOwnershipChart } from "@/components/dashboard/house-ownership-chart"
 import { UserGreeting } from "@/components/dashboard/user-greeting"
-import { Users, Download, ChevronDown, GraduationCap, UsersRound } from "lucide-react"
+import { Users, GraduationCap, UsersRound, RefreshCcw, EllipsisVertical } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { getGradeDistribution, getGenderDistribution, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution, getAgeDistribution, getZakatStatusDistribution, getHouseOwnershipDistribution } from "@/lib/chart-utils"
 import type { FilterState, LegacyStudent as DashboardStudent } from "@/types/dashboard"
 import { useRouter } from "next/navigation"
@@ -28,6 +29,38 @@ if (typeof window !== 'undefined') {
 export default function MainDashboardPage() {
   // Get current user role
   const [userRole, setUserRole] = useState<string>("")
+  const [isClearing, setIsClearing] = useState<boolean>(false)
+  const [customExportOpen, setCustomExportOpen] = useState(false)
+  const [selectedSections, setSelectedSections] = useState<Record<string, boolean>>({
+    greeting: false,
+    kpis: false,
+    gender: true,
+    religion: true,
+    motherTongue: true,
+    enrollmentTrend: true,
+    gradeDistribution: true,
+    weeklyAttendance: true,
+    ageDistribution: true,
+    zakatStatus: true,
+    houseOwnership: true,
+  })
+
+  // Section refs for custom export
+  const greetingRef = useRef<HTMLDivElement>(null)
+  const kpisRef = useRef<HTMLDivElement>(null)
+  const genderReligionRef = useRef<HTMLDivElement>(null)
+  const motherEnrollmentRef = useRef<HTMLDivElement>(null)
+  const gradeDistributionRef = useRef<HTMLDivElement>(null)
+  const weeklyAgeRef = useRef<HTMLDivElement>(null)
+  const zakatHouseRef = useRef<HTMLDivElement>(null)
+  const genderChartRef = useRef<HTMLDivElement>(null)
+  const religionChartRef = useRef<HTMLDivElement>(null)
+  const motherTongueChartRef = useRef<HTMLDivElement>(null)
+  const enrollmentTrendChartRef = useRef<HTMLDivElement>(null)
+  const weeklyAttendanceChartRef = useRef<HTMLDivElement>(null)
+  const ageDistributionChartRef = useRef<HTMLDivElement>(null)
+  const zakatStatusChartRef = useRef<HTMLDivElement>(null)
+  const houseOwnershipChartRef = useRef<HTMLDivElement>(null)
   
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -90,47 +123,218 @@ export default function MainDashboardPage() {
     }, 100);
   }
 
-  // Export dropdown state
-  const [exportOpen, setExportOpen] = useState(false);
-  const exportRef = useRef<HTMLDivElement>(null);
-
   // Principal campus filtering and shift filter
   const [userCampus, setUserCampus] = useState<string>("");
-  const [principalShift, setPrincipalShift] = useState<string>("both");
+  const [, setPrincipalShift] = useState<string>("both");
+  
+  // Print / Save PDF (two-column with summaries, like Custom Export)
+  function handlePrintDashboard() {
+    const w = window.open('', '_blank')
+    if (!w) return
+    const doc = w.document
+    const styleNodes = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')) as HTMLElement[]
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
-        setExportOpen(false);
-      }
-    }
-    if (exportOpen) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [exportOpen]);
+    type ChartItem = { title: string; element?: HTMLElement | null; data?: any[]; kind?: string, fullWidth?: boolean }
 
-  // Export handlers
-  async function handleExport(type: string) {
-    if (type === 'csv') {
-      const csv = studentsToCSV(filteredStudents);
-      downloadFile(csv, 'students.csv', 'text/csv');
-    } else if (type === 'excel') {
-      const excel = studentsToExcel(filteredStudents);
-      downloadFile(excel, 'students.xls', 'application/vnd.ms-excel');
-    } else if (type === 'pdf') {
-      const main = document.querySelector('main');
-      if (main && typeof window !== 'undefined' && (window as any).html2pdf) {
-        (window as any).html2pdf().from(main).set({
-          margin: 0.5,
-          filename: 'dashboard.pdf',
-          html2canvas: { scale: 1 },
-          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-        }).save();
-      } else {
-        alert('PDF export requires html2pdf.js.');
+    const normalBlocks: HTMLElement[] = []
+    if (greetingRef.current) normalBlocks.push(greetingRef.current)
+    if (kpisRef.current) normalBlocks.push(kpisRef.current)
+
+    const chartBlocks: ChartItem[] = []
+    chartBlocks.push({ title: 'Gender Distribution', element: genderChartRef.current, data: chartData.genderDistribution })
+    chartBlocks.push({ title: 'Religion Distribution', element: religionChartRef.current, data: chartData.religionDistribution })
+    chartBlocks.push({ title: 'Mother Tongue', element: motherTongueChartRef.current, data: chartData.motherTongueDistribution })
+    chartBlocks.push({ title: 'Enrollment Trend', element: enrollmentTrendChartRef.current, data: (chartData.enrollmentTrend || []).map((t: any) => ({ name: String(t.year), value: t.enrollment })) })
+    chartBlocks.push({ title: 'Grade Distribution', element: gradeDistributionRef.current, data: chartData.gradeDistribution, fullWidth: true })
+    chartBlocks.push({ title: 'Weekly Attendance', element: weeklyAttendanceChartRef.current, kind: 'weekly' })
+    chartBlocks.push({ title: 'Age Distribution', element: ageDistributionChartRef.current, data: chartData.ageDistribution })
+    chartBlocks.push({ title: 'Zakat Status', element: zakatStatusChartRef.current, data: chartData.zakatStatus })
+    chartBlocks.push({ title: 'House Ownership', element: houseOwnershipChartRef.current, data: chartData.houseOwnership })
+
+    doc.open()
+    doc.write('<!doctype html><html><head>')
+    doc.write('<meta charset="utf-8" />')
+    doc.write('<title>Dashboard Report</title>')
+    styleNodes.forEach((n) => doc.write(n.outerHTML))
+    doc.write(`<style>
+      @page { size: A4; margin: 14mm; }
+      html, body { background: #ffffff !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .no-print, button, [role="button"], input, select { display: none !important; }
+      .print-container { max-width: 1024px; margin: 0 auto; }
+      .print-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; padding:14px; border-radius:12px; color:#fff; background: linear-gradient(135deg,#274c77,#6096ba); }
+      .print-title { font-size: 20px; font-weight: 800; }
+      .print-meta { font-size: 12px; opacity: .9; }
+      .filters-bar { margin: 8px 0 14px; display:flex; flex-wrap:wrap; gap:6px; }
+      .filters-bar .tag { display:inline-block; background:#eef2ff; border:1px solid #c7d2fe; color:#1e3a8a; padding:4px 8px; border-radius:9999px; font-size:12px; font-weight:600; }
+      .two-col-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .two-col-grid .grid-item { break-inside: avoid; }
+      .two-col-grid .span-2 { grid-column: span 2; }
+      .chart-summary { margin-top: 8px; }
+      .chart-summary .caption { font-weight: 700; color: #274c77; margin-bottom: 6px; }
+      .chart-summary table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+      .chart-summary th, .chart-summary td { border-bottom: 1px solid #e5e7eb; padding: 6px 8px; font-size: 12px; }
+      .chart-summary tr:last-child td { border-bottom: none; }
+      .chart-summary th { background: #f8fafc; text-align: left; }
+    </style>`)
+    doc.write('</head><body>')
+    doc.write('<div class="print-container">')
+    doc.write('<div class="print-header"><div><div class="print-title">Dashboard Report</div><div class="print-meta">Generated on ' + new Date().toLocaleString() + '</div></div><div class="print-meta">IAK SMS</div></div>')
+    {
+      const parts: string[] = []
+      const push = (label: string, vals: any[]) => {
+        if (Array.isArray(vals) && vals.length) parts.push(`<span class=\"tag\">${label}: ${String(vals.join(', '))}</span>`)
       }
+      push('Year', (filters.academicYears || []) as unknown as any[])
+      push('Campus', (filters.campuses || []) as unknown as any[])
+      push('Grade', (filters.grades || []) as unknown as any[])
+      push('Gender', (filters.genders || []) as unknown as any[])
+      push('Mother Tongue', (filters.motherTongues || []) as unknown as any[])
+      push('Religion', (filters.religions || []) as unknown as any[])
+      if (String(shiftFilter || 'all') !== 'all') parts.push(`<span class=\"tag\">Shift: ${String(shiftFilter)}</span>`)
+      if (parts.length) doc.write('<div class="filters-bar">' + parts.join(' ') + '</div>')
     }
-    setExportOpen(false);
+    normalBlocks.forEach((el) => doc.write(el.outerHTML))
+
+    function buildSummaryHTML(item: ChartItem): string {
+      if (item.kind === 'weekly') {
+        const rows = (weeklyAttendanceData || []).map((d: any) => `<tr><td>${d.day}</td><td style="text-align:center;">${Number(d.present ?? 0)}</td><td style=\"text-align:center;\">${Number(d.absent ?? 0)}</td></tr>`).join('')
+        return `<div class="chart-summary"><div class="caption">Weekly Attendance Summary</div><table><thead><tr><th>Day</th><th style=\"text-align:center;\">Present</th><th style=\"text-align:center;\">Absent</th></tr></thead><tbody>${rows || '<tr><td colspan=3 style="text-align:center;">No data</td></tr>'}</tbody></table></div>`
+      }
+      const data = Array.isArray(item.data) ? item.data : []
+      if (data.length === 0) return ''
+      const total = data.reduce((acc: number, it: any) => acc + Number(it.value ?? it.count ?? it.present ?? 0), 0)
+      const rows = data.map((it: any) => {
+        const label = String(it.name ?? it.label ?? it.category ?? it.group ?? it.ageGroup ?? it.status ?? '-')
+        const val = Number(it.value ?? it.count ?? it.present ?? 0)
+        const pct = total > 0 ? Math.round((val / total) * 100) : 0
+        return `<tr><td>${label}</td><td style="text-align:center;">${val}</td><td style="text-align:center;">${pct}%</td></tr>`
+      }).join('')
+      return `<div class="chart-summary"><div class="caption">${item.title} - Details</div><table><thead><tr><th>Category</th><th style=\"text-align:center;\">Count</th><th style=\"text-align:center;\">%</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    }
+
+    if (chartBlocks.length > 0) {
+      doc.write('<div class="two-col-grid">')
+      chartBlocks.forEach((item) => {
+        if (!item.element) return
+        const cls = item.fullWidth ? 'grid-item span-2' : 'grid-item'
+        doc.write('<div class="' + cls + '">')
+        doc.write(item.element.outerHTML)
+        doc.write(buildSummaryHTML(item))
+        doc.write('</div>')
+      })
+      doc.write('</div>')
+    }
+
+    doc.write('</div>')
+    doc.write('<script>setTimeout(function(){window.print();}, 300);</script>')
+    doc.write('</body></html>')
+    doc.close()
+    setTimeout(() => { w?.focus() }, 100)
+  }
+
+  // Build custom export HTML from selected refs
+  function handleCustomExport() {
+    const w = window.open('', '_blank')
+    if (!w) return
+    const doc = w.document
+    const styleNodes = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')) as HTMLElement[]
+
+    const normalBlocks: HTMLElement[] = []
+    if (selectedSections.greeting && greetingRef.current) normalBlocks.push(greetingRef.current)
+    if (selectedSections.kpis && kpisRef.current) normalBlocks.push(kpisRef.current)
+
+    type ChartItem = { title: string; element?: HTMLElement | null; data?: any[]; kind?: string, fullWidth?: boolean }
+    const chartBlocks: ChartItem[] = []
+    if (selectedSections.gender) chartBlocks.push({ title: 'Gender Distribution', element: genderChartRef.current, data: chartData.genderDistribution })
+    if (selectedSections.religion) chartBlocks.push({ title: 'Religion Distribution', element: religionChartRef.current, data: chartData.religionDistribution })
+    if (selectedSections.motherTongue) chartBlocks.push({ title: 'Mother Tongue', element: motherTongueChartRef.current, data: chartData.motherTongueDistribution })
+    if (selectedSections.enrollmentTrend) chartBlocks.push({ title: 'Enrollment Trend', element: enrollmentTrendChartRef.current, data: (chartData.enrollmentTrend || []).map((t: any) => ({ name: String(t.year), value: t.enrollment })) })
+    if (selectedSections.gradeDistribution) chartBlocks.push({ title: 'Grade Distribution', element: gradeDistributionRef.current, data: chartData.gradeDistribution, fullWidth: true })
+    if (selectedSections.weeklyAttendance) chartBlocks.push({ title: 'Weekly Attendance', element: weeklyAttendanceChartRef.current, kind: 'weekly' })
+    if (selectedSections.ageDistribution) chartBlocks.push({ title: 'Age Distribution', element: ageDistributionChartRef.current, data: chartData.ageDistribution })
+    if (selectedSections.zakatStatus) chartBlocks.push({ title: 'Zakat Status', element: zakatStatusChartRef.current, data: chartData.zakatStatus })
+    if (selectedSections.houseOwnership) chartBlocks.push({ title: 'House Ownership', element: houseOwnershipChartRef.current, data: chartData.houseOwnership })
+
+    doc.open()
+    doc.write('<!doctype html><html><head>')
+    doc.write('<meta charset="utf-8" />')
+    doc.write('<title>Custom Dashboard Report</title>')
+    styleNodes.forEach((n) => doc.write(n.outerHTML))
+    doc.write(`<style>
+      @page { size: A4; margin: 14mm; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      html, body { background: #ffffff !important; }
+      .print-container { max-width: 1024px; margin: 0 auto; }
+      .print-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; padding:14px; border-radius:12px; color:#fff; background: linear-gradient(135deg,#274c77,#6096ba); }
+      .print-title { font-size: 20px; font-weight: 800; }
+      .print-meta { font-size: 12px; opacity: .9; }
+      .no-print { display: none !important; }
+      .filters-bar { margin: 8px 0 14px; display:flex; flex-wrap:wrap; gap:6px; }
+      .filters-bar .tag { display:inline-block; background:#eef2ff; border:1px solid #c7d2fe; color:#1e3a8a; padding:4px 8px; border-radius:9999px; font-size:12px; font-weight:600; }
+      .two-col-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .two-col-grid .grid-item { break-inside: avoid; }
+      .two-col-grid .span-2 { grid-column: span 2; }
+      .chart-summary { margin-top: 8px; }
+      .chart-summary .caption { font-weight: 700; color: #274c77; margin-bottom: 6px; }
+      .chart-summary table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+      .chart-summary th, .chart-summary td { border-bottom: 1px solid #e5e7eb; padding: 6px 8px; font-size: 12px; }
+      .chart-summary tr:last-child td { border-bottom: none; }
+      .chart-summary th { background: #f8fafc; text-align: left; }
+    </style>`)
+    doc.write('</head><body>')
+    doc.write('<div class="print-container">')
+    doc.write('<div class="print-header"><div><div class="print-title">Custom Dashboard Report</div><div class="print-meta">Generated on ' + new Date().toLocaleString() + '</div></div><div class="print-meta">IAK SMS</div></div>')
+    {
+      const parts2: string[] = []
+      const push2 = (label: string, vals: any[]) => {
+        if (Array.isArray(vals) && vals.length) parts2.push(`<span class=\"tag\">${label}: ${String(vals.join(', '))}</span>`)
+      }
+      push2('Year', (filters.academicYears || []) as unknown as any[])
+      push2('Campus', (filters.campuses || []) as unknown as any[])
+      push2('Grade', (filters.grades || []) as unknown as any[])
+      push2('Gender', (filters.genders || []) as unknown as any[])
+      push2('Mother Tongue', (filters.motherTongues || []) as unknown as any[])
+      push2('Religion', (filters.religions || []) as unknown as any[])
+      if (String(shiftFilter || 'all') !== 'all') parts2.push(`<span class=\"tag\">Shift: ${String(shiftFilter)}</span>`)
+      if (parts2.length) doc.write('<div class="filters-bar">' + parts2.join(' ') + '</div>')
+    }
+    normalBlocks.forEach((el) => doc.write(el.outerHTML))
+    // helper to build generic summary tables
+    function buildSummaryHTML(item: ChartItem): string {
+      if (item.kind === 'weekly') {
+        const rows = (weeklyAttendanceData || []).map((d: any) => `<tr><td>${d.day}</td><td style="text-align:center;">${Number(d.present ?? 0)}</td><td style=\"text-align:center;\">${Number(d.absent ?? 0)}</td></tr>`).join('')
+        return `<div class="chart-summary"><div class="caption">Weekly Attendance Summary</div><table><thead><tr><th>Day</th><th style=\"text-align:center;\">Present</th><th style=\"text-align:center;\">Absent</th></tr></thead><tbody>${rows || '<tr><td colspan=3 style="text-align:center;">No data</td></tr>'}</tbody></table></div>`
+      }
+      const data = Array.isArray(item.data) ? item.data : []
+      if (data.length === 0) return ''
+      // auto-detect label/value
+      const total = data.reduce((acc: number, it: any) => acc + Number(it.value ?? it.count ?? it.present ?? 0), 0)
+      const rows = data.map((it: any) => {
+        const label = String(it.name ?? it.label ?? it.category ?? it.group ?? it.ageGroup ?? it.status ?? '-')
+        const val = Number(it.value ?? it.count ?? it.present ?? 0)
+        const pct = total > 0 ? Math.round((val / total) * 100) : 0
+        return `<tr><td>${label}</td><td style="text-align:center;">${val}</td><td style="text-align:center;">${pct}%</td></tr>`
+      }).join('')
+      return `<div class="chart-summary"><div class="caption">${item.title} - Details</div><table><thead><tr><th>Category</th><th style=\"text-align:center;\">Count</th><th style=\"text-align:center;\">%</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    }
+
+    if (chartBlocks.length > 0) {
+      doc.write('<div class="two-col-grid">')
+      chartBlocks.forEach((item) => {
+        const card = item.element ? item.element.outerHTML : ''
+        const summary = buildSummaryHTML(item)
+        const cls = item.fullWidth ? 'grid-item span-2' : 'grid-item'
+        doc.write('<div class="' + cls + '">' + card + summary + '</div>')
+      })
+      doc.write('</div>')
+    }
+    doc.write('</div>')
+    doc.write('<script>setTimeout(function(){window.print();}, 300);</script>')
+    doc.write('</body></html>')
+    doc.close()
+    setTimeout(() => { w?.focus() }, 100)
+    setCustomExportOpen(false)
   }
   const router = useRouter();
   
@@ -608,38 +812,52 @@ export default function MainDashboardPage() {
   }, [filteredStudents, campusPerformanceData, filters])
 
   // Dynamic filter options based on real data
+  const collator = useMemo(() => new Intl.Collator(undefined, { sensitivity: 'base', numeric: true }), [])
   const dynamicAcademicYears = useMemo(() => {
     const years = Array.from(new Set(students.map(s => s.academicYear))).sort((a, b) => a - b)
     return years
   }, [students])
   
   const dynamicCampuses = useMemo(() => {
-    const campuses = Array.from(new Set(students.map(s => s.campus))).sort()
+    const campuses = Array.from(new Set(students.map(s => (s.campus || '').toString().trim())))
+      .filter(Boolean)
+      .sort(collator.compare)
     return campuses
-  }, [students])
+  }, [students, collator])
   
   const dynamicGrades = useMemo(() => {
-    const grades = Array.from(new Set(students.map(s => s.grade))).sort()
+    const grades = Array.from(new Set(students.map(s => (s.grade || '').toString().trim())))
+      .filter(Boolean)
+      .sort(collator.compare)
     return grades
-  }, [students])
+  }, [students, collator])
   
   const dynamicMotherTongues = useMemo(() => {
-    const motherTongues = Array.from(new Set(students.map(s => (s.motherTongue || "").toString().trim()))).filter(Boolean).sort()
+    const motherTongues = Array.from(new Set(students.map(s => (s.motherTongue || "").toString().trim())))
+      .filter(Boolean)
+      .sort(collator.compare)
     return motherTongues
-  }, [students])
+  }, [students, collator])
   
   const dynamicReligions = useMemo(() => {
-    const religions = Array.from(new Set(students.map(s => (s.religion || "").toString().trim()))).filter(Boolean).sort()
+    const religions = Array.from(new Set(students.map(s => (s.religion || "").toString().trim())))
+      .filter(Boolean)
+      .sort(collator.compare)
     return religions
-  }, [students])
+  }, [students, collator])
   
   const dynamicGenders = useMemo(() => {
-    const genders = Array.from(new Set(students.map(s => (s.gender || "").toString().trim()))).filter(Boolean).sort()
+    const genders = Array.from(new Set(students.map(s => (s.gender || "").toString().trim())))
+      .filter(Boolean)
+      .sort(collator.compare)
     return genders
-  }, [students])
+  }, [students, collator])
 
   const resetFilters = () => {
+    setIsClearing(true)
     setFilters({ academicYears: [], campuses: [], grades: [], genders: [], motherTongues: [], religions: [] })
+    // Allow the refresh icon to animate once
+    setTimeout(() => setIsClearing(false), 700)
   }
 
   // Refresh data function
@@ -1009,37 +1227,41 @@ export default function MainDashboardPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto" id="dashboard-print-root">
         {/* User Greeting */}
+        <div ref={greetingRef}>
         <UserGreeting className="mb-6" />
+        </div>
 
         {/* Filters Card */}
-        <Card className="!bg-[#E7ECEF] shadow-lg mb-6">
+        <Card className="!bg-[#E7ECEF] shadow-lg mb-6 no-print">
           <CardHeader className="!bg-[#E7ECEF]">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4">
               <div className="flex gap-2 items-center w-full sm:w-auto flex-wrap">
-                <Button onClick={resetFilters} variant="outline" className="flex-1 sm:flex-none">
-                  <span className="hidden sm:inline">Reset Filters</span>
-                  <span className="sm:hidden">Reset</span>
+                <Button onClick={resetFilters} variant="outline" className="flex-1 sm:flex-none transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md">
+                  <span className="inline-flex items-center gap-2"><RefreshCcw className={`h-4 w-4 transition-transform duration-500 ${isClearing ? 'rotate-[360deg]' : 'rotate-0'}`} /> <span>Reset Filters</span></span>
                 </Button>
-                {/* Export Button Dropdown (moved here) */}
-                <div className="relative flex-1 sm:flex-none" ref={exportRef}>
+                <div className="relative flex-1 sm:flex-none">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg shadow hover:bg-gray-100 w-full sm:w-auto"
-                    onClick={() => setExportOpen((v) => !v)}
-                    aria-haspopup="true"
-                    aria-expanded={exportOpen}
-                  >
-                    <Download className="w-4 h-4" /> <span className="hidden sm:inline">Export</span> <ChevronDown className="w-4 h-4" />
+                        aria-label="More actions"
+                        className="px-3 py-2 rounded-lg shadow hover:bg-gray-100 w-full sm:w-auto transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md"
+                      >
+                        <EllipsisVertical className="h-5 w-5"/>
+                        <span className="ml-2 hidden sm:inline">Exports</span>
                   </Button>
-                  {exportOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-50 animate-fade-in">
-                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100" onClick={() => handleExport('excel')}>Excel</button>
-                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100" onClick={() => handleExport('csv')}>CSV</button>
-                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100" onClick={() => handleExport('pdf')}>PDF</button>
-                    </div>
-                  )}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem onClick={handlePrintDashboard}>
+                        Print / Save PDF
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setCustomExportOpen(true)}>
+                        Export Custom
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>            
             </div>
@@ -1081,7 +1303,7 @@ export default function MainDashboardPage() {
         </Card>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-8">
+        <div ref={kpisRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-8">
           <KpiCard 
             title={userRole === 'principal' && userCampus ? `${userCampus} Students` : "Total Students"} 
             value={metrics.totalStudents} 
@@ -1095,7 +1317,7 @@ export default function MainDashboardPage() {
             value={`${metrics.averageAttendance}`} 
             description="Daily average present students" 
             icon={Users} 
-            bgColor="#6096BA" 
+            bgColor="#adb5bd" 
             textColor="text-white" 
           />
           <KpiCard 
@@ -1103,7 +1325,7 @@ export default function MainDashboardPage() {
             value={metrics.teachersCount} 
             description="Active teaching staff" 
             icon={GraduationCap} 
-            bgColor="#10b981" 
+            bgColor="#669bbc" 
             textColor="text-white" 
           />
           <KpiCard 
@@ -1111,42 +1333,93 @@ export default function MainDashboardPage() {
             value={`1:${metrics.teacherStudentRatio}`} 
             description="Students per teacher" 
             icon={UsersRound} 
-            bgColor="#14b8a6" 
+            bgColor="#BDC3C7" 
             textColor="text-white" 
           />
         </div>
 
         {/* Row 1: Gender & Religion */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8">
+        <div ref={genderReligionRef} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8 items-stretch">
+          <div ref={genderChartRef}>
           <GenderDistributionChart data={chartData.genderDistribution} />
+          </div>
+          <div ref={religionChartRef}>
           <ReligionChart data={chartData.religionDistribution} />
+          </div>
         </div>
 
         {/* Row 2: Mother Tongue & Enrollment Trend */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8">
+        <div ref={motherEnrollmentRef} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8 items-stretch">
+          <div ref={motherTongueChartRef}>
           <MotherTongueChart data={chartData.motherTongueDistribution} />
+          </div>
+          <div ref={enrollmentTrendChartRef}>
           <EnrollmentTrendChart data={chartData.enrollmentTrend.map((t: any) => ({ name: String(t.year), value: t.enrollment }))} />
+          </div>
         </div>
 
         {/* Row 3: Grade Distribution - Full Width (only for non-principal) */}
         {userRole !== 'principal' && (
-        <div className="grid grid-cols-1 gap-4 md:gap-6 mt-8">
+        <div ref={gradeDistributionRef} className="grid grid-cols-1 gap-4 md:gap-6 mt-8">
             <GradeDistributionChart data={chartData.gradeDistribution} />
         </div>
         )}
 
         {/* Row 4: Weekly Attendance & Age Distribution */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8">
+        <div ref={weeklyAgeRef} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8 items-stretch">
+          <div ref={weeklyAttendanceChartRef}>
           <WeeklyAttendanceChart data={weeklyAttendanceData} />
+          </div>
+          <div ref={ageDistributionChartRef}>
           <AgeDistributionChart data={chartData.ageDistribution} />
+          </div>
         </div>
 
         {/* Row 5: Zakat Status & House Ownership */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8">
+        <div ref={zakatHouseRef} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-8 items-stretch">
+          <div ref={zakatStatusChartRef}>
           <ZakatStatusChart data={chartData.zakatStatus} />
+          </div>
+          <div ref={houseOwnershipChartRef}>
           <HouseOwnershipChart data={chartData.houseOwnership} />
         </div>
       </div>
+      </div>
+      {/* Custom Export Modal */}
+      {customExportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setCustomExportOpen(false)} />
+          <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border-2 border-[#274c77]">
+            <div className="px-5 py-3 bg-gradient-to-r from-[#274c77] to-[#6096ba] text-white flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">Export Custom Report</h3>
+                <p className="text-xs opacity-90">Select sections to include in your report</p>
+              </div>
+              <button className="rounded-full h-8 w-8 hover:bg-white/20" onClick={() => setCustomExportOpen(false)}>×</button>
+            </div>
+            <div className="p-4 grid grid-cols-1 gap-2">
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!selectedSections.greeting} onChange={(e) => setSelectedSections(s => ({...s, greeting: e.target.checked}))} /> Greeting</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!selectedSections.kpis} onChange={(e) => setSelectedSections(s => ({...s, kpis: e.target.checked}))} /> KPI Cards</label>
+              <div className="mt-2 text-xs font-semibold text-gray-500">Charts</div>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!selectedSections.gender} onChange={(e) => setSelectedSections(s => ({...s, gender: e.target.checked}))} /> Gender</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!selectedSections.religion} onChange={(e) => setSelectedSections(s => ({...s, religion: e.target.checked}))} /> Religion</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!selectedSections.motherTongue} onChange={(e) => setSelectedSections(s => ({...s, motherTongue: e.target.checked}))} /> Mother Tongue</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!selectedSections.enrollmentTrend} onChange={(e) => setSelectedSections(s => ({...s, enrollmentTrend: e.target.checked}))} /> Enrollment Trend</label>
+              {userRole !== 'principal' && (
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!selectedSections.gradeDistribution} onChange={(e) => setSelectedSections(s => ({...s, gradeDistribution: e.target.checked}))} /> Grade Distribution</label>
+              )}
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!selectedSections.weeklyAttendance} onChange={(e) => setSelectedSections(s => ({...s, weeklyAttendance: e.target.checked}))} /> Weekly Attendance</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!selectedSections.ageDistribution} onChange={(e) => setSelectedSections(s => ({...s, ageDistribution: e.target.checked}))} /> Age Distribution</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!selectedSections.zakatStatus} onChange={(e) => setSelectedSections(s => ({...s, zakatStatus: e.target.checked}))} /> Zakat Status</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!selectedSections.houseOwnership} onChange={(e) => setSelectedSections(s => ({...s, houseOwnership: e.target.checked}))} /> House Ownership</label>
+            </div>
+            <div className="p-4 border-t bg-gray-50 flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => setCustomExportOpen(false)} className="px-4 py-2 text-sm">Cancel</Button>
+              <Button onClick={handleCustomExport} className="px-4 py-2 text-sm bg-[#274c77] text-white hover:bg-[#274c77]/90">Generate</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

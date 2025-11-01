@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Production optimizations
-  swcMinify: true,
   compress: true,
   
   // Disable source maps in production to prevent code exposure
@@ -12,19 +11,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   
-  // Optimize chunks and minify
-  webpack: (config, { dev, isServer }) => {
-    if (!dev && !isServer) {
-      // Aggressive minification in production
-      config.optimization = {
-        ...config.optimization,
-        minimize: true,
-        usedExports: true,
-        sideEffects: false,
-      };
-    }
-    return config;
-  },
+  // Optimize chunks and minify (use Next.js defaults with Turbopack/Webpack)
   
   // Security headers
   async headers() {

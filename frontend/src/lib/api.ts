@@ -60,6 +60,11 @@ const getEndpoints = () => ({
   CLASSROOM_STUDENTS: `${_a}/${_at}/class/${_id}/${_s}/`,
   AVAILABLE_STUDENTS: `${_a}/${_at}/class/${_id}/${_av}-${_s}/`,
   CURRENT_USER_PROFILE: `${_a}/${_cu}/`,
+  // Behaviour
+  BEHAVIOUR_CREATE: `/api/behaviour/record/`,
+  BEHAVIOUR_STUDENT: (id: number | string) => `/api/behaviour/student/${id}/`,
+  BEHAVIOUR_MONTHLY_STUDENT: (id: number | string) => `/api/behaviour/monthly/student/${id}/`,
+  BEHAVIOUR_MONTHLY_COMPUTE: `/api/behaviour/monthly/compute/`,
 });
 
 export const API_ENDPOINTS = getEndpoints() as ReturnType<typeof getEndpoints>;
@@ -644,8 +649,13 @@ export async function getFilteredStudents(params: {
       previous: string | null;
       results: any[];
     };
-  } catch (error) {
-    console.error('Failed to fetch filtered students:', error);
+  } catch (error: any) {
+    // Avoid noisy console for expected pagination boundary (Invalid page / 404)
+    const status = error?.status || error?.response?.status;
+    const msg = (error?.message || '').toString().toLowerCase();
+    if (!(status === 404 || msg.includes('invalid page'))) {
+      console.error('Failed to fetch filtered students:', error);
+    }
     return { results: [], count: 0, next: null, previous: null };
   }
 }
@@ -948,6 +958,42 @@ export async function getCurrentUserProfile() {
     console.error('Failed to fetch current user profile:', error);
     return null;
   }
+}
+
+// Behaviour API helpers
+export async function createBehaviourRecord(data: {
+  student: number;
+  week_start: string;
+  week_end: string;
+  metrics: Record<string, number>;
+  notes?: string;
+  events?: Array<{ date: string; name: string; progress: string; award?: string }>;
+}) {
+  return await apiPost(API_ENDPOINTS.BEHAVIOUR_CREATE, data);
+}
+
+export async function getStudentBehaviourRecords(studentId: number | string, opts?: { start_date?: string; end_date?: string }) {
+  const params = new URLSearchParams();
+  if (opts?.start_date) params.append('start_date', opts.start_date);
+  if (opts?.end_date) params.append('end_date', opts.end_date);
+  const base = typeof API_ENDPOINTS.BEHAVIOUR_STUDENT === 'function' ? API_ENDPOINTS.BEHAVIOUR_STUDENT(studentId) : `/api/behaviour/student/${studentId}/`;
+  const url = params.toString() ? `${base}?${params.toString()}` : base;
+  return await apiGet(url);
+}
+
+export async function getStudentMonthlyBehaviourLatest(studentId: number | string) {
+  const base = typeof API_ENDPOINTS.BEHAVIOUR_MONTHLY_STUDENT === 'function' ? API_ENDPOINTS.BEHAVIOUR_MONTHLY_STUDENT(studentId) : `/api/behaviour/monthly/student/${studentId}/`;
+  return await apiGet(base);
+}
+
+export async function getStudentMonthlyBehaviour(studentId: number | string, monthYYYYMM: string) {
+  const base = typeof API_ENDPOINTS.BEHAVIOUR_MONTHLY_STUDENT === 'function' ? API_ENDPOINTS.BEHAVIOUR_MONTHLY_STUDENT(studentId) : `/api/behaviour/monthly/student/${studentId}/`;
+  const url = `${base}?month=${encodeURIComponent(monthYYYYMM)}`;
+  return await apiGet(url);
+}
+
+export async function computeMonthlyBehaviour(payload: { student: number; month: string }) {
+  return await apiPost(API_ENDPOINTS.BEHAVIOUR_MONTHLY_COMPUTE, payload);
 }
 
 export async function getAllCoordinators(shift?: string) {
