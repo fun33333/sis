@@ -13,6 +13,7 @@ import {
   ArrowLeft, User, GraduationCap, Users, Calendar, MapPin, Award,
   TrendingUp, Star, CheckCircle, AlertCircle, Plus
 } from "lucide-react"
+import { getCurrentUserRole } from '@/lib/permissions'
 import { 
   ResponsiveContainer, 
   BarChart, 
@@ -132,6 +133,7 @@ function StudentProfileContent() {
   const router = useRouter()
   const params = useSearchParams()
   const studentId = params?.get("id") || ""
+  const userRole = getCurrentUserRole()
   
   // Early return for missing studentId
   if (!studentId) {
@@ -792,11 +794,13 @@ function StudentProfileContent() {
 
           {/* Second card - double width with Tabs (Personal | Academic | Contact) */}
           <Card className="h-[360px] md:h-[420px] bg-white border shadow-sm md:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-[#013a63]">Student Information</CardTitle>
-              <Button onClick={() => setBehaviourOpen(true)} className="h-9 px-3 text-white transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md" style={{ backgroundColor: themeColors.primary }}>
-                <Plus className="w-4 h-4 mr-1" /> Add Behaviour
-              </Button>
+              {userRole === 'teacher' && (
+                <Button onClick={() => setBehaviourOpen(true)} className="h-9 px-3 text-white transition-all duration-150 ease-in-out transform hover:shadow-lg active:scale-95 active:shadow-md" style={{ backgroundColor: themeColors.primary }}>
+                  <Plus className="w-4 h-4 mr-1" /> Add Behaviour
+                </Button>
+              )}
                 </CardHeader>
             <CardContent className="h-[calc(100%-3.5rem)] flex flex-col min-h-0">
               <Tabs defaultValue="personal" className="w-full h-full flex flex-col min-h-0">
@@ -964,31 +968,33 @@ function StudentProfileContent() {
                     <span className="inline-flex items-center gap-1 text-[#1d4ed8]"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#1d4ed8' }}></span>Sundays: {cwSundays}</span>
                 </div>
 
-                  {/* Behaviour Modal */}
-                  <StudentBehaviourModal
-                    open={behaviourOpen}
-                    onOpenChange={setBehaviourOpen}
-                    studentId={studentId}
-                    studentCode={(student as any)?.student_id}
-                    studentName={student?.name as any}
-                    onSubmit={async (payload) => {
-                      try {
-                        await createBehaviourRecord({
-                          student: Number(studentId),
-                          week_start: payload.weekStart,
-                          week_end: payload.weekEnd,
-                          metrics: payload.metrics,
-                          notes: payload.notes,
-                          events: (payload.events || []).map((e: any) => ({ date: e.date, name: e.name, progress: e.progress, award: e.award }))
-                        })
-                        const list = await getStudentBehaviourRecords(studentId)
-                        setBehaviourRecords(Array.isArray(list) ? list : [])
-                        toast({ title: "Behaviour saved", description: "Record stored successfully.", variant: "default" })
-                      } catch (e) {
-                        toast({ title: "Save failed", description: "Could not save behaviour record.", variant: "destructive" })
-                      }
-                    }}
-                  />
+                  {/* Behaviour Modal (teachers only) */}
+                  {userRole === 'teacher' && (
+                    <StudentBehaviourModal
+                      open={behaviourOpen}
+                      onOpenChange={setBehaviourOpen}
+                      studentId={studentId}
+                      studentCode={(student as any)?.student_id}
+                      studentName={student?.name as any}
+                      onSubmit={async (payload) => {
+                        try {
+                          await createBehaviourRecord({
+                            student: Number(studentId),
+                            week_start: payload.weekStart,
+                            week_end: payload.weekEnd,
+                            metrics: payload.metrics,
+                            notes: payload.notes,
+                            events: (payload.events || []).map((e: any) => ({ date: e.date, name: e.name, progress: e.progress, award: e.award }))
+                          })
+                          const list = await getStudentBehaviourRecords(studentId)
+                          setBehaviourRecords(Array.isArray(list) ? list : [])
+                          toast({ title: "Behaviour saved", description: "Record stored successfully.", variant: "default" })
+                        } catch (e) {
+                          toast({ title: "Save failed", description: "Could not save behaviour record.", variant: "destructive" })
+                        }
+                      }}
+                    />
+                  )}
                   <div className="text-[11px] text-slate-500 mt-1">Range: {cwStartLabel} – {cwEndLabel}</div>
                           </div>
                           </div>

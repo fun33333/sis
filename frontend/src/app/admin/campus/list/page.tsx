@@ -70,17 +70,20 @@ export default function CampusListPage() {
         
         // Count students per campus (only active students)
         studentsArray.forEach((student: any) => {
-          if (student.current_state === 'active') {
-            let campusId = null
-            if (typeof student.campus === 'object' && student.campus) {
-              campusId = student.campus.id || student.campus.pk
-            } else if (student.campus) {
-              campusId = student.campus
-            }
-            
-            if (campusId && studentCounts.hasOwnProperty(campusId)) {
-              studentCounts[campusId] = (studentCounts[campusId] || 0) + 1
-            }
+          if (student?.current_state && String(student.current_state).toLowerCase() !== 'active') return
+          // Resolve campus id from multiple possible shapes
+          const candidates = [
+            student?.campus?.id,
+            student?.campus?.pk,
+            student?.campus_id,
+            student?.current_campus,
+            student?.current_campus_id,
+            student?.campus
+          ]
+          const found = candidates.find((v: any) => v !== null && v !== undefined && String(v).trim() !== '')
+          const campusId = found !== undefined ? Number(found) : null
+          if (campusId !== null && Object.prototype.hasOwnProperty.call(studentCounts, campusId)) {
+            studentCounts[campusId] = (studentCounts[campusId] || 0) + 1
           }
         })
         

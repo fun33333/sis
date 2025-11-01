@@ -19,7 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { getGradeDistribution, getGenderDistribution, getEnrollmentTrend, getMotherTongueDistribution, getReligionDistribution, getAgeDistribution, getZakatStatusDistribution, getHouseOwnershipDistribution } from "@/lib/chart-utils"
 import type { FilterState, LegacyStudent as DashboardStudent } from "@/types/dashboard"
 import { useRouter } from "next/navigation"
-import { getDashboardStats, getAllStudents, getAllCampuses, apiGet, getCurrentUserProfile } from "@/lib/api"
+import { getDashboardStats, getAllStudents, getAllCampuses, apiGet, getCurrentUserProfile, getFilteredStudents } from "@/lib/api"
 import { getCurrentUserRole, getCurrentUser } from "@/lib/permissions"
 
 if (typeof window !== 'undefined') {
@@ -527,6 +527,13 @@ export default function MainDashboardPage() {
           // console.log('Principal campus found:', principalCampus)
           
           if (principalCampus) {
+            // Fetch real active students count for this campus directly from API (fast count)
+            try {
+              const countResp: any = await getFilteredStudents({ page: 1, page_size: 1, current_state: 'active', campus: Number(principalCampus.id) })
+              if (countResp && typeof countResp.count === 'number') {
+                setTotalStudentsCount(countResp.count)
+              }
+            } catch {}
             // Filter students by campus
             const campusStudents = studentsArray.filter((student: any) => {
               if (!student || !student.campus) {
@@ -604,7 +611,10 @@ export default function MainDashboardPage() {
             // console.log('Campus filtering debug:', {...})
             
             setStudents(mapped)
-            setTotalStudentsCount(mapped.length)
+            // Fallback to client-side mapped length if API count not available
+            if (!apiStats || typeof (apiStats as any).totalStudents !== 'number') {
+              setTotalStudentsCount(mapped.length)
+            }
             setCacheTimestamp(Date.now())
             
             // Save to cache (with total count) - only store essential data to avoid quota exceeded
@@ -634,9 +644,18 @@ export default function MainDashboardPage() {
         
         // console.log('📊 Fetched students for Super Admin:', { total: studentsArray.length })
         
-        // Set total count from API stats
-        if (apiStats && typeof apiStats.totalStudents === 'number') {
-          setTotalStudentsCount(apiStats.totalStudents)
+        // Set total count from live API (fast count)
+        try {
+          const countResp: any = await getFilteredStudents({ page: 1, page_size: 1, current_state: 'active', shift: shiftFilter !== 'all' ? shiftFilter : undefined })
+          if (countResp && typeof countResp.count === 'number') {
+            setTotalStudentsCount(countResp.count)
+          } else if (apiStats && typeof apiStats.totalStudents === 'number') {
+            setTotalStudentsCount(apiStats.totalStudents)
+          }
+        } catch {
+          if (apiStats && typeof apiStats.totalStudents === 'number') {
+            setTotalStudentsCount(apiStats.totalStudents)
+          }
         }
         
         // Note: Charts are now calculated from filtered students dynamically
@@ -694,7 +713,10 @@ export default function MainDashboardPage() {
         // console.log('✅ Mapped students for charts:', mapped.length)
         
         setStudents(mapped)
-        setTotalStudentsCount(mapped.length)
+        // Fallback if nothing else set
+        if (!mapped.length && totalStudentsCount === 0) {
+          setTotalStudentsCount(mapped.length)
+        }
         setCacheTimestamp(Date.now())
         
         // Save to cache (with total count) - only store essential data to avoid quota exceeded
@@ -742,7 +764,7 @@ export default function MainDashboardPage() {
 
   const metrics = useMemo(() => {
     // Use filtered students count to respect user's filter selections
-    const totalStudents = filteredStudents.length
+    const totalStudents = totalStudentsCount || filteredStudents.length
     
     // Calculate real attendance from weekly data (average of present students)
     const averageAttendance = weeklyAttendanceData.length > 0 
@@ -762,7 +784,7 @@ export default function MainDashboardPage() {
       averageScore: 0, // Removed
       retentionRate: 0 // Removed
     }
-  }, [filteredStudents.length, teachersCount, weeklyAttendanceData])
+  }, [totalStudentsCount, filteredStudents.length, teachersCount, weeklyAttendanceData])
 
   // Campus performance data - use filtered students
   const campusPerformanceData = useMemo(() => {
